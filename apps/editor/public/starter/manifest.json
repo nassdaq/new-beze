@@ -1,0 +1,261 @@
+{
+  "files": {
+    "ast_starter_tileset": "tileset.png",
+    "ast_starter_hero": "hero.png",
+    "ast_starter_villager": "villager.png",
+    "ast_starter_hero_portrait": "hero_portrait.png",
+    "ast_starter_villager_portrait": "villager_portrait.png"
+  },
+  "assets": [
+    {
+      "id": "ast_starter_tileset",
+      "kind": "image",
+      "name": "Outdoor tileset",
+      "mime": "image/png",
+      "width": 128,
+      "height": 32,
+      "hash": "0a76248d8c2b3b3260c3ec739e6aae0287f8b1ccba9e363f158b98b6ecdb28da",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ast_starter_hero",
+      "kind": "image",
+      "name": "Hero sheet",
+      "mime": "image/png",
+      "width": 128,
+      "height": 192,
+      "hash": "dbb4e03afadf5539f382cbd2c4bd96de8bf502b3a2004e3bf6074ef66743e6ea",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ast_starter_villager",
+      "kind": "image",
+      "name": "Villager sheet",
+      "mime": "image/png",
+      "width": 128,
+      "height": 192,
+      "hash": "ee4f4bb968af73dc50b876e40ce8ec2d8ea3e4e027891f9b6ccd8f71c496e453",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ast_starter_hero_portrait",
+      "kind": "image",
+      "name": "Hero portrait",
+      "mime": "image/png",
+      "width": 256,
+      "height": 256,
+      "hash": "184ddef5688f77de44548a884d7fa64c43a2ef063cc7f8692d547b26f0240e0c",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ast_starter_villager_portrait",
+      "kind": "image",
+      "name": "Villager portrait",
+      "mime": "image/png",
+      "width": 256,
+      "height": 256,
+      "hash": "d4646bff1edd99ff73b8f8ec2eddd2084c205048968c948433903b60347d1e55",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    }
+  ],
+  "tilesets": [
+    {
+      "id": "tls_outdoor",
+      "name": "Outdoor",
+      "imageAssetId": "ast_starter_tileset",
+      "tileWidth": 32,
+      "tileHeight": 32,
+      "columns": 4,
+      "tileCount": 4,
+      "margin": 0,
+      "spacing": 0,
+      "tileProperties": {
+        "2": {
+          "solid": true,
+          "tag": "tree"
+        },
+        "3": {
+          "solid": true,
+          "tag": "water"
+        }
+      }
+    }
+  ],
+  "characters": [
+    {
+      "id": "chr_hero",
+      "name": "Hero",
+      "spriteSheetAssetId": "ast_starter_hero",
+      "frameWidth": 32,
+      "frameHeight": 48,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 8,
+          "loop": true
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 8,
+          "loop": true
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 8,
+          "loop": true
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 8,
+          "loop": true
+        }
+      },
+      "collider": {
+        "width": 20,
+        "height": 16,
+        "offsetX": 6,
+        "offsetY": 32
+      },
+      "portraitAssetId": "ast_starter_hero_portrait"
+    },
+    {
+      "id": "chr_villager",
+      "name": "Villager",
+      "spriteSheetAssetId": "ast_starter_villager",
+      "frameWidth": 32,
+      "frameHeight": 48,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 8,
+          "loop": true
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 8,
+          "loop": true
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 8,
+          "loop": true
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 8,
+          "loop": true
+        }
+      },
+      "collider": {
+        "width": 20,
+        "height": 16,
+        "offsetX": 6,
+        "offsetY": 32
+      },
+      "portraitAssetId": "ast_starter_villager_portrait"
+    }
+  ],
+  "groundGid": 1,
+  "playerCharacterId": "chr_hero"
+}

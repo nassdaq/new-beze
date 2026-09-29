@@ -260,6 +260,7 @@ The play panel mounts `<iframe sandbox="allow-scripts" src="/runtime/index.html"
 | runtime → editor | `beze:ready` | `{ runtimeVersion, supportedSchema: [min, max] }` |
 | editor → runtime | `beze:load` | `{ project, assetUrls: Record<assetId, url>, options: { startSceneId?, debug } }` |
 | runtime → editor | `beze:loaded` | `{}` |
+| runtime → editor | `beze:exit` | `{}` (the player pressed Escape; keyboard focus is inside the iframe, so the editor cannot see it) |
 | runtime → editor | `beze:error` | `{ message, path? }` |
 | runtime → editor | `beze:log` | `{ level, message }` |
 | editor → runtime | `beze:stop` | `{}` |
@@ -569,7 +570,9 @@ export type Operation =
   | { op: 'deleteCharacter'; id: string }
   // tilesets and maps
   | { op: 'createTileset'; tileset: Tileset }
+  | { op: 'deleteTileset'; id: string }
   | { op: 'createMap'; map: TileMap }
+  | { op: 'deleteMap'; id: string }
   | { op: 'paintTiles'; mapId: string; layerId: string; cells: Array<{ x: number; y: number; gid: number }> }
   | { op: 'setCollision'; mapId: string; cells: Array<{ x: number; y: number; solid: boolean }> }
   | { op: 'addLayer'; mapId: string; layer: TileLayer; index?: number }
@@ -579,7 +582,7 @@ export type Operation =
   | { op: 'updateScene'; id: string; patch: Partial<Pick<Scene, 'name' | 'mapId' | 'backgroundAssetId'>> }
   | { op: 'deleteScene'; id: string }
   | { op: 'setStartScene'; sceneId: string }
-  | { op: 'createEntity'; sceneId: string; entity: Entity }
+  | { op: 'createEntity'; sceneId: string; entity: Entity; index?: number }   // index restores order on undo
   | { op: 'placeEntity'; sceneId: string; entityId: string; x: number; y: number; facing?: Direction }
   | { op: 'modifyEntity'; sceneId: string; entityId: string; patch: Partial<Pick<Entity, 'name' | 'facing'>> }
   | { op: 'setComponent'; sceneId: string; entityId: string; component: Component }   // upsert by type
@@ -614,7 +617,8 @@ Rules:
 
 - A batch is atomic. If any operation fails (unknown id, integrity violation, limit exceeded), none apply.
 - `applyOperations` runs `validateProject` on the result. Operations cannot leave the document inconsistent; a `deleteCharacter` with entities still referencing it fails with a diagnostic listing them. The editor offers "delete and remove 3 sprites" as a composed batch.
-- Every operation has a total inverse. The property test in `project-core` is: for any valid project and any generated valid operation batch, `apply(inverse(apply(p, ops))) deepEquals p`.
+- Every operation has a total inverse. The property test in `project-core` is: for any valid project and any generated valid operation batch, `apply(inverse(apply(p, ops))) deepEquals p`. `update*` operations whose patch touches an optional field that was absent invert as delete + create, which is exact.
+- Components are stored in a fixed canonical order (`sprite, body, playerControl, interactable, trigger, wander`) so documents compare structurally regardless of edit history.
 - The catalog is deliberately fine-grained. Coarse convenience for humans and AI (for example "create an NPC with a dialogue") is a composition of these, built by helper functions in `project-core/recipes.ts`, so the AI can be given either the raw operations or the recipes as tools depending on what works better.
 
 ---
@@ -653,7 +657,7 @@ Until step 4 finishes the editor shows a placeholder. Failed validation returns 
 
 ### 8.4 Resolution
 
-`AssetStore.urlMap(projectId, ids)` gives the runtime what it needs. Locally these are `blob:` URLs from IndexedDB or `/starter/...` paths. Remotely they are signed URLs. Exports rewrite them to `assets/{id}.{ext}` and write `assets/manifest.json`.
+`AssetStore.dataUrls(ids)` gives the runtime what it needs. The Play iframe has an opaque origin, so `blob:` URLs (origin-bound) and cross-origin image fetches (which taint WebGL textures) both fail there; data URLs cross the boundary cleanly and starter assets are small. Remotely the runtime will receive signed URLs from an asset origin that sends CORS headers. Exports rewrite everything to `assets/{id}.{ext}` and write `assets/manifest.json`.
 
 ### 8.5 Starter pack
 

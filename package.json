@@ -1,0 +1,18 @@
+{
+  "name": "beze",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "pnpm --filter @beze/runtime build && pnpm -r --parallel --filter @beze/runtime --filter @beze/editor dev",
+    "build": "pnpm -r --filter './packages/**' build && pnpm --filter @beze/editor build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "schemas": "pnpm --filter @beze/project-schema schemas",
+    "e2e": "pnpm --filter @beze/editor e2e",
+    "starter": "python3 scripts/generate_starter_assets.py"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

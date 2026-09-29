@@ -23,7 +23,7 @@
       "mime": "image/png",
       "width": 128,
       "height": 32,
-      "hash": "0000000000000000000000000000000000000000000000000000000000000001",
+      "hash": "0a76248d8c2b3b3260c3ec739e6aae0287f8b1ccba9e363f158b98b6ecdb28da",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -34,7 +34,7 @@
       "mime": "image/png",
       "width": 128,
       "height": 192,
-      "hash": "0000000000000000000000000000000000000000000000000000000000000002",
+      "hash": "dbb4e03afadf5539f382cbd2c4bd96de8bf502b3a2004e3bf6074ef66743e6ea",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -45,7 +45,7 @@
       "mime": "image/png",
       "width": 128,
       "height": 192,
-      "hash": "0000000000000000000000000000000000000000000000000000000000000003",
+      "hash": "ee4f4bb968af73dc50b876e40ce8ec2d8ea3e4e027891f9b6ccd8f71c496e453",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -56,7 +56,7 @@
       "mime": "image/png",
       "width": 256,
       "height": 256,
-      "hash": "0000000000000000000000000000000000000000000000000000000000000004",
+      "hash": "d4646bff1edd99ff73b8f8ec2eddd2084c205048968c948433903b60347d1e55",
       "origin": "starter",
       "license": "CC0-1.0"
     }
@@ -1199,7 +1199,7 @@
           "id": "ent_hero",
           "name": "Hero",
           "x": 320,
-          "y": 384,
+          "y": 368,
           "facing": "up",
           "components": [
             {
@@ -1219,7 +1219,7 @@
           "id": "ent_aiko",
           "name": "Aiko",
           "x": 384,
-          "y": 256,
+          "y": 240,
           "facing": "down",
           "components": [
             {

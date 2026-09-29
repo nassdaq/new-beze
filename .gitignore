@@ -1,0 +1,8 @@
+node_modules/
+dist/
+apps/editor/public/runtime/
+apps/editor/test-results/
+apps/editor/playwright-report/
+*.tsbuildinfo
+.env
+.DS_Store
