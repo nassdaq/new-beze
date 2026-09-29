@@ -154,3 +154,20 @@ They named a game, painted a path, dropped a character called Aiko onto it, wrot
 
 Sizes measured at implementation time: editor 143 KB gzipped, runtime 367 KB gzipped, both
 inside the budgets in section 5.
+
+## 9. Slice 2 (implemented): action vocabulary and Ask
+
+Added after slice 1, still local-first:
+
+- **Schema v2** with a v1 → v2 migration: `settings.attackKey`, `health` and `enemy` components,
+  `playerControl.attackDamage`, and the `paintRect` / `setCollisionRect` operations.
+- **Runtime**: wandering NPCs, chasing enemies with contact damage, player attacks with a swing
+  hitbox, hit flash, knockback, invulnerability frames, camera shake, hearts HUD, defeat overlay
+  with retry, and persistent defeats. The starter pack gained a slime.
+- **Editor**: health, enemy and wander controls in the entity inspector; attack key in settings.
+- **Ask** (`apps/api`): prompt → operations through a provider-neutral tool-calling loop; the
+  editor previews the batch and applies it as one undoable transaction. Providers: Claude,
+  any OpenAI-compatible server (your GPUs), and a deterministic fake used by the e2e test.
+- Verified headlessly: the slime is defeated in two swings and increments a counter; the hero
+  loses hearts on contact and reaches the retry overlay; a prompt produces an NPC the player
+  can talk to; undo reverts the whole proposal.

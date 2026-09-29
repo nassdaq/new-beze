@@ -29,9 +29,18 @@ export const OperationSchema = z.discriminatedUnion('op', [
     op: z.literal('paintTiles'), mapId: IdSchema, layerId: IdSchema,
     cells: z.array(z.object({ x: Int.min(0), y: Int.min(0), gid: Int.min(0) })).min(1).max(40000),
   }),
+  /** Fills a rectangle of tiles. Cheaper to express than a cell list; humans and AI both use it. */
+  z.object({
+    op: z.literal('paintRect'), mapId: IdSchema, layerId: IdSchema,
+    x: Int.min(0), y: Int.min(0), width: Int.min(1).max(200), height: Int.min(1).max(200), gid: Int.min(0),
+  }),
   z.object({
     op: z.literal('setCollision'), mapId: IdSchema,
     cells: z.array(z.object({ x: Int.min(0), y: Int.min(0), solid: z.boolean() })).min(1).max(40000),
+  }),
+  z.object({
+    op: z.literal('setCollisionRect'), mapId: IdSchema,
+    x: Int.min(0), y: Int.min(0), width: Int.min(1).max(200), height: Int.min(1).max(200), solid: z.boolean(),
   }),
   z.object({ op: z.literal('addLayer'), mapId: IdSchema, layer: TileLayerSchema, index: Int.min(0).optional() }),
   z.object({ op: z.literal('deleteLayer'), mapId: IdSchema, layerId: IdSchema }),

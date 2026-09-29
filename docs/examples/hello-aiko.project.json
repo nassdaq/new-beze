@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "prj_hello_aiko",
   "name": "Hello, Aiko",
   "settings": {
@@ -12,6 +12,7 @@
     "pixelArt": true,
     "defaultMoveSpeed": 96,
     "interactKey": "E",
+    "attackKey": "SPACE",
     "backgroundColor": "#1a1a2e"
   },
   "startSceneId": "scn_village",
@@ -46,6 +47,17 @@
       "width": 128,
       "height": 192,
       "hash": "ee4f4bb968af73dc50b876e40ce8ec2d8ea3e4e027891f9b6ccd8f71c496e453",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    "ast_starter_slime": {
+      "id": "ast_starter_slime",
+      "kind": "image",
+      "name": "Slime sheet",
+      "mime": "image/png",
+      "width": 128,
+      "height": 192,
+      "hash": "fa015b66772d58a1b76aa28e93af46dc8a1598d7e0e7cc7d8c9c7998e2065ff4",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -1187,6 +1199,89 @@
         "offsetY": 32
       },
       "portraitAssetId": "ast_starter_villager_portrait"
+    },
+    "chr_slime": {
+      "id": "chr_slime",
+      "name": "Slime",
+      "spriteSheetAssetId": "ast_starter_slime",
+      "frameWidth": 32,
+      "frameHeight": 48,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 6,
+          "loop": true
+        }
+      },
+      "collider": {
+        "width": 20,
+        "height": 14,
+        "offsetX": 6,
+        "offsetY": 32
+      }
     }
   },
   "scenes": {
@@ -1211,7 +1306,51 @@
               "solid": true
             },
             {
-              "type": "playerControl"
+              "type": "playerControl",
+              "attackDamage": 1
+            },
+            {
+              "type": "health",
+              "max": 3
+            }
+          ]
+        },
+        "ent_slime": {
+          "id": "ent_slime",
+          "name": "Slime",
+          "x": 480,
+          "y": 114,
+          "facing": "down",
+          "components": [
+            {
+              "type": "sprite",
+              "characterId": "chr_slime"
+            },
+            {
+              "type": "body",
+              "solid": true
+            },
+            {
+              "type": "wander",
+              "radius": 64,
+              "speed": 24
+            },
+            {
+              "type": "health",
+              "max": 2
+            },
+            {
+              "type": "enemy",
+              "speed": 56,
+              "aggroRadius": 120,
+              "damage": 1,
+              "attackCooldownMs": 800,
+              "onDefeat": {
+                "type": "setVariable",
+                "variableId": "var_slimes_defeated",
+                "op": "add",
+                "value": 1
+              }
             }
           ]
         },
@@ -1243,7 +1382,8 @@
       },
       "entityOrder": [
         "ent_hero",
-        "ent_aiko"
+        "ent_aiko",
+        "ent_slime"
       ]
     }
   },
@@ -1333,6 +1473,12 @@
       "name": "metAiko",
       "type": "boolean",
       "initial": false
+    },
+    "var_slimes_defeated": {
+      "id": "var_slimes_defeated",
+      "name": "slimesDefeated",
+      "type": "number",
+      "initial": 0
     }
   },
   "meta": {

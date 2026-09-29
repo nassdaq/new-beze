@@ -4,6 +4,7 @@ import { SceneInspector } from './inspectors/SceneInspector.js';
 import { VariableInspector } from './inspectors/VariableInspector.js';
 import { DialogueInspector } from './inspectors/DialogueInspector.js';
 import { Field, Section } from '../ui/Field.js';
+import { AskPanel } from './AskPanel.js';
 
 export function InspectorPanel() {
   const project = useProject();
@@ -39,8 +40,13 @@ export function InspectorPanel() {
               <option value="E">E</option><option value="SPACE">Space</option><option value="ENTER">Enter</option>
             </select>
           </Field>
+          <Field label="Attack key">
+            <select value={project.settings.attackKey} onChange={(e) => dispatch('Attack key', [{ op: 'updateSettings', patch: { attackKey: e.target.value as 'SPACE' | 'X' | 'J' | 'K' } }])}>
+              <option value="SPACE">Space</option><option value="X">X</option><option value="J">J</option><option value="K">K</option>
+            </select>
+          </Field>
         </Section>
       );
   }
-  return <aside className="panel panel-right" data-testid="inspector">{body}</aside>;
+  return <aside className="panel panel-right" data-testid="inspector"><AskPanel />{body}</aside>;
 }

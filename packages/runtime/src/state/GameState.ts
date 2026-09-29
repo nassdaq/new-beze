@@ -5,6 +5,8 @@ export interface GameState {
   variables: Record<string, Scalar>;
   currentSceneId: string;
   firedTriggers: string[];
+  /** `${sceneId}:${entityId}` of enemies already defeated; they do not respawn. */
+  defeated: string[];
 }
 
 export function initGameState(project: Project, startSceneId?: string): GameState {
@@ -12,6 +14,7 @@ export function initGameState(project: Project, startSceneId?: string): GameStat
     variables: Object.fromEntries(Object.values(project.variables).map((v) => [v.id, v.initial])),
     currentSceneId: startSceneId ?? project.startSceneId,
     firedTriggers: [],
+    defeated: [],
   };
 }
 

@@ -88,3 +88,8 @@ textarea { resize: vertical; }
 .toast-title { display: flex; justify-content: space-between; gap: 10px; font-weight: 600; }
 .toast-close { background: none; border: none; padding: 0 4px; color: var(--muted); }
 .toast-lines { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+
+.ask-error { color: #fecaca; font-size: 12px; white-space: pre-wrap; margin: 8px 0 0; }
+.proposal { margin-top: 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.proposal-lines { margin: 0; padding-left: 18px; font-size: 12px; }
+.panel-right .section:first-child { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent); }

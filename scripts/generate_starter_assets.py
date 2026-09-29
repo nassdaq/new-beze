@@ -175,13 +175,32 @@ def portrait(hair, hair_d, coat, accent, eye) -> Image:
     img.rect(120, 200, 16, 40, accent)
     return img
 
+def slime_sheet(body, body_d, eye) -> Image:
+    """A blob enemy in the same 32x48 frame grid so it shares the character pipeline."""
+    img = Image(FW * 4, FH * 4)
+    for row, facing in enumerate(('down', 'left', 'right', 'up')):
+        for frame in range(4):
+            ox, oy = frame * FW, row * FH
+            squash = (0, 1, 2, 1)[frame]
+            cx, base = ox + 16, oy + 46
+            img.ellipse(cx, base - 9 + squash, 12 + squash, 9 - squash, body)
+            img.ellipse(cx - 3, base - 13 + squash, 5, 3, rgba('ffffff', 110))
+            img.rect(cx - 12 - squash, base - 3, 24 + 2 * squash, 2, body_d)
+            if facing != 'up':
+                ex = cx - 4 if facing != 'right' else cx + 1
+                ex2 = cx + 3 if facing != 'left' else cx - 6
+                img.rect(ex, base - 10 + squash, 2, 3, eye)
+                img.rect(ex2, base - 10 + squash, 2, 3, eye)
+    return img
+
 hero = sheet(rgba('f2f2f2'), rgba('c9c9d4'), rgba('23212b'), rgba('141319'), rgba('2c2c3a'), rgba('c8102e'))
 villager = sheet(rgba('6b3e2e'), rgba('4d2a1f'), rgba('d94f6b'), rgba('a83a52'), rgba('f2e6d8'), rgba('f6d365'))
 hero_portrait = portrait(rgba('f2f2f2'), rgba('c9c9d4'), rgba('23212b'), rgba('c8102e'), rgba('6a8fd8'))
+slime = slime_sheet(rgba('6fd3a3'), rgba('3f9c74'), rgba('1d3a2f'))
 villager_portrait = portrait(rgba('6b3e2e'), rgba('4d2a1f'), rgba('d94f6b'), rgba('f6d365'), rgba('7a4b2e'))
 
 files = {
-    'tileset.png': tiles, 'hero.png': hero, 'villager.png': villager,
+    'tileset.png': tiles, 'hero.png': hero, 'villager.png': villager, 'slime.png': slime,
     'hero_portrait.png': hero_portrait, 'villager_portrait.png': villager_portrait,
 }
 hashes: dict[str, str] = {}
@@ -208,6 +227,7 @@ manifest = {
     'files': {
         'ast_starter_tileset': 'tileset.png', 'ast_starter_hero': 'hero.png', 'ast_starter_villager': 'villager.png',
         'ast_starter_hero_portrait': 'hero_portrait.png', 'ast_starter_villager_portrait': 'villager_portrait.png',
+        'ast_starter_slime': 'slime.png',
     },
     'assets': [
         asset('ast_starter_tileset', 'Outdoor tileset', 'tileset.png', T * 4, T),
@@ -215,6 +235,7 @@ manifest = {
         asset('ast_starter_villager', 'Villager sheet', 'villager.png', FW * 4, FH * 4),
         asset('ast_starter_hero_portrait', 'Hero portrait', 'hero_portrait.png', 256, 256),
         asset('ast_starter_villager_portrait', 'Villager portrait', 'villager_portrait.png', 256, 256),
+        asset('ast_starter_slime', 'Slime sheet', 'slime.png', FW * 4, FH * 4),
     ],
     'tilesets': [{
         'id': 'tls_outdoor', 'name': 'Outdoor', 'imageAssetId': 'ast_starter_tileset',
@@ -228,6 +249,9 @@ manifest = {
         {'id': 'chr_villager', 'name': 'Villager', 'spriteSheetAssetId': 'ast_starter_villager', 'frameWidth': FW, 'frameHeight': FH,
          'animations': animations(), 'collider': {'width': 20, 'height': 16, 'offsetX': 6, 'offsetY': 32},
          'portraitAssetId': 'ast_starter_villager_portrait'},
+        {'id': 'chr_slime', 'name': 'Slime', 'spriteSheetAssetId': 'ast_starter_slime', 'frameWidth': FW, 'frameHeight': FH,
+         'animations': {k: {**v, 'frameRate': 6 if k.startswith('walk') else 1} for k, v in animations().items()},
+         'collider': {'width': 20, 'height': 14, 'offsetX': 6, 'offsetY': 32}},
     ],
     'groundGid': 1,
     'playerCharacterId': 'chr_hero',

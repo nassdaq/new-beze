@@ -366,7 +366,18 @@ Principles:
 - The runtime declares the schema versions it supports. The editor refuses to send a newer document to an older runtime; the export pins the runtime version in `exports.runtime_version`.
 - No DOM text injection. Dialogue text is drawn by Phaser text objects, which are not HTML.
 
-### 6.3 Movement and interaction conventions (v1)
+### 6.3 Combat conventions (v2)
+
+- `health` gives an entity hit points. `enemy` chases the player inside `aggroRadius`, hurts on
+  contact every `attackCooldownMs`, and otherwise wanders (if it has `wander`) or idles.
+- The player attacks with `settings.attackKey`: a hitbox one tile deep in the facing direction
+  for one swing, damage from `playerControl.attackDamage`. Hits flash white, knock back, and
+  give the player 700 ms of invulnerability. Defeated enemies fade out, run `onDefeat`, and are
+  recorded in `GameState.defeated` so they stay gone when the scene is revisited.
+- A defeated player sees a retry overlay; the attack key restarts the scene with variables kept.
+- Hearts HUD in the top-left whenever the player has health.
+
+### 6.4 Movement and interaction conventions (v1)
 
 - Player moves continuously with arcade physics at `settings.defaultMoveSpeed` pixels per second, 4 directions, no diagonal in v1 (diagonal is a settings flag later).
 - Collision comes from the map's collision grid plus entities whose `body.solid` is true.
@@ -391,7 +402,7 @@ Source of truth: `packages/project-schema/src/*.ts` using Zod. What follows is t
 ### 7.2 Types
 
 ```ts
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;   // v2 added settings.attackKey and the health/enemy components
 
 export interface Project {
   schemaVersion: 1;
@@ -417,6 +428,7 @@ export interface ProjectSettings {
   pixelArt: boolean;
   defaultMoveSpeed: number;                        // px/s
   interactKey: 'E' | 'SPACE' | 'ENTER';
+  attackKey: 'SPACE' | 'X' | 'J' | 'K';           // v2; must differ from interactKey
   backgroundColor: string;
 }
 
@@ -500,10 +512,12 @@ export interface Entity {
 export type Component =
   | { type: 'sprite'; characterId: string }
   | { type: 'body'; solid: boolean }
-  | { type: 'playerControl'; speed?: number }
+  | { type: 'playerControl'; speed?: number; attackDamage?: number }
   | { type: 'interactable'; action: Action; prompt?: string }
   | { type: 'trigger'; width: number; height: number; onEnter: Action; once: boolean }
-  | { type: 'wander'; radius: number; speed: number };        // milestone 2
+  | { type: 'wander'; radius: number; speed: number }         // random strolls around the spawn point
+  | { type: 'health'; max: number }                             // v2: can be hurt; 0 = defeated
+  | { type: 'enemy'; speed: number; aggroRadius: number; damage: number; attackCooldownMs: number; onDefeat?: Action };  // v2
 
 export type Action =
   | { type: 'startDialogue'; dialogueId: string }
@@ -574,6 +588,8 @@ export type Operation =
   | { op: 'createMap'; map: TileMap }
   | { op: 'deleteMap'; id: string }
   | { op: 'paintTiles'; mapId: string; layerId: string; cells: Array<{ x: number; y: number; gid: number }> }
+  | { op: 'paintRect'; mapId: string; layerId: string; x: number; y: number; width: number; height: number; gid: number }
+  | { op: 'setCollisionRect'; mapId: string; x: number; y: number; width: number; height: number; solid: boolean }
   | { op: 'setCollision'; mapId: string; cells: Array<{ x: number; y: number; solid: boolean }> }
   | { op: 'addLayer'; mapId: string; layer: TileLayer; index?: number }
   | { op: 'deleteLayer'; mapId: string; layerId: string }
@@ -670,6 +686,9 @@ Deleting an asset in the editor requires no document references. Orphaned `pendi
 ---
 
 ## 9. AI abstraction
+
+Implemented for content generation in `apps/api` (see `docs/AI_AND_GPU.md` for the running
+system, the self-hosted GPU path and the asset-generation plan). This section is the design.
 
 ### 9.1 Principles
 

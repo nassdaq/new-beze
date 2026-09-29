@@ -64,6 +64,15 @@
                 "ENTER"
               ]
             },
+            "attackKey": {
+              "type": "string",
+              "enum": [
+                "SPACE",
+                "X",
+                "J",
+                "K"
+              ]
+            },
             "backgroundColor": {
               "type": "string",
               "pattern": "^#[0-9a-fA-F]{6}$"
@@ -1090,6 +1099,59 @@
       "properties": {
         "op": {
           "type": "string",
+          "const": "paintRect"
+        },
+        "mapId": {
+          "type": "string",
+          "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+        },
+        "layerId": {
+          "type": "string",
+          "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+        },
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "op",
+        "mapId",
+        "layerId",
+        "x",
+        "y",
+        "width",
+        "height",
+        "gid"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
           "const": "setCollision"
         },
         "mapId": {
@@ -1130,6 +1192,52 @@
         "op",
         "mapId",
         "cells"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "setCollisionRect"
+        },
+        "mapId": {
+          "type": "string",
+          "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+        },
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "solid": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "op",
+        "mapId",
+        "x",
+        "y",
+        "width",
+        "height",
+        "solid"
       ],
       "additionalProperties": false
     },
@@ -1338,6 +1446,11 @@
                               "type": "number",
                               "exclusiveMinimum": 0,
                               "maximum": 2000
+                            },
+                            "attackDamage": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 9999
                             }
                           },
                           "required": [
@@ -1409,7 +1522,7 @@
                             "radius": {
                               "type": "integer",
                               "minimum": 1,
-                              "maximum": 9007199254740991
+                              "maximum": 2000
                             },
                             "speed": {
                               "type": "number",
@@ -1421,6 +1534,65 @@
                             "type",
                             "radius",
                             "speed"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "health"
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 9999
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "enemy"
+                            },
+                            "speed": {
+                              "type": "number",
+                              "exclusiveMinimum": 0,
+                              "maximum": 2000
+                            },
+                            "aggroRadius": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4000
+                            },
+                            "damage": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 9999
+                            },
+                            "attackCooldownMs": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 60000
+                            },
+                            "onDefeat": {
+                              "$ref": "#/$defs/__schema0"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "speed",
+                            "aggroRadius",
+                            "damage",
+                            "attackCooldownMs"
                           ],
                           "additionalProperties": false
                         }
@@ -1637,6 +1809,11 @@
                         "type": "number",
                         "exclusiveMinimum": 0,
                         "maximum": 2000
+                      },
+                      "attackDamage": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9999
                       }
                     },
                     "required": [
@@ -1708,7 +1885,7 @@
                       "radius": {
                         "type": "integer",
                         "minimum": 1,
-                        "maximum": 9007199254740991
+                        "maximum": 2000
                       },
                       "speed": {
                         "type": "number",
@@ -1720,6 +1897,65 @@
                       "type",
                       "radius",
                       "speed"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "health"
+                      },
+                      "max": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9999
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "max"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "enemy"
+                      },
+                      "speed": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 2000
+                      },
+                      "aggroRadius": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 4000
+                      },
+                      "damage": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9999
+                      },
+                      "attackCooldownMs": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 60000
+                      },
+                      "onDefeat": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "speed",
+                      "aggroRadius",
+                      "damage",
+                      "attackCooldownMs"
                     ],
                     "additionalProperties": false
                   }
@@ -1901,6 +2137,11 @@
                   "type": "number",
                   "exclusiveMinimum": 0,
                   "maximum": 2000
+                },
+                "attackDamage": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9999
                 }
               },
               "required": [
@@ -1972,7 +2213,7 @@
                 "radius": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 9007199254740991
+                  "maximum": 2000
                 },
                 "speed": {
                   "type": "number",
@@ -1984,6 +2225,65 @@
                 "type",
                 "radius",
                 "speed"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "health"
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9999
+                }
+              },
+              "required": [
+                "type",
+                "max"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "enemy"
+                },
+                "speed": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 2000
+                },
+                "aggroRadius": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4000
+                },
+                "damage": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9999
+                },
+                "attackCooldownMs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60000
+                },
+                "onDefeat": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              "required": [
+                "type",
+                "speed",
+                "aggroRadius",
+                "damage",
+                "attackCooldownMs"
               ],
               "additionalProperties": false
             }
@@ -2021,7 +2321,9 @@
             "playerControl",
             "interactable",
             "trigger",
-            "wander"
+            "wander",
+            "health",
+            "enemy"
           ]
         }
       },

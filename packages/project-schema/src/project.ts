@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SCHEMA_VERSION = 1 as const;
+export const SCHEMA_VERSION = 2 as const;
 
 /** Opaque id: a three-letter type prefix, an underscore, then up to 40 url-safe characters. */
 export const IdSchema = z.string().regex(/^[a-z]{3}_[A-Za-z0-9_-]{1,40}$/, 'invalid id');
@@ -33,6 +33,8 @@ export const ProjectSettingsSchema = z.object({
   pixelArt: z.boolean(),
   defaultMoveSpeed: z.number().positive().max(2000),
   interactKey: z.enum(['E', 'SPACE', 'ENTER']),
+  /** v2: the player's attack key. Must differ from interactKey (checked by the validator). */
+  attackKey: z.enum(['SPACE', 'X', 'J', 'K']),
   backgroundColor: Color,
 });
 export type ProjectSettings = z.infer<typeof ProjectSettingsSchema>;
@@ -144,13 +146,30 @@ export const ActionSchema: z.ZodType<Action> = z.lazy(() =>
 export const ComponentSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('sprite'), characterId: IdSchema }),
   z.object({ type: z.literal('body'), solid: z.boolean() }),
-  z.object({ type: z.literal('playerControl'), speed: z.number().positive().max(2000).optional() }),
+  z.object({
+    type: z.literal('playerControl'),
+    speed: z.number().positive().max(2000).optional(),
+    /** Damage dealt by one attack swing. Default 1. */
+    attackDamage: PosInt.max(9999).optional(),
+  }),
   z.object({ type: z.literal('interactable'), action: ActionSchema, prompt: z.string().max(60).optional() }),
   z.object({ type: z.literal('trigger'), width: PosInt, height: PosInt, onEnter: ActionSchema, once: z.boolean() }),
-  z.object({ type: z.literal('wander'), radius: PosInt, speed: z.number().positive().max(2000) }),
+  /** Walks randomly within `radius` px of its start position. */
+  z.object({ type: z.literal('wander'), radius: PosInt.max(2000), speed: z.number().positive().max(2000) }),
+  /** Hit points. Entities with health can be hurt; at 0 they are defeated. */
+  z.object({ type: z.literal('health'), max: PosInt.max(9999) }),
+  /** Chases the player within `aggroRadius` px and hurts on contact. Needs sprite + health. */
+  z.object({
+    type: z.literal('enemy'),
+    speed: z.number().positive().max(2000),
+    aggroRadius: PosInt.max(4000),
+    damage: PosInt.max(9999),
+    attackCooldownMs: PosInt.max(60000),
+    onDefeat: ActionSchema.optional(),
+  }),
 ]);
 export type Component = z.infer<typeof ComponentSchema>;
-export const ComponentTypeSchema = z.enum(['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander']);
+export const ComponentTypeSchema = z.enum(['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy']);
 export type ComponentType = z.infer<typeof ComponentTypeSchema>;
 
 export const EntitySchema = z.object({

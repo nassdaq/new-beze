@@ -77,7 +77,8 @@ export function createProject(name: string, starter: StarterPack, options: Creat
         components: canonicalComponents([
           { type: 'sprite', characterId: hero.id },
           { type: 'body', solid: true },
-          { type: 'playerControl' },
+          { type: 'playerControl', attackDamage: 1 },
+          { type: 'health', max: 3 },
         ]),
       },
     },
@@ -95,6 +96,7 @@ export function createProject(name: string, starter: StarterPack, options: Creat
       pixelArt: true,
       defaultMoveSpeed: 96,
       interactKey: 'E',
+      attackKey: 'SPACE',
       backgroundColor: '#1a1a2e',
     },
     startSceneId: sceneId,

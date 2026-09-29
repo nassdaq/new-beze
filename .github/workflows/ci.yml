@@ -17,13 +17,16 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - uses: astral-sh/setup-uv@v5
       - run: pnpm install --frozen-lockfile
+      - run: cd apps/api && uv sync --frozen
       - name: Starter assets are up to date
         run: pnpm starter && git diff --exit-code -- apps/editor/public/starter
       - name: JSON Schema artifacts are up to date
         run: pnpm schemas && git diff --exit-code -- schemas
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm test:api
       - run: pnpm build
       - name: Install Playwright browser
         run: pnpm --filter @beze/editor exec playwright install --with-deps chromium

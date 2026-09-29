@@ -2,8 +2,19 @@ import { SCHEMA_VERSION } from './project.js';
 
 type Migration = { from: number; to: number; run: (doc: Record<string, unknown>) => Record<string, unknown> };
 
-/** Ordered list of migrations. Each moves a document from `from` to `to`. Empty until v2 exists. */
-const MIGRATIONS: Migration[] = [];
+/** Ordered list of migrations. Each moves a document from `from` to `to`. */
+const MIGRATIONS: Migration[] = [
+  {
+    from: 1,
+    to: 2,
+    // v2 adds combat: settings.attackKey plus the health/enemy components (additive).
+    run(doc) {
+      const settings = (doc['settings'] ?? {}) as Record<string, unknown>;
+      const interact = settings['interactKey'];
+      return { ...doc, settings: { attackKey: interact === 'SPACE' ? 'X' : 'SPACE', ...settings } };
+    },
+  },
+];
 
 export class MigrationError extends Error {}
 

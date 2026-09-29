@@ -29,7 +29,7 @@ class OpFailure extends Error {
   }
 }
 
-const COMPONENT_ORDER: ComponentType[] = ['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander'];
+const COMPONENT_ORDER: ComponentType[] = ['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy'];
 
 /** Components are kept in a fixed order so that documents compare structurally regardless of edit history. */
 export function canonicalComponents(components: Component[]): Component[] {
@@ -172,6 +172,38 @@ function applyOne(d: Project, op: Operation): Operation[] {
         layer.data[i] = c.gid;
       }
       return [{ op: 'paintTiles', mapId: op.mapId, layerId: op.layerId, cells: prevCells }];
+    }
+    case 'paintRect': {
+      const map = must(d.maps[op.mapId], 'missing', `map "${op.mapId}" does not exist`);
+      const layer = must(map.layers.find((l) => l.id === op.layerId), 'missing', `layer "${op.layerId}" does not exist`);
+      if (op.x + op.width > map.width || op.y + op.height > map.height) throw new OpFailure('outOfBounds', `rectangle leaves the map`);
+      const maxGid = map.tilesets.reduce((m, ref) => {
+        const t = d.tilesets[ref.tilesetId];
+        return t ? Math.max(m, ref.firstGid + t.tileCount - 1) : m;
+      }, 0);
+      if (op.gid > maxGid) throw new OpFailure('badGid', `tile id ${op.gid} is not in any tileset of this map`);
+      const prevCells: Array<{ x: number; y: number; gid: number }> = [];
+      for (let y = op.y; y < op.y + op.height; y++) {
+        for (let x = op.x; x < op.x + op.width; x++) {
+          const i = y * map.width + x;
+          prevCells.push({ x, y, gid: layer.data[i]! });
+          layer.data[i] = op.gid;
+        }
+      }
+      return [{ op: 'paintTiles', mapId: op.mapId, layerId: op.layerId, cells: prevCells }];
+    }
+    case 'setCollisionRect': {
+      const map = must(d.maps[op.mapId], 'missing', `map "${op.mapId}" does not exist`);
+      if (op.x + op.width > map.width || op.y + op.height > map.height) throw new OpFailure('outOfBounds', `rectangle leaves the map`);
+      const prevCells: Array<{ x: number; y: number; solid: boolean }> = [];
+      for (let y = op.y; y < op.y + op.height; y++) {
+        for (let x = op.x; x < op.x + op.width; x++) {
+          const i = y * map.width + x;
+          prevCells.push({ x, y, solid: map.collision[i] === 1 });
+          map.collision[i] = op.solid ? 1 : 0;
+        }
+      }
+      return [{ op: 'setCollision', mapId: op.mapId, cells: prevCells }];
     }
     case 'setCollision': {
       const map = must(d.maps[op.mapId], 'missing', `map "${op.mapId}" does not exist`);

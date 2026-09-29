@@ -96,3 +96,23 @@ export function createNpcWithDialogue(project: Project, npc: NpcInput, dialogue:
     ],
   };
 }
+
+export interface EnemyInput extends NpcInput {
+  health?: number;
+  damage?: number;
+  speed?: number;
+  aggroRadius?: number;
+}
+
+/** A chasing enemy with health. Defaults make a weak, slow foe. */
+export function placeEnemy(project: Project, input: EnemyInput): { ops: Operation[]; entityId: string } {
+  const placed = placeCharacter(project, input);
+  return {
+    entityId: placed.entityId,
+    ops: [
+      ...placed.ops,
+      { op: 'setComponent', sceneId: input.sceneId, entityId: placed.entityId, component: { type: 'health', max: input.health ?? 2 } },
+      { op: 'setComponent', sceneId: input.sceneId, entityId: placed.entityId, component: { type: 'enemy', speed: input.speed ?? 48, aggroRadius: input.aggroRadius ?? 128, damage: input.damage ?? 1, attackCooldownMs: 800 } },
+    ],
+  };
+}

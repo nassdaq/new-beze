@@ -4,7 +4,8 @@
     "ast_starter_hero": "hero.png",
     "ast_starter_villager": "villager.png",
     "ast_starter_hero_portrait": "hero_portrait.png",
-    "ast_starter_villager_portrait": "villager_portrait.png"
+    "ast_starter_villager_portrait": "villager_portrait.png",
+    "ast_starter_slime": "slime.png"
   },
   "assets": [
     {
@@ -59,6 +60,17 @@
       "width": 256,
       "height": 256,
       "hash": "d4646bff1edd99ff73b8f8ec2eddd2084c205048968c948433903b60347d1e55",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ast_starter_slime",
+      "kind": "image",
+      "name": "Slime sheet",
+      "mime": "image/png",
+      "width": 128,
+      "height": 192,
+      "hash": "fa015b66772d58a1b76aa28e93af46dc8a1598d7e0e7cc7d8c9c7998e2065ff4",
       "origin": "starter",
       "license": "CC0-1.0"
     }
@@ -254,6 +266,89 @@
         "offsetY": 32
       },
       "portraitAssetId": "ast_starter_villager_portrait"
+    },
+    {
+      "id": "chr_slime",
+      "name": "Slime",
+      "spriteSheetAssetId": "ast_starter_slime",
+      "frameWidth": 32,
+      "frameHeight": 48,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 6,
+          "loop": true
+        }
+      },
+      "collider": {
+        "width": 20,
+        "height": 14,
+        "offsetX": 6,
+        "offsetY": 32
+      }
     }
   ],
   "groundGid": 1,

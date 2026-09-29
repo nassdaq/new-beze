@@ -6,3 +6,6 @@ apps/editor/playwright-report/
 *.tsbuildinfo
 .env
 .DS_Store
+apps/api/.venv/
+__pycache__/
+.pytest_cache/

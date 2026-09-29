@@ -19,10 +19,14 @@ export function createMoveKeys(keyboard: Phaser.Input.Keyboard.KeyboardPlugin): 
 const down = (keys: Phaser.Input.Keyboard.Key[]) => keys.some((k) => k.isDown);
 
 /** Four-direction movement. Horizontal wins over vertical; no diagonals in v1. */
-export function updatePlayer(player: SpawnedEntity, keys: MoveKeys, locked: boolean): void {
+export function updatePlayer(player: SpawnedEntity, keys: MoveKeys, locked: boolean, now = 0): void {
   const sprite = player.sprite;
   const character = player.character;
-  if (!sprite || !character) return;
+  if (!sprite || !character || player.defeated) return;
+  if (now < player.knockbackUntil) {
+    sprite.setDepth(sprite.y + character.frameHeight);
+    return;
+  }
   let vx = 0;
   let vy = 0;
   let facing: Direction | null = null;

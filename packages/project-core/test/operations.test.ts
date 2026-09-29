@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import type { Operation } from '@beze/project-schema';
-import { applyOperations, validateProject, hasErrors, createProject, createNpcWithDialogue, type StarterPack } from '../src/index.js';
+import { applyOperations, validateProject, hasErrors, createProject, createNpcWithDialogue, placeEnemy, type StarterPack } from '../src/index.js';
 import { loadFixture } from './fixture.js';
 
 const fixture = loadFixture();
@@ -64,6 +64,35 @@ describe('applyOperations', () => {
   });
 });
 
+describe('v2 operations', () => {
+  it('paintRect and setCollisionRect apply and undo', () => {
+    const { project, inverse } = apply([
+      { op: 'paintRect', mapId: MAP, layerId: 'lyr_ground', x: 2, y: 2, width: 3, height: 2, gid: 4 },
+      { op: 'setCollisionRect', mapId: MAP, x: 2, y: 2, width: 3, height: 2, solid: true },
+    ]);
+    expect(project.maps[MAP]!.layers[0]!.data[3 * 20 + 4]).toBe(4);
+    expect(project.maps[MAP]!.collision[3 * 20 + 4]).toBe(1);
+    const back = applyOperations(project, inverse);
+    expect(back.ok && back.value.project).toEqual(fixture);
+  });
+
+  it('rejects rectangles that leave the map', () => {
+    const r = applyOperations(fixture, [{ op: 'paintRect', mapId: MAP, layerId: 'lyr_ground', x: 18, y: 0, width: 5, height: 1, gid: 1 }]);
+    expect(r.ok).toBe(false);
+  });
+
+  it('enemy recipe produces a valid enemy; enemies need health', () => {
+    const { ops } = placeEnemy(fixture, { sceneId: SCENE, characterId: 'chr_villager', name: 'Blob', tileX: 4, tileY: 10 });
+    const { project, inverse } = apply(ops);
+    const enemy = Object.values(project.scenes[SCENE]!.entities).find((e) => e.name === 'Blob')!;
+    expect(enemy.components.map((c) => c.type)).toEqual(['sprite', 'body', 'health', 'enemy']);
+    expect(applyOperations(project, inverse).ok).toBe(true);
+    const r = applyOperations(fixture, [{ op: 'setComponent', sceneId: SCENE, entityId: 'ent_aiko', component: { type: 'enemy', speed: 40, aggroRadius: 100, damage: 1, attackCooldownMs: 500 } }]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors[0]?.code).toBe('enemyNoHealth');
+  });
+});
+
 describe('inverse property', () => {
   const cell = fc.record({ x: fc.integer({ min: 0, max: 19 }), y: fc.integer({ min: 0, max: 14 }) });
   const opArb: fc.Arbitrary<Operation> = fc.oneof(
@@ -84,6 +113,9 @@ describe('inverse property', () => {
     fc.constant({ op: 'deleteVariable' as const, id: 'var_tmp' }),
     fc.constant({ op: 'deleteEntity' as const, sceneId: SCENE, entityId: 'ent_aiko' }),
     fc.constant({ op: 'deleteLayer' as const, mapId: MAP, layerId: 'lyr_deco' }),
+    fc.record({ op: fc.constant('paintRect' as const), mapId: fc.constant(MAP), layerId: fc.constantFrom('lyr_ground', 'lyr_deco'), x: fc.integer({ min: 0, max: 15 }), y: fc.integer({ min: 0, max: 10 }), width: fc.integer({ min: 1, max: 5 }), height: fc.integer({ min: 1, max: 5 }), gid: fc.integer({ min: 0, max: 4 }) }),
+    fc.record({ op: fc.constant('setCollisionRect' as const), mapId: fc.constant(MAP), x: fc.integer({ min: 0, max: 15 }), y: fc.integer({ min: 0, max: 10 }), width: fc.integer({ min: 1, max: 5 }), height: fc.integer({ min: 1, max: 5 }), solid: fc.boolean() }),
+    fc.record({ op: fc.constant('setComponent' as const), sceneId: fc.constant(SCENE), entityId: fc.constant('ent_aiko'), component: fc.record({ type: fc.constant('health' as const), max: fc.integer({ min: 1, max: 20 }) }) }),
   );
 
   it('apply then inverse is the identity (when the batch applies)', () => {
@@ -113,6 +145,6 @@ describe('createProject', () => {
     const p = createProject('Test', starter);
     expect(hasErrors(validateProject(p))).toBe(false);
     const scene = Object.values(p.scenes)[0]!;
-    expect(Object.values(scene.entities)[0]!.components.map((c) => c.type)).toEqual(['sprite', 'body', 'playerControl']);
+    expect(Object.values(scene.entities)[0]!.components.map((c) => c.type)).toEqual(['sprite', 'body', 'playerControl', 'health']);
   });
 });

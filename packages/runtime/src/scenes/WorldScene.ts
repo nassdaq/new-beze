@@ -6,6 +6,10 @@ import { spawnEntity, type SpawnedEntity } from '../world/spawnEntity.js';
 import { createMoveKeys, setFacing, updatePlayer, type MoveKeys } from '../systems/playerControl.js';
 import { findInteractable } from '../systems/interaction.js';
 import { setupCamera } from '../systems/camera.js';
+import { updateEnemy } from '../systems/enemy.js';
+import { updateWander } from '../systems/wander.js';
+import { CombatSystem } from '../systems/combat.js';
+import { Hud } from '../systems/hud.js';
 import { setVariable } from '../state/GameState.js';
 
 export interface WorldInit {
@@ -14,6 +18,7 @@ export interface WorldInit {
 }
 
 const INTERACT_CODES = { E: Phaser.Input.Keyboard.KeyCodes.E, SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE, ENTER: Phaser.Input.Keyboard.KeyCodes.ENTER } as const;
+const ATTACK_CODES = { SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE, X: Phaser.Input.Keyboard.KeyCodes.X, J: Phaser.Input.Keyboard.KeyCodes.J, K: Phaser.Input.Keyboard.KeyCodes.K } as const;
 
 /** One Phaser scene reused for every project scene. Restarted on `changeScene`. */
 export class WorldScene extends Phaser.Scene {
@@ -24,6 +29,10 @@ export class WorldScene extends Phaser.Scene {
   private keys!: MoveKeys;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private prompt!: Phaser.GameObjects.Text;
+  private combat!: CombatSystem;
+  private hud!: Hud;
+  private bySprite = new Map<Phaser.GameObjects.GameObject, SpawnedEntity>();
+  private gameOver = false;
   /** True while a dialogue overlay owns input. */
   dialogueActive = false;
 
@@ -41,6 +50,8 @@ export class WorldScene extends Phaser.Scene {
     this.player = null;
     this.built = null;
     this.dialogueActive = false;
+    this.gameOver = false;
+    this.bySprite = new Map();
     this.registry.set('spawn', data.spawn ?? null);
   }
 
@@ -62,14 +73,27 @@ export class WorldScene extends Phaser.Scene {
 
     // A plain array, not a physics group: groups re-apply their defaults (immovable = false) to members.
     const solids: Phaser.Physics.Arcade.Sprite[] = [];
+    const movers: Phaser.Physics.Arcade.Sprite[] = [];
     for (const id of scene.entityOrder) {
       const entity = scene.entities[id];
-      if (!entity) continue;
+      if (!entity || ctx.state.defeated.includes(`${scene.id}:${entity.id}`)) continue;
       const spawned = spawnEntity(this, project, entity);
       this.entities.push(spawned);
+      if (spawned.sprite) this.bySprite.set(spawned.sprite, spawned);
       if (spawned.isPlayer) this.player = spawned;
       else if (spawned.sprite && spawned.sprite.body?.enable) solids.push(spawned.sprite);
+      if (!spawned.isPlayer && spawned.sprite && (spawned.wander || spawned.enemy)) movers.push(spawned.sprite);
     }
+
+    this.combat = new CombatSystem(this, {
+      onPlayerHurt: () => this.cameras.main.shake(120, 0.004),
+      onDefeated: (e) => {
+        ctx.state.defeated.push(`${scene.id}:${e.entity.id}`);
+        if (e.enemy?.onDefeat) this.runAction(e.enemy.onDefeat);
+      },
+      onPlayerDefeated: () => this.showGameOver(),
+    });
+    this.hud = new Hud(this);
 
     const spawn = this.registry.get('spawn') as WorldInit['spawn'] | null;
     if (this.player?.sprite && spawn) {
@@ -77,8 +101,14 @@ export class WorldScene extends Phaser.Scene {
       if (spawn.facing) setFacing(this.player, spawn.facing);
     }
 
+    if (this.built?.collision && movers.length > 0) this.physics.add.collider(movers, this.built.collision);
     if (this.player?.sprite) {
-      if (solids.length > 0) this.physics.add.collider(this.player.sprite, solids);
+      if (solids.length > 0) {
+        this.physics.add.collider(this.player.sprite, solids, (_p, other) => {
+          const e = this.bySprite.get(other as Phaser.GameObjects.GameObject);
+          if (e?.enemy && this.player) this.combat.enemyTouch(e, this.player, this.time.now);
+        });
+      }
       if (this.built?.collision) this.physics.add.collider(this.player.sprite, this.built.collision);
       for (const e of this.entities) {
         if (e.trigger) {
@@ -104,6 +134,12 @@ export class WorldScene extends Phaser.Scene {
       const target = findInteractable(this.player, this.entities, project.settings.tileSize);
       if (target?.interact) this.runAction(target.interact.action);
     });
+    const attackKey = keyboard.addKey(ATTACK_CODES[project.settings.attackKey]);
+    attackKey.on('down', (_key: Phaser.Input.Keyboard.Key, event: KeyboardEvent) => {
+      if (event.repeat || this.dialogueActive || !this.player) return;
+      if (this.gameOver) { this.retry(); return; }
+      this.combat.swing(this.player, this.entities, this.time.now, project.settings.tileSize);
+    });
     keyboard.addCapture([Phaser.Input.Keyboard.KeyCodes.UP, Phaser.Input.Keyboard.KeyCodes.DOWN, Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.RIGHT, Phaser.Input.Keyboard.KeyCodes.SPACE]);
 
     const width = this.built?.widthPx ?? project.settings.viewport.width;
@@ -117,9 +153,16 @@ export class WorldScene extends Phaser.Scene {
   }
 
   override update(): void {
+    const now = this.time.now;
+    for (const e of this.entities) {
+      if (e.isPlayer || e.defeated) continue;
+      if (e.enemy) updateEnemy(e, this.dialogueActive ? null : this.player, now);
+      else if (e.wander) updateWander(e, now);
+    }
     if (!this.player) return;
-    updatePlayer(this.player, this.keys, this.dialogueActive);
-    if (this.dialogueActive) {
+    updatePlayer(this.player, this.keys, this.dialogueActive || this.gameOver, now);
+    this.hud.update(this.player);
+    if (this.dialogueActive || this.gameOver) {
       this.prompt.setVisible(false);
       return;
     }
@@ -155,6 +198,19 @@ export class WorldScene extends Phaser.Scene {
         for (const a of action.actions) this.runAction(a);
         break;
     }
+  }
+
+  private showGameOver(): void {
+    this.gameOver = true;
+    const { width, height } = this.scale;
+    this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setScrollFactor(0).setDepth(25_000);
+    this.add.text(width / 2, height / 2, 'You were defeated.\nPress the attack key to try again.', { fontFamily: 'sans-serif', fontSize: '14px', color: '#ffffff', align: 'center' })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(25_001);
+  }
+
+  private retry(): void {
+    // Enemies already defeated stay defeated; the player respawns at the scene's own spawn.
+    this.scene.restart({ sceneId: this.sceneData.id } satisfies WorldInit);
   }
 
   /** Called by the dialogue scene when it closes. */

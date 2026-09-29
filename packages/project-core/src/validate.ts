@@ -67,6 +67,7 @@ export function validateProject(p: Project): Diagnostic[] {
   };
 
   if (!p.scenes[p.startSceneId]) error('missingScene', 'startSceneId', `start scene "${p.startSceneId}" does not exist`);
+  if (p.settings.attackKey === p.settings.interactKey) error('keyClash', 'settings.attackKey', `attack key and interact key are both ${p.settings.attackKey}`);
 
   for (const [id, t] of Object.entries(p.tilesets)) {
     asset(t.imageAssetId, `tilesets.${id}.imageAssetId`);
@@ -226,12 +227,19 @@ function validateScene(p: Project, s: Scene, path: string, h: SceneHelpers) {
         case 'trigger':
           h.action(c.onEnter, `${cp}.onEnter`);
           break;
+        case 'enemy':
+          if (c.onDefeat) h.action(c.onDefeat, `${cp}.onDefeat`);
+          break;
         case 'body':
         case 'wander':
+        case 'health':
           break;
       }
     });
     if (types.has('playerControl') && !types.has('sprite')) h.warn('playerNoSprite', ep, `player "${e.name}" has no sprite`);
+    if (types.has('enemy') && !types.has('sprite')) h.error('enemyNoSprite', ep, `enemy "${e.name}" needs a sprite`);
+    if (types.has('enemy') && !types.has('health')) h.error('enemyNoHealth', ep, `enemy "${e.name}" needs health`);
+    if (types.has('enemy') && types.has('playerControl')) h.error('enemyIsPlayer', ep, `"${e.name}" cannot be both the player and an enemy`);
   }
   if (players > 1) h.error('multiplePlayers', path, `scene "${s.name}" has ${players} player-controlled entities; only one is allowed`);
   if (players === 0 && s.mapId !== null) {

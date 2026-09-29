@@ -19,6 +19,17 @@ describe('golden fixtures', () => {
     if (!r.ok) expect(r.issues[0]?.path).toBe('settings.tileSize');
   });
 
+  it('migrates a v1 document to v2 by adding attackKey', () => {
+    const v1 = { ...fixture, schemaVersion: 1, settings: { ...fixture.settings } };
+    delete (v1.settings as Record<string, unknown>)['attackKey'];
+    const r = parseProject(v1);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.settings.attackKey).toBe('SPACE');
+    const v1space = { ...v1, settings: { ...v1.settings, interactKey: 'SPACE' } };
+    const r2 = parseProject(v1space);
+    if (r2.ok) expect(r2.value.settings.attackKey).toBe('X');
+  });
+
   it('refuses documents from the future', () => {
     expect(() => migrateProject({ schemaVersion: SCHEMA_VERSION + 1 })).toThrow(MigrationError);
   });
