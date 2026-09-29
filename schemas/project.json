@@ -648,6 +648,118 @@
                   "loop"
                 ],
                 "additionalProperties": false
+              },
+              "attack_down": {
+                "type": "object",
+                "properties": {
+                  "frames": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "frameRate": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 60
+                  },
+                  "loop": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "frames",
+                  "frameRate",
+                  "loop"
+                ],
+                "additionalProperties": false
+              },
+              "attack_left": {
+                "type": "object",
+                "properties": {
+                  "frames": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "frameRate": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 60
+                  },
+                  "loop": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "frames",
+                  "frameRate",
+                  "loop"
+                ],
+                "additionalProperties": false
+              },
+              "attack_right": {
+                "type": "object",
+                "properties": {
+                  "frames": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "frameRate": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 60
+                  },
+                  "loop": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "frames",
+                  "frameRate",
+                  "loop"
+                ],
+                "additionalProperties": false
+              },
+              "attack_up": {
+                "type": "object",
+                "properties": {
+                  "frames": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "frameRate": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 60
+                  },
+                  "loop": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "frames",
+                  "frameRate",
+                  "loop"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [

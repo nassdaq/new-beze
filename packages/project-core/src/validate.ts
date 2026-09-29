@@ -91,6 +91,7 @@ export function validateProject(p: Project): Diagnostic[] {
     if (a?.width !== undefined && a.height !== undefined) {
       const frameCount = Math.floor(a.width / c.frameWidth) * Math.floor(a.height / c.frameHeight);
       for (const [anim, def] of Object.entries(c.animations)) {
+        if (!def) continue;
         const bad = def.frames.find((f) => f >= frameCount);
         if (bad !== undefined) error('frameIndex', `characters.${id}.animations.${anim}`, `frame ${bad} is outside the sheet (${frameCount} frames)`);
       }

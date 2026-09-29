@@ -44,6 +44,7 @@ export class BootScene extends Phaser.Scene {
     const ctx = ctxOf(this);
     for (const c of Object.values(ctx.project.characters)) {
       for (const [name, def] of Object.entries(c.animations)) {
+        if (!def) continue;
         this.anims.create({
           key: KEYS.animation(c.id, name),
           frames: this.anims.generateFrameNumbers(KEYS.character(c.id), { frames: def.frames }),

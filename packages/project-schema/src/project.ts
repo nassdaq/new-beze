@@ -20,7 +20,9 @@ export const ANIMATION_NAMES = [
   'idle_down', 'idle_left', 'idle_right', 'idle_up',
   'walk_down', 'walk_left', 'walk_right', 'walk_up',
 ] as const;
-export const AnimationNameSchema = z.enum(ANIMATION_NAMES);
+/** Optional animations. The runtime falls back gracefully when a character lacks them. */
+export const OPTIONAL_ANIMATION_NAMES = ['attack_down', 'attack_left', 'attack_right', 'attack_up'] as const;
+export const AnimationNameSchema = z.enum([...ANIMATION_NAMES, ...OPTIONAL_ANIMATION_NAMES]);
 export type AnimationName = z.infer<typeof AnimationNameSchema>;
 
 export const ScalarSchema = z.union([z.boolean(), z.number(), z.string().max(TEXT_MAX)]);
@@ -109,9 +111,10 @@ export const CharacterSchema = z.object({
   spriteSheetAssetId: IdSchema,
   frameWidth: PosInt,
   frameHeight: PosInt,
-  animations: z.object(
-    Object.fromEntries(ANIMATION_NAMES.map((n) => [n, AnimationSchema])) as Record<AnimationName, typeof AnimationSchema>,
-  ),
+  animations: z.object({
+    ...(Object.fromEntries(ANIMATION_NAMES.map((n) => [n, AnimationSchema])) as Record<(typeof ANIMATION_NAMES)[number], typeof AnimationSchema>),
+    ...(Object.fromEntries(OPTIONAL_ANIMATION_NAMES.map((n) => [n, AnimationSchema.optional()])) as Record<(typeof OPTIONAL_ANIMATION_NAMES)[number], z.ZodOptional<typeof AnimationSchema>>),
+  }),
   collider: z.object({ width: PosInt, height: PosInt, offsetX: NonNegInt, offsetY: NonNegInt }),
   portraitAssetId: IdSchema.optional(),
 });
