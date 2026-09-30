@@ -24,6 +24,9 @@ export const OperationSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('createTileset'), tileset: TilesetSchema }),
   z.object({ op: z.literal('updateTileset'), id: IdSchema, patch: TilesetSchema.omit({ id: true }).partial() }),
   z.object({ op: z.literal('deleteTileset'), id: IdSchema }),
+  /** Makes a tileset paintable on a map. firstGid must be greater than every gid the map already uses. */
+  z.object({ op: z.literal('addMapTileset'), mapId: IdSchema, tilesetId: IdSchema, firstGid: Int.min(1) }),
+  z.object({ op: z.literal('removeMapTileset'), mapId: IdSchema, tilesetId: IdSchema }),
   z.object({ op: z.literal('createMap'), map: TileMapSchema }),
   z.object({ op: z.literal('deleteMap'), id: IdSchema }),
   z.object({

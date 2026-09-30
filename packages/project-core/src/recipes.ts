@@ -116,3 +116,11 @@ export function placeEnemy(project: Project, input: EnemyInput): { ops: Operatio
     ],
   };
 }
+
+/** The first gid a new tileset can take on a map: one past the last tileset's range. */
+export function nextFirstGid(project: Project, mapId: string): number {
+  const map = project.maps[mapId];
+  if (!map) throw new Error(`map "${mapId}" does not exist`);
+  const last = map.tilesets[map.tilesets.length - 1];
+  return last ? last.firstGid + (project.tilesets[last.tilesetId]?.tileCount ?? 0) : 1;
+}

@@ -3,6 +3,8 @@
     "ast_starter_bat": "bat.png",
     "ast_starter_hero": "hero.png",
     "ast_starter_hero_portrait": "hero_portrait.png",
+    "ast_starter_hero_mounted": "hero_mounted.png",
+    "ast_starter_horse": "horse.png",
     "ast_starter_slime": "slime.png",
     "ast_starter_villager": "villager.png",
     "ast_starter_villager_portrait": "villager_portrait.png",
@@ -39,6 +41,28 @@
       "width": 256,
       "height": 256,
       "hash": "f5ec34acf0afd185d9ebf523bf4021c89ab73279c01a480d64aeea73d4cff91c",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ast_starter_hero_mounted",
+      "kind": "image",
+      "name": "Hero on horse sheet",
+      "mime": "image/png",
+      "width": 256,
+      "height": 512,
+      "hash": "fd5655feccb1bd0d0d655ef9f48d3018f4d8804c6741c29eae123c01f3fede26",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ast_starter_horse",
+      "kind": "image",
+      "name": "Horse sheet",
+      "mime": "image/png",
+      "width": 256,
+      "height": 512,
+      "hash": "e7f773fcffe3e4f46b7933dcab43a17becd25c9ba68ad09a846f0d5a326db082",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -82,7 +106,7 @@
       "mime": "image/png",
       "width": 256,
       "height": 192,
-      "hash": "5f5e27bd0b78500d66eb47316718a9f605955ede367c14a7fecedd1391912c1a",
+      "hash": "b63a2341639945b90ad5ef9e006594a06c1201a7eca180c0d8014f516343df54",
       "origin": "starter",
       "license": "CC0-1.0"
     }
@@ -268,7 +292,35 @@
           "solid": true,
           "tag": "water_corner_se"
         }
-      }
+      },
+      "stamps": [
+        {
+          "name": "Tree",
+          "width": 1,
+          "height": 2,
+          "tiles": [
+            24,
+            25
+          ],
+          "above": [
+            true,
+            false
+          ]
+        },
+        {
+          "name": "Pine",
+          "width": 1,
+          "height": 2,
+          "tiles": [
+            26,
+            27
+          ],
+          "above": [
+            true,
+            false
+          ]
+        }
+      ]
     }
   ],
   "characters": [
@@ -510,6 +562,244 @@
         "offsetY": 48
       },
       "portraitAssetId": "ast_starter_hero_portrait"
+    },
+    {
+      "id": "chr_hero_mounted",
+      "name": "Hero on horse",
+      "spriteSheetAssetId": "ast_starter_hero_mounted",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "attack_down": {
+          "frames": [
+            16,
+            17,
+            18
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "attack_left": {
+          "frames": [
+            20,
+            21,
+            22
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "attack_right": {
+          "frames": [
+            24,
+            25,
+            26
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "attack_up": {
+          "frames": [
+            28,
+            29,
+            30
+          ],
+          "frameRate": 14,
+          "loop": false
+        }
+      },
+      "collider": {
+        "width": 40,
+        "height": 16,
+        "offsetX": 12,
+        "offsetY": 48
+      }
+    },
+    {
+      "id": "chr_horse",
+      "name": "Horse",
+      "spriteSheetAssetId": "ast_starter_horse",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_down": {
+          "frames": [
+            16,
+            17,
+            18
+          ],
+          "frameRate": 10,
+          "loop": false
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_left": {
+          "frames": [
+            20,
+            21,
+            22
+          ],
+          "frameRate": 10,
+          "loop": false
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_right": {
+          "frames": [
+            24,
+            25,
+            26
+          ],
+          "frameRate": 10,
+          "loop": false
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_up": {
+          "frames": [
+            28,
+            29,
+            30
+          ],
+          "frameRate": 10,
+          "loop": false
+        }
+      },
+      "collider": {
+        "width": 40,
+        "height": 16,
+        "offsetX": 12,
+        "offsetY": 48
+      }
     },
     {
       "id": "chr_slime",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import type { Operation } from '@beze/project-schema';
-import { applyOperations, validateProject, hasErrors, createProject, createNpcWithDialogue, placeEnemy, type StarterPack } from '../src/index.js';
+import { applyOperations, validateProject, hasErrors, createProject, createNpcWithDialogue, placeEnemy, nextFirstGid, type StarterPack } from '../src/index.js';
 import { loadFixture } from './fixture.js';
 
 const fixture = loadFixture();
@@ -90,6 +90,21 @@ describe('v2 operations', () => {
     const r = applyOperations(fixture, [{ op: 'setComponent', sceneId: SCENE, entityId: 'ent_aiko', component: { type: 'enemy', speed: 40, aggroRadius: 100, damage: 1, attackCooldownMs: 500 } }]);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors[0]?.code).toBe('enemyNoHealth');
+  });
+});
+
+describe('map tilesets', () => {
+  it('attaches a second tileset after the first and undoes it', () => {
+    const tileset = { ...fixture.tilesets['tls_outdoor']!, id: 'tls_extra', name: 'Extra' };
+    const { project, inverse } = apply([
+      { op: 'createTileset', tileset },
+      { op: 'addMapTileset', mapId: MAP, tilesetId: 'tls_extra', firstGid: nextFirstGid(fixture, MAP) },
+    ]);
+    expect(project.maps[MAP]!.tilesets.map((t) => t.firstGid)).toEqual([1, 1 + tileset.tileCount]);
+    const r = applyOperations(project, [{ op: 'addMapTileset', mapId: MAP, tilesetId: 'tls_extra', firstGid: 5 }]);
+    expect(r.ok).toBe(false);
+    const back = applyOperations(project, inverse);
+    expect(back.ok && back.value.project).toEqual(fixture);
   });
 });
 

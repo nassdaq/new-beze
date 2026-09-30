@@ -5,7 +5,7 @@ Tile index = row × 8 + column; the tile's gid in a project is `firstGid + index
 
 Ground tiles are opaque and seamless with themselves. Object and decoration tiles are transparent and go on the Decoration layer over any ground.
 A path crossing uses `path` in the middle, `path_edge_*` along the sides and `path_corner_*` in the four inside corners; a pond uses `water_corner_*` at its corners, `water_edge_*` on its sides and `water` inside.
-Trees are two tiles tall: paint `tree` (solid) on the Decoration layer and `tree_top` in the tile directly above it.
+Trees are two tiles tall and drawn as one 32×64 image split over two tiles, so they only look right as a pair: paint `tree` (solid) on the Decoration layer and `tree_top` in the tile directly above it on the Canopy layer (`aboveEntities`), so characters walk behind the crown. The editor's **Objects** row does this in one click with the `Tree` and `Pine` stamps (see the table at the end).
 
 | Index | Row,Col | Tag | Solid | Notes |
 |------:|:-------:|-----|:-----:|-------|
@@ -33,10 +33,10 @@ Trees are two tiles tall: paint `tree` (solid) on the Decoration layer and `tree
 | 21 | 2,5 | `water_lily` | yes | Water with lily pads and a blossom. |
 | 22 | 2,6 | `water_rock` | yes | Boulder in water (solid). |
 | 23 | 2,7 | `water2` | yes | Water variant with a different ripple layout; breaks repetition. |
-| 24 | 3,0 | `tree_top` | no | Upper canopy half. Non-solid; paint on the Decoration layer directly above `tree`. |
-| 25 | 3,1 | `tree` | yes | Lower canopy + trunk. Solid. Paint `tree_top` in the tile above it. |
-| 26 | 3,2 | `tree2_top` | no | Second tree variant, upper half (non-solid). |
-| 27 | 3,3 | `tree2` | yes | Second tree variant, lower half + trunk (solid). |
+| 24 | 3,0 | `tree_top` | no | Round oak, upper half of the crown. Non-solid; goes on the Canopy layer directly above `tree`. |
+| 25 | 3,1 | `tree` | yes | Round oak, lower crown + trunk with bark, and its shadow on the grass. Solid. |
+| 26 | 3,2 | `tree2_top` | no | Tall pine, upper tiers. Non-solid; goes on the Canopy layer directly above `tree2`. |
+| 27 | 3,3 | `tree2` | yes | Tall pine, lower tiers + trunk and shadow. Solid. |
 | 28 | 3,4 | `stump` | yes | Cut stump with rings. |
 | 29 | 3,5 | `fence_h` | yes | Horizontal fence; tiles left-right. |
 | 30 | 3,6 | `fence_v` | yes | Vertical fence; tiles up-down. |
@@ -59,3 +59,12 @@ Trees are two tiles tall: paint `tree` (solid) on the Decoration layer and `tree
 | 47 | 5,7 | `water_corner_se` | yes | Bottom-right corner of a pond. |
 
 Required tags present: `grass`, `path`, `tree`, `water`, `grass2`, `flowers`, `path_edge_n`, `path_edge_s`, `path_edge_w`, `path_edge_e`, `dirt`, `sand`, `water_edge_n`, `bush`, `rock`, `fence_h`, `fence_v`, `stump`, `tree_top`, `tall_grass`, `flower_red`, `flower_blue`, `signpost`, `well`.
+
+## Stamps
+
+Multi-tile objects the editor paints in one click (`stamps` in the manifest's tileset entry, see `scripts/art/README.md`). `tiles` are local indices row-major; cells marked *above* go on the topmost `aboveEntities` layer.
+
+| Name | Size | Tiles (row-major) | Above |
+|------|:----:|-------------------|-------|
+| `Tree` | 1×2 | 24 (`tree_top`), 25 (`tree`) | top cell |
+| `Pine` | 1×2 | 26 (`tree2_top`), 27 (`tree2`) | top cell |

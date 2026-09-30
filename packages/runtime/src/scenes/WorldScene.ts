@@ -2,8 +2,8 @@ import Phaser from 'phaser';
 import type { Action, Direction, Scene } from '@beze/project-schema';
 import { ctxOf, KEYS, SCENE_KEYS } from '../context.js';
 import { buildTilemap, type BuiltMap } from '../world/buildTilemap.js';
-import { placeSprite, spawnEntity, spriteTop, type SpawnedEntity } from '../world/spawnEntity.js';
-import { createMoveKeys, setFacing, updatePlayer, type MoveKeys } from '../systems/playerControl.js';
+import { placeSprite, spawnEntity, spriteTop, swapCharacter, type SpawnedEntity } from '../world/spawnEntity.js';
+import { createMoveKeys, DEFAULT_RUN_MULTIPLIER, setFacing, updatePlayer, type MoveKeys } from '../systems/playerControl.js';
 import { findInteractable } from '../systems/interaction.js';
 import { setupCamera } from '../systems/camera.js';
 import { updateEnemy } from '../systems/enemy.js';
@@ -22,6 +22,9 @@ export interface WorldInit {
 
 const INTERACT_CODES = { E: Phaser.Input.Keyboard.KeyCodes.E, SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE, ENTER: Phaser.Input.Keyboard.KeyCodes.ENTER } as const;
 const ATTACK_CODES = { SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE, X: Phaser.Input.Keyboard.KeyCodes.X, J: Phaser.Input.Keyboard.KeyCodes.J, K: Phaser.Input.Keyboard.KeyCodes.K } as const;
+const DIR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] } as const;
+/** Interval between dust puffs while running. */
+const DUST_MS = 250;
 
 /** One Phaser scene reused for every project scene. Restarted on `changeScene`. */
 export class WorldScene extends Phaser.Scene {
@@ -29,6 +32,10 @@ export class WorldScene extends Phaser.Scene {
   private built: BuiltMap | null = null;
   private entities: SpawnedEntity[] = [];
   private player: SpawnedEntity | null = null;
+  /** Solid NPC/enemy sprites the player collides with, and the sprites that move against the tilemap. Plain arrays,
+   *  not physics groups: groups re-apply their defaults (immovable = false) to members. */
+  private solids: Phaser.Physics.Arcade.Sprite[] = [];
+  private movers: Phaser.Physics.Arcade.Sprite[] = [];
   private keys!: MoveKeys;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private prompt!: Phaser.GameObjects.Text;
@@ -38,6 +45,7 @@ export class WorldScene extends Phaser.Scene {
   private healthBars!: HealthBars;
   private bySprite = new Map<Phaser.GameObjects.GameObject, SpawnedEntity>();
   private gameOver = false;
+  private nextDustAt = 0;
   /** True while a dialogue overlay owns input. */
   dialogueActive = false;
 
@@ -54,8 +62,11 @@ export class WorldScene extends Phaser.Scene {
     this.entities = [];
     this.player = null;
     this.built = null;
+    this.solids = [];
+    this.movers = [];
     this.dialogueActive = false;
     this.gameOver = false;
+    this.nextDustAt = 0;
     this.bySprite = new Map();
     this.registry.set('spawn', data.spawn ?? null);
   }
@@ -76,18 +87,13 @@ export class WorldScene extends Phaser.Scene {
       this.physics.world.setBounds(0, 0, this.built.widthPx, this.built.heightPx);
     }
 
-    // A plain array, not a physics group: groups re-apply their defaults (immovable = false) to members.
-    const solids: Phaser.Physics.Arcade.Sprite[] = [];
-    const movers: Phaser.Physics.Arcade.Sprite[] = [];
     for (const id of scene.entityOrder) {
       const entity = scene.entities[id];
-      if (!entity || ctx.state.defeated.includes(`${scene.id}:${entity.id}`)) continue;
-      const spawned = spawnEntity(this, project, entity);
-      this.entities.push(spawned);
-      if (spawned.sprite) this.bySprite.set(spawned.sprite, spawned);
+      if (!entity) continue;
+      const key = `${scene.id}:${entity.id}`;
+      if (ctx.state.defeated.includes(key) || ctx.state.removed.includes(key)) continue;
+      const spawned = this.register(spawnEntity(this, project, entity, { characterId: ctx.state.playerCharacterId, speed: ctx.state.playerSpeed }));
       if (spawned.isPlayer) this.player = spawned;
-      else if (spawned.sprite && spawned.sprite.body?.enable) solids.push(spawned.sprite);
-      if (!spawned.isPlayer && spawned.sprite && (spawned.wander || spawned.enemy)) movers.push(spawned.sprite);
     }
 
     this.effects = new Effects(this);
@@ -113,14 +119,12 @@ export class WorldScene extends Phaser.Scene {
       if (spawn.facing) setFacing(this.player, spawn.facing);
     }
 
-    if (this.built?.collision && movers.length > 0) this.physics.add.collider(movers, this.built.collision);
+    if (this.built?.collision) this.physics.add.collider(this.movers, this.built.collision);
     if (this.player?.sprite) {
-      if (solids.length > 0) {
-        this.physics.add.collider(this.player.sprite, solids, (_p, other) => {
-          const e = this.bySprite.get(other as Phaser.GameObjects.GameObject);
-          if (e?.enemy && this.player) this.combat.enemyTouch(e, this.player, this.time.now);
-        });
-      }
+      this.physics.add.collider(this.player.sprite, this.solids, (_p, other) => {
+        const e = this.bySprite.get(other as Phaser.GameObjects.GameObject);
+        if (e?.enemy && this.player) this.combat.enemyTouch(e, this.player, this.time.now);
+      });
       if (this.built?.collision) this.physics.add.collider(this.player.sprite, this.built.collision);
       for (const e of this.entities) {
         if (e.trigger) {
@@ -145,6 +149,7 @@ export class WorldScene extends Phaser.Scene {
       if (event.repeat || this.dialogueActive || !this.player) return;
       const target = findInteractable(this.player, this.entities, project.settings.tileSize);
       if (target?.interact) this.runAction(target.interact.action);
+      else if (ctx.state.playerCharacterId) this.dismount();
     });
     const attackKey = keyboard.addKey(ATTACK_CODES[project.settings.attackKey]);
     attackKey.on('down', (_key: Phaser.Input.Keyboard.Key, event: KeyboardEvent) => {
@@ -152,7 +157,7 @@ export class WorldScene extends Phaser.Scene {
       if (this.gameOver) { this.retry(); return; }
       this.combat.swing(this.player, this.entities, this.time.now, project.settings.tileSize);
     });
-    keyboard.addCapture([Phaser.Input.Keyboard.KeyCodes.UP, Phaser.Input.Keyboard.KeyCodes.DOWN, Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.RIGHT, Phaser.Input.Keyboard.KeyCodes.SPACE]);
+    keyboard.addCapture([Phaser.Input.Keyboard.KeyCodes.UP, Phaser.Input.Keyboard.KeyCodes.DOWN, Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.RIGHT, Phaser.Input.Keyboard.KeyCodes.SPACE, Phaser.Input.Keyboard.KeyCodes.SHIFT]);
 
     const width = this.built?.widthPx ?? project.settings.viewport.width;
     const height = this.built?.heightPx ?? project.settings.viewport.height;
@@ -164,6 +169,17 @@ export class WorldScene extends Phaser.Scene {
     ctx.emit({ type: 'sceneChanged', sceneId: scene.id });
   }
 
+  /** Adds a spawned entity to the scene's bookkeeping (entity list, sprite lookup, collision arrays). */
+  private register(spawned: SpawnedEntity): SpawnedEntity {
+    this.entities.push(spawned);
+    if (spawned.sprite) this.bySprite.set(spawned.sprite, spawned);
+    if (!spawned.isPlayer && spawned.sprite) {
+      if (spawned.sprite.body?.enable) this.solids.push(spawned.sprite);
+      if (spawned.wander || spawned.enemy) this.movers.push(spawned.sprite);
+    }
+    return spawned;
+  }
+
   override update(): void {
     const now = this.time.now;
     for (const e of this.entities) {
@@ -171,7 +187,16 @@ export class WorldScene extends Phaser.Scene {
       if (e.enemy) updateEnemy(this, e, this.dialogueActive ? null : this.player, now);
       else if (e.wander) updateWander(e, now);
     }
-    if (this.player) updatePlayer(this.player, this.keys, this.dialogueActive || this.gameOver, now);
+    if (this.player) {
+      const runMultiplier = ctxOf(this).project.settings.runSpeedMultiplier ?? DEFAULT_RUN_MULTIPLIER;
+      const running = updatePlayer(this.player, this.keys, this.dialogueActive || this.gameOver, now, runMultiplier);
+      if (running && now >= this.nextDustAt && this.player.sprite?.body) {
+        const body = this.player.sprite.body as Phaser.Physics.Arcade.Body;
+        const [dx, dy] = DIR[this.player.facing];
+        this.effects.dust(body.center.x - dx * body.width * 0.5, body.bottom - 2 - dy * body.height * 0.5, this.player.facing);
+        this.nextDustAt = now + DUST_MS;
+      }
+    }
     for (const e of this.entities) updateBreathing(e, now);
     this.healthBars.update(this.entities);
     if (!this.player) return;
@@ -208,10 +233,86 @@ export class WorldScene extends Phaser.Scene {
       case 'setVariable':
         setVariable(ctx.state, action.variableId, action.op, action.value);
         break;
+      case 'setPlayerCharacter': {
+        const character = ctx.project.characters[action.characterId];
+        if (!character || !this.player) return;
+        swapCharacter(this.player, character);
+        ctx.state.playerCharacterId = action.characterId;
+        ctx.state.playerSpeed = action.speed ?? null;
+        this.player.speed = action.speed ?? this.player.baseSpeed;
+        break;
+      }
+      case 'removeEntity': {
+        const e = this.entities.find((x) => x.entity.id === action.entityId);
+        if (!e || e.isPlayer) return;
+        const key = `${this.sceneData.id}:${e.entity.id}`;
+        if (!ctx.state.removed.includes(key)) ctx.state.removed.push(key);
+        // The first entity removed while the player wears another character is the mount, restored on dismount.
+        if (ctx.state.playerCharacterId && !ctx.state.mountEntityKey) ctx.state.mountEntityKey = key;
+        this.despawn(e);
+        break;
+      }
       case 'sequence':
         for (const a of action.actions) this.runAction(a);
         break;
     }
+  }
+
+  /** Takes an entity out of the running scene: sprite, body, trigger zone and every list it sits in. */
+  private despawn(e: SpawnedEntity): void {
+    this.entities = this.entities.filter((x) => x !== e);
+    this.healthBars.remove(e);
+    if (e.sprite) {
+      this.bySprite.delete(e.sprite);
+      this.solids = this.solids.filter((s) => s !== e.sprite);
+      this.movers = this.movers.filter((s) => s !== e.sprite);
+      e.sprite.destroy();
+      e.sprite = null;
+    }
+    if (e.trigger) {
+      e.trigger.zone.destroy();
+      e.trigger = null;
+    }
+    e.defeated = true;
+  }
+
+  /**
+   * Interact with nothing in front while mounted: the player goes back to the document's character and speed, and
+   * the mount comes back one tile ahead, facing the same way, so pressing interact again rides it.
+   */
+  private dismount(): void {
+    const ctx = ctxOf(this);
+    const player = this.player;
+    if (!player?.sprite) return;
+    const mountKey = ctx.state.mountEntityKey;
+    ctx.state.playerCharacterId = null;
+    ctx.state.playerSpeed = null;
+    ctx.state.mountEntityKey = null;
+    player.speed = player.baseSpeed;
+    const own = player.entity.components.find((c) => c.type === 'sprite');
+    const character = own && own.type === 'sprite' ? ctx.project.characters[own.characterId] : undefined;
+    if (character) swapCharacter(player, character);
+    if (!mountKey) return;
+    const [sceneId, entityId] = mountKey.split(':') as [string, string];
+    const doc = sceneId === this.sceneData.id ? this.sceneData.entities[entityId] : undefined;
+    ctx.state.removed = ctx.state.removed.filter((k) => k !== mountKey);
+    if (!doc) return;
+    const mountSprite = doc.components.find((c) => c.type === 'sprite');
+    const mountCharacter = mountSprite && mountSprite.type === 'sprite' ? ctx.project.characters[mountSprite.characterId] : undefined;
+    if (!mountCharacter || !player.character) return;
+    const T = ctx.project.settings.tileSize;
+    const [dx, dy] = DIR[player.facing];
+    const pc = player.character.collider;
+    const mc = mountCharacter.collider;
+    const centerX = player.sprite.x + pc.offsetX + pc.width / 2 + dx * T;
+    const feetY = player.sprite.y + dy * T;
+    const mount = spawnEntity(this, ctx.project, {
+      ...doc,
+      x: Math.round(centerX - mc.offsetX - mc.width / 2),
+      y: Math.round(feetY - mountCharacter.frameHeight),
+      facing: player.facing,
+    });
+    this.register(mount);
   }
 
   private showGameOver(): void {

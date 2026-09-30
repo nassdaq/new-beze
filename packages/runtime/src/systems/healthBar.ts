@@ -29,6 +29,12 @@ export class HealthBars {
     }
   }
 
+  /** Drops the bar of an entity that left the scene (removed by an action) without being defeated. */
+  remove(e: SpawnedEntity): void {
+    const bar = this.bars.get(e);
+    if (bar) { bar.g.destroy(); this.bars.delete(e); }
+  }
+
   private draw(g: Phaser.GameObjects.Graphics, ratio: number): void {
     const fill = ratio > 0.5 ? 0x5ed36a : ratio > 0.25 ? 0xf2c14e : 0xe5484d;
     g.clear();

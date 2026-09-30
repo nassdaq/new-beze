@@ -71,8 +71,27 @@ export default {
     { tag: 'tree',  solid: true,  draw(ctx, s, rand) {} },
     ...
   ],
+  stamps: [                         // optional: multi-tile objects painted in one click
+    { name: 'Tree', tags: [['tree_top'], ['tree']], above: [[true], [false]] },
+  ],
 };
 ```
 
 Tags are free text but `grass`, `path`, `tree`, `water` must exist (the golden fixture and the
 AI prompts use them). Solid tiles become collision when the editor paints with auto-collision.
+
+### Stamps (multi-tile objects)
+
+A stamp is a small grid of tiles the editor paints in one click (a two-tile tree, a 2×2 house).
+`tags` is a list of rows, each row a list of tags (`null` for an empty cell), at most 8×8. The
+optional `above` has the same shape: cells flagged `true` are drawn over characters (canopies,
+roofs), so the editor paints them on the topmost layer that has `aboveEntities` and the player
+walks behind them; the other cells go on the active layer. Rows may be ragged; the stamp's width
+is the longest row and missing cells are empty.
+
+`render.mjs` resolves tags to local tile indices and writes, into the tileset's manifest entry,
+`stamps: [{ name, width, height, tiles, above }]` with `tiles` row-major and `-1` for an empty
+cell, which is exactly `TileStampSchema` in `packages/project-schema`. A tag that no tile carries
+fails the render. Objects that span two tiles must be drawn as one image: render the whole
+object into an offscreen canvas once and blit its halves into the tiles (see `drawTree` in
+`tilesets/outdoor.mjs`), so the seam between the tiles is invisible on the map.

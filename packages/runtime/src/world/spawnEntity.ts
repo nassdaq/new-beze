@@ -14,6 +14,8 @@ export interface SpawnedEntity {
   trigger: { zone: Phaser.GameObjects.Zone; onEnter: Action; once: boolean } | null;
   isPlayer: boolean;
   speed: number;
+  /** The entity's own move speed (its `playerControl.speed` or the project default), before any `setPlayerCharacter` override. */
+  baseSpeed: number;
   facing: Direction;
   attackDamage: number;
   health: { max: number; current: number } | null;
@@ -52,10 +54,36 @@ export function placeSprite(e: SpawnedEntity, x: number, y: number): void {
   e.sprite.setDepth(e.sprite.y);
 }
 
-export function spawnEntity(scene: Phaser.Scene, project: Project, entity: Entity): SpawnedEntity {
+/** What `setPlayerCharacter` left in the game state: applied to the player entity when it spawns. */
+export interface PlayerOverride {
+  characterId: string | null;
+  speed: number | null;
+}
+
+/**
+ * Re-skins a spawned entity as another character: texture, animations, collider. The feet line and the collider's
+ * horizontal centre stay where they were, so a swap mid-scene does not teleport the entity.
+ */
+export function swapCharacter(e: SpawnedEntity, character: Character): void {
+  const sprite = e.sprite;
+  const old = e.character;
+  if (!sprite || !old) return;
+  const centerX = sprite.x + old.collider.offsetX + old.collider.width / 2;
+  const feetY = sprite.y;
+  sprite.anims.stop();
+  sprite.setTexture(KEYS.character(character.id), character.animations.idle_down.frames[0]);
+  sprite.setOrigin(0, 1);
+  sprite.body?.setSize(character.collider.width, character.collider.height).setOffset(character.collider.offsetX, character.collider.offsetY);
+  sprite.setPosition(centerX - character.collider.offsetX - character.collider.width / 2, feetY);
+  sprite.setDepth(sprite.y);
+  e.character = character;
+  sprite.play(KEYS.animation(character.id, `idle_${e.facing}`), true);
+}
+
+export function spawnEntity(scene: Phaser.Scene, project: Project, entity: Entity, override?: PlayerOverride): SpawnedEntity {
   const out: SpawnedEntity = {
     entity, character: null, sprite: null, interact: null, trigger: null,
-    isPlayer: false, speed: project.settings.defaultMoveSpeed, facing: entity.facing,
+    isPlayer: false, speed: project.settings.defaultMoveSpeed, baseSpeed: project.settings.defaultMoveSpeed, facing: entity.facing,
     attackDamage: 1, health: null, enemy: null, wander: null, knockbackUntil: 0, invulnerableUntil: 0, attackUntil: 0,
     breathPhase: Math.random() * Math.PI * 2, breathing: false, defeated: false,
   };
@@ -81,6 +109,7 @@ export function spawnEntity(scene: Phaser.Scene, project: Project, entity: Entit
       case 'playerControl':
         out.isPlayer = true;
         if (c.speed !== undefined) out.speed = c.speed;
+        out.baseSpeed = out.speed;
         if (c.attackDamage !== undefined) out.attackDamage = c.attackDamage;
         break;
       case 'health':
@@ -121,6 +150,11 @@ export function spawnEntity(scene: Phaser.Scene, project: Project, entity: Entit
     } else {
       out.sprite.setCollideWorldBounds(true);
     }
+  }
+  if (out.isPlayer && override) {
+    const character = override.characterId ? project.characters[override.characterId] : undefined;
+    if (character) swapCharacter(out, character);
+    if (override.speed !== null) out.speed = override.speed;
   }
   return out;
 }

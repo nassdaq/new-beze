@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { newId } from '@beze/project-core';
 import type { Dialogue, GameVariable } from '@beze/project-schema';
+import { ImportSheetDialog } from '../import/ImportSheetDialog.js';
+import { ImportTilesetDialog } from '../import/ImportTilesetDialog.js';
 import { useEditor, useProject } from '../store/editorStore.js';
 import { sameSelection, type Selection } from '../store/selection.js';
 import { Section } from '../ui/Field.js';
@@ -13,6 +16,7 @@ export function ProjectPanel() {
   const select = useEditor((s) => s.select);
   const setActiveScene = useEditor((s) => s.setActiveScene);
   const dispatch = useEditor((s) => s.dispatch);
+  const [importing, setImporting] = useState<'sheet' | 'tileset' | 'choose' | null>(null);
   if (!project) return null;
 
   const row = (sel: Selection, label: string, extra?: string, onClick?: () => void, icon?: React.ReactNode) => (
@@ -37,6 +41,8 @@ export function ProjectPanel() {
       { op: 'createMap', map: { ...first, id: mapId, name: `Map ${Object.keys(project.maps).length + 1}`, layers: [
         { id: newId('lyr'), name: 'Ground', visible: true, aboveEntities: false, data: new Array<number>(cells).fill(groundGid) },
         { id: newId('lyr'), name: 'Decoration', visible: true, aboveEntities: false, data: new Array<number>(cells).fill(0) },
+        // Drawn over characters: tree crowns and roofs from stamps land here (same layout as createProject).
+        { id: newId('lyr'), name: 'Canopy', visible: true, aboveEntities: true, data: new Array<number>(cells).fill(0) },
       ], collision: new Array<0 | 1>(cells).fill(0) } },
       { op: 'createScene', scene: { id: sceneId, name: `Scene ${Object.keys(project.scenes).length + 1}`, mapId, entities: {}, entityOrder: [] } },
     ]);
@@ -69,7 +75,7 @@ export function ProjectPanel() {
           {Object.values(project.scenes).map((s) => row({ kind: 'scene', sceneId: s.id }, s.name, s.id === project.startSceneId ? 'start' : (s.id === activeSceneId ? 'active' : undefined), () => setActiveScene(s.id)))}
         </ul>
       </Section>
-      <Section title="Characters">
+      <Section title="Characters" actions={<button className="small" onClick={() => setImporting('sheet')} title="Import a sprite sheet as a character" data-testid="import-character">+</button>}>
         <ul className="list" data-testid="character-list">
           {Object.values(project.characters).map((c) => row(
             { kind: 'character', characterId: c.id }, c.name,
@@ -88,11 +94,26 @@ export function ProjectPanel() {
           {Object.values(project.variables).map((v) => row({ kind: 'variable', variableId: v.id }, v.name, `${v.type} = ${String(v.initial)}`))}
         </ul>
       </Section>
-      <Section title="Assets">
+      <Section
+        title="Assets"
+        actions={
+          <span className="import-chooser">
+            <button className="small" onClick={() => setImporting(importing === 'choose' ? null : 'choose')} title="Import an image" data-testid="import-asset" aria-expanded={importing === 'choose'}>+</button>
+            {importing === 'choose' && (
+              <span className="import-menu" role="menu">
+                <button className="row" role="menuitem" onClick={() => setImporting('sheet')} data-testid="import-asset-sheet">Sprite sheet…</button>
+                <button className="row" role="menuitem" onClick={() => setImporting('tileset')} data-testid="import-asset-tileset">Tileset…</button>
+              </span>
+            )}
+          </span>
+        }
+      >
         <ul className="list">
           {Object.values(project.assets).map((a) => <li key={a.id}><span className="row muted">{a.name}<span className="small">{a.origin}</span></span></li>)}
         </ul>
       </Section>
+      {importing === 'sheet' && <ImportSheetDialog onClose={() => setImporting(null)} />}
+      {importing === 'tileset' && <ImportTilesetDialog onClose={() => setImporting(null)} />}
     </aside>
   );
 }

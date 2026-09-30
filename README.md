@@ -28,7 +28,10 @@ Then: **New game** → press **▶ Play** and walk with the arrow keys or WASD. 
 **Place**, choose *Villager*, click a tile, press **New** next to "Talks" in the inspector,
 edit the lines below, press **Play** again, walk up to the villager and press **E**. Place a
 *Slime*, tick **Enemy**, and press **Space** near it to attack.
-**Export game** downloads a zip that is a static website (serve it with `npx serve .`).
+Walk to the horse and press **E** to ride; hold **Shift** to run. Press **+** next to Characters to
+import your own sprite sheet (from any image tool): it removes the background, cuts the frames and
+maps them to animations. **Export game** downloads a zip that is a static website (serve it with
+`npx serve .`).
 
 ### Ask (prompt to game content)
 

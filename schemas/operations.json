@@ -1299,6 +1299,58 @@
       "properties": {
         "op": {
           "type": "string",
+          "const": "addMapTileset"
+        },
+        "mapId": {
+          "type": "string",
+          "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+        },
+        "tilesetId": {
+          "type": "string",
+          "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+        },
+        "firstGid": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "op",
+        "mapId",
+        "tilesetId",
+        "firstGid"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "const": "removeMapTileset"
+        },
+        "mapId": {
+          "type": "string",
+          "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+        },
+        "tilesetId": {
+          "type": "string",
+          "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+        }
+      },
+      "required": [
+        "op",
+        "mapId",
+        "tilesetId"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
           "const": "createMap"
         },
         "map": {

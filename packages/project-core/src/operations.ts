@@ -148,6 +148,24 @@ function applyOne(d: Project, op: Operation): Operation[] {
       delete d.tilesets[op.id];
       return [{ op: 'createTileset', tileset: snapshot }];
     }
+    case 'addMapTileset': {
+      const map = must(d.maps[op.mapId], 'missing', `map "${op.mapId}" does not exist`);
+      must(d.tilesets[op.tilesetId], 'missing', `tileset "${op.tilesetId}" does not exist`);
+      if (map.tilesets.some((r) => r.tilesetId === op.tilesetId)) throw new OpFailure('exists', `map already uses tileset "${op.tilesetId}"`);
+      const last = map.tilesets[map.tilesets.length - 1];
+      const lastEnd = last ? last.firstGid + (d.tilesets[last.tilesetId]?.tileCount ?? 0) : 1;
+      if (op.firstGid < lastEnd) throw new OpFailure('gidOrder', `firstGid must be at least ${lastEnd}`);
+      map.tilesets.push({ tilesetId: op.tilesetId, firstGid: op.firstGid });
+      return [{ op: 'removeMapTileset', mapId: op.mapId, tilesetId: op.tilesetId }];
+    }
+    case 'removeMapTileset': {
+      const map = must(d.maps[op.mapId], 'missing', `map "${op.mapId}" does not exist`);
+      const i = map.tilesets.findIndex((r) => r.tilesetId === op.tilesetId);
+      if (i < 0) throw new OpFailure('missing', `map does not use tileset "${op.tilesetId}"`);
+      if (i !== map.tilesets.length - 1) throw new OpFailure('notLast', `only the last tileset of a map can be removed`);
+      const [removed] = map.tilesets.splice(i, 1);
+      return [{ op: 'addMapTileset', mapId: op.mapId, tilesetId: op.tilesetId, firstGid: removed!.firstGid }];
+    }
     case 'createMap': {
       if (d.maps[op.map.id]) throw new OpFailure('exists', `map "${op.map.id}" already exists`);
       d.maps[op.map.id] = op.map;

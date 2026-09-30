@@ -24,7 +24,7 @@
       "mime": "image/png",
       "width": 256,
       "height": 192,
-      "hash": "5f5e27bd0b78500d66eb47316718a9f605955ede367c14a7fecedd1391912c1a",
+      "hash": "b63a2341639945b90ad5ef9e006594a06c1201a7eca180c0d8014f516343df54",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -91,6 +91,28 @@
       "width": 192,
       "height": 512,
       "hash": "6888dca8e194ff9b0967814dbde923ded82478baef988529b6a0c01cdc12bb07",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    "ast_starter_horse": {
+      "id": "ast_starter_horse",
+      "kind": "image",
+      "name": "Horse sheet",
+      "mime": "image/png",
+      "width": 256,
+      "height": 512,
+      "hash": "e7f773fcffe3e4f46b7933dcab43a17becd25c9ba68ad09a846f0d5a326db082",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    "ast_starter_hero_mounted": {
+      "id": "ast_starter_hero_mounted",
+      "kind": "image",
+      "name": "Hero on horse sheet",
+      "mime": "image/png",
+      "width": 256,
+      "height": 512,
+      "hash": "fd5655feccb1bd0d0d655ef9f48d3018f4d8804c6741c29eae123c01f3fede26",
       "origin": "starter",
       "license": "CC0-1.0"
     }
@@ -276,7 +298,35 @@
           "solid": true,
           "tag": "water_corner_se"
         }
-      }
+      },
+      "stamps": [
+        {
+          "name": "Tree",
+          "width": 1,
+          "height": 2,
+          "tiles": [
+            24,
+            25
+          ],
+          "above": [
+            true,
+            false
+          ]
+        },
+        {
+          "name": "Pine",
+          "width": 1,
+          "height": 2,
+          "tiles": [
+            26,
+            27
+          ],
+          "above": [
+            true,
+            false
+          ]
+        }
+      ]
     }
   },
   "maps": {
@@ -608,27 +658,6 @@
           "visible": true,
           "aboveEntities": false,
           "data": [
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
             0,
             0,
             0,
@@ -647,6 +676,27 @@
             0,
             0,
             0,
+            0,
+            0,
+            28,
+            26,
+            28,
+            26,
+            28,
+            26,
+            28,
+            26,
+            28,
+            26,
+            28,
+            26,
+            28,
+            26,
+            28,
+            26,
+            28,
+            26,
+            28,
             26,
             26,
             0,
@@ -667,8 +717,8 @@
             0,
             8,
             0,
-            26,
-            26,
+            28,
+            28,
             0,
             0,
             45,
@@ -707,8 +757,8 @@
             0,
             0,
             0,
-            26,
-            26,
+            28,
+            28,
             0,
             0,
             0,
@@ -747,8 +797,8 @@
             0,
             3,
             0,
-            26,
-            26,
+            28,
+            28,
             0,
             0,
             0,
@@ -787,8 +837,8 @@
             0,
             0,
             0,
-            26,
-            26,
+            28,
+            28,
             0,
             0,
             0,
@@ -827,8 +877,8 @@
             0,
             7,
             0,
-            26,
-            26,
+            28,
+            28,
             0,
             0,
             0,
@@ -867,8 +917,8 @@
             0,
             0,
             0,
-            26,
-            26,
+            28,
+            28,
             0,
             0,
             0,
@@ -889,50 +939,337 @@
             0,
             26,
             26,
+            28,
             26,
+            28,
             26,
+            28,
             26,
+            28,
             26,
+            28,
             26,
+            28,
             26,
+            28,
             26,
+            28,
             26,
+            28,
             26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26,
-            26
+            28
+          ]
+        },
+        {
+          "id": "lyr_canopy",
+          "name": "Canopy",
+          "visible": true,
+          "aboveEntities": true,
+          "data": [
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            25,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            27,
+            27,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            25,
+            25,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            27,
+            27,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            25,
+            25,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            27,
+            27,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            25,
+            25,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            27,
+            27,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            25,
+            25,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            27,
+            27,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            25,
+            25,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            27,
+            27,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            25,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            25,
+            27,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
           ]
         }
       ],
       "collision": [
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
         0,
         0,
         0,
@@ -951,6 +1288,27 @@
         0,
         0,
         0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
         1,
         1,
         0,
@@ -1693,6 +2051,244 @@
         "offsetX": 13,
         "offsetY": 50
       }
+    },
+    "chr_horse": {
+      "id": "chr_horse",
+      "name": "Horse",
+      "spriteSheetAssetId": "ast_starter_horse",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_down": {
+          "frames": [
+            16,
+            17,
+            18
+          ],
+          "frameRate": 10,
+          "loop": false
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_left": {
+          "frames": [
+            20,
+            21,
+            22
+          ],
+          "frameRate": 10,
+          "loop": false
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_right": {
+          "frames": [
+            24,
+            25,
+            26
+          ],
+          "frameRate": 10,
+          "loop": false
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_up": {
+          "frames": [
+            28,
+            29,
+            30
+          ],
+          "frameRate": 10,
+          "loop": false
+        }
+      },
+      "collider": {
+        "width": 40,
+        "height": 16,
+        "offsetX": 12,
+        "offsetY": 48
+      }
+    },
+    "chr_hero_mounted": {
+      "id": "chr_hero_mounted",
+      "name": "Hero on horse",
+      "spriteSheetAssetId": "ast_starter_hero_mounted",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "attack_down": {
+          "frames": [
+            16,
+            17,
+            18
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "attack_left": {
+          "frames": [
+            20,
+            21,
+            22
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "attack_right": {
+          "frames": [
+            24,
+            25,
+            26
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "attack_up": {
+          "frames": [
+            28,
+            29,
+            30
+          ],
+          "frameRate": 14,
+          "loop": false
+        }
+      },
+      "collider": {
+        "width": 40,
+        "height": 16,
+        "offsetX": 12,
+        "offsetY": 48
+      }
     }
   },
   "scenes": {
@@ -1828,13 +2424,54 @@
               }
             }
           ]
+        },
+        "ent_horse": {
+          "id": "ent_horse",
+          "name": "Horse",
+          "x": 192,
+          "y": 320,
+          "facing": "left",
+          "components": [
+            {
+              "type": "sprite",
+              "characterId": "chr_horse"
+            },
+            {
+              "type": "body",
+              "solid": true
+            },
+            {
+              "type": "wander",
+              "radius": 48,
+              "speed": 20
+            },
+            {
+              "type": "interactable",
+              "prompt": "Ride",
+              "action": {
+                "type": "sequence",
+                "actions": [
+                  {
+                    "type": "setPlayerCharacter",
+                    "characterId": "chr_hero_mounted",
+                    "speed": 220
+                  },
+                  {
+                    "type": "removeEntity",
+                    "entityId": "ent_horse"
+                  }
+                ]
+              }
+            }
+          ]
         }
       },
       "entityOrder": [
         "ent_hero",
         "ent_aiko",
         "ent_slime",
-        "ent_bat"
+        "ent_bat",
+        "ent_horse"
       ]
     }
   },

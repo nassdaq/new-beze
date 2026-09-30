@@ -279,24 +279,102 @@ function drawBush(ctx, r, berries = false) {
   grassTufts(ctx, r, 2, 25, 27);
 }
 
-/** A tree in 32x64 space: canopy in the top tile, canopy bottom + trunk in the lower tile. */
+/**
+ * Trees are drawn ONCE as a whole 32x64 object into an offscreen canvas (cached per variant)
+ * and the two tiles blit its top and bottom halves, so the seam between `tree_top` and `tree`
+ * is invisible on the map. Variant 0 is a round oak, variant 1 a taller pine.
+ */
+const treeCache = new Map();
+function treeCanvas(variant) {
+  if (!treeCache.has(variant)) {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 64;
+    const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    if (variant === 0) drawOak(ctx, lcg(101)); else drawPine(ctx, lcg(202));
+    treeCache.set(variant, c);
+  }
+  return treeCache.get(variant);
+}
 function drawTree(ctx, part, variant = 0) {
-  ctx.save();
-  if (part === 'bottom') ctx.translate(0, -32);
-  shadow(ctx, 16, 61, 12, 3.2, 0.32);
-  // trunk with root flare
-  poly(ctx, [[12, 40], [20, 40], [21, 54], [24, 60], [24, 62], [8, 62], [8, 60], [11, 54]], T.trunk, T.bark, 1);
-  px(ctx, 12, 42, T.trunkL, 2, 18); px(ctx, 18, 42, T.trunkD, 2, 18); px(ctx, 14, 46, T.trunkD, 1, 6); px(ctx, 16, 50, T.trunkD, 1, 5);
-  px(ctx, 10, 60, T.trunkD, 12, 1);
-  const lobes = variant === 0
-    ? [[8, 36, 7], [24, 36, 7], [16, 39, 7.5], [6, 26, 6], [26, 26, 6], [16, 28, 9], [10, 17, 7], [22, 17, 7], [16, 11, 7.5]]
-    : [[7, 38, 6], [25, 38, 6], [16, 41, 6.5], [7, 28, 6], [25, 28, 6], [16, 30, 8], [11, 19, 6.5], [21, 19, 6.5], [16, 13, 6.5], [16, 6, 4.5]];
-  const pal = variant === 0 ? T : { ...T, dark: '#3b7a2c', mid: '#569b34', light: '#7bbc45', hi: '#b0dc6a' };
-  foliage(ctx, lobes, pal);
-  // sparkle highlights on the lit side
-  const hi = variant === 0 ? [[9, 12], [13, 9], [7, 23], [14, 22], [22, 30]] : [[12, 14], [15, 7], [8, 26], [13, 24], [20, 33]];
-  hi.forEach(([x, y]) => px(ctx, x, y, pal.hi, 2, 1));
+  ctx.drawImage(treeCanvas(variant), 0, part === 'top' ? 0 : 32, 32, 32, 0, 0, 32, 32);
+}
+
+/** Trunk with root flare, a lit strip, bark grooves and a knot; `top` is where the canopy hides it. */
+function drawTrunk(ctx, r, top, x0, x1, flare = 3) {
+  const cx = (x0 + x1) / 2;
+  poly(ctx, [[x0, top], [x1, top], [x1 + 1, 52], [x1 + flare, 59], [x1 + flare + 1, 62], [x0 - flare - 1, 62], [x0 - flare, 59], [x0 - 1, 52]], T.trunk, T.bark, 1);
+  px(ctx, x0 + 1, top + 1, T.trunkL, 2, 52 - top);           // lit left strip
+  px(ctx, x1 - 2, top + 1, T.trunkD, 2, 56 - top);           // shaded right strip
+  for (let i = 0; i < 4; i++) {                              // bark grooves
+    const gx = ri(r, x0 + 2, x1 - 3), gy = ri(r, top + 3, 50), gh = ri(r, 4, 8);
+    px(ctx, gx, gy, T.bark, 1, gh); px(ctx, gx + 1, gy + gh - 2, T.trunkL, 1, 1);
+  }
+  circle(ctx, cx + 1.5, top + 11.5, 1.6, T.trunkD); px(ctx, cx + 1, top + 11, T.bark); px(ctx, cx + 2, top + 12, T.trunkL); // knot
+  px(ctx, x0 - flare, 60, T.trunkD, x1 - x0 + 2 * flare + 1, 1); // root shading
+  px(ctx, x0 - flare - 2, 61, T.bark, 2, 1); px(ctx, x1 + flare + 1, 61, T.bark, 2, 1); // root tips
+  grassTufts(ctx, r, 3, 58, 60);
+}
+
+/** One foliage puff: dark ball, mid and light caps offset to the top-left, a dark crescent underneath. */
+function puff(ctx, x, y, rad, pal, lit = 2) {
+  circle(ctx, x, y, rad, pal.dark);
+  ctx.save(); ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.clip();
+  if (lit >= 1) circle(ctx, x - 1, y - 1.5, rad - 1.2, pal.mid);
+  if (lit >= 2) circle(ctx, x - 2.5, y - 3.5, rad - 2.8, pal.light);
+  if (lit >= 2) { ctx.strokeStyle = pal.hi; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x - 1.5, y - 2, rad - 3, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke(); }
+  ctx.strokeStyle = pal.outline; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, rad - 0.5, Math.PI * 0.2, Math.PI * 0.8); ctx.stroke();
   ctx.restore();
+}
+
+/** Round oak: a wide silhouette of overlapping puffs drawn back to front, lit from the top-left, trunk visible from y=47. */
+function drawOak(ctx, r) {
+  shadow(ctx, 17, 60.5, 14, 3.8, 0.4);
+  drawTrunk(ctx, r, 34, 12, 20, 3);
+  const puffs = [
+    [10, 41, 6, 0], [22, 42, 6, 0], [16, 43, 6.5, 0],                    // bottom row, in shade, tapering to the trunk
+    [5, 33, 6, 1], [27, 33, 6, 1], [16, 35, 8, 1],                        // lower middle
+    [7, 26, 7.5, 2], [25, 27, 7.5, 1], [16, 25, 9, 2],                    // widest row
+    [6, 18, 5.5, 2], [26, 19, 5.5, 1], [11, 15, 7, 2], [21, 16, 7, 2],    // upper row
+    [16, 9, 7, 2], [11, 10, 5, 2], [21, 11, 5, 2],                        // crown, domed
+  ];
+  // whole-silhouette outline first so the canopy reads as one mass
+  ctx.beginPath(); puffs.forEach(([x, y, rad]) => { ctx.moveTo(x + rad + 1, y); ctx.arc(x, y, rad + 1, 0, Math.PI * 2); }); ctx.fillStyle = T.outline; ctx.fill();
+  puffs.forEach(([x, y, rad, lit]) => puff(ctx, x, y, rad, T, lit));
+  // scattered leaf sparkles on the lit side, a few dark notches on the shaded side
+  ctx.save(); ctx.beginPath(); puffs.forEach(([x, y, rad]) => { ctx.moveTo(x + rad, y); ctx.arc(x, y, rad, 0, Math.PI * 2); }); ctx.clip();
+  for (let i = 0; i < 9; i++) px(ctx, ri(r, 3, 20), ri(r, 5, 30), T.hi, ri(r, 1, 2), 1);
+  for (let i = 0; i < 5; i++) px(ctx, ri(r, 14, 29), ri(r, 30, 46), T.outline, 1, 1);
+  ctx.restore();
+}
+
+/** Tall pine: four jagged frond tiers, lit from the left with a shaded right side, trunk visible from y=50. */
+function drawPine(ctx, r) {
+  shadow(ctx, 17, 60.5, 11.5, 3.4, 0.4);
+  drawTrunk(ctx, r, 40, 13, 19, 2);
+  const pal = { outline: '#173f1c', dark: '#25652b', mid: '#3a8a33', light: '#5cae43', hi: '#9ad467' };
+  const tiers = [[30, 51, 15], [20, 41, 13], [10, 30, 10.5], [1, 19, 7]]; // [top, bottom, halfWidth], bottom tier first
+  const cx = 16;
+  tiers.forEach(([y0, y1, hw], t) => {
+    // silhouette: apex, notched right flank, zig-zag hem, notched left flank
+    const pts = [[cx, y0]];
+    const flank = (side) => { const n = 3; for (let i = 1; i <= n; i++) { const f = i / n; pts.push([cx + side * hw * f - side * (i < n ? 1.5 : 0), y0 + (y1 - y0) * f]); if (i < n) pts.push([cx + side * hw * f + side * 0.5, y0 + (y1 - y0) * f + 2]); } };
+    flank(1);
+    for (let x = cx + hw - hw / 6; x > cx - hw + 0.01; x -= hw / 3) { pts.push([x, y1 - 3 - (Math.round(x) % 2)]); pts.push([x - hw / 6, y1]); }
+    pts.push([cx - hw, y1]);
+    const left = pts.slice().reverse();
+    poly(ctx, pts, pal.dark, pal.outline, 2); poly(ctx, pts, pal.dark);
+    ctx.save(); ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.clip();
+    // lit face: everything left of a wavy line that bends across the tier
+    poly(ctx, [[cx + 1, y0], [cx + hw * 0.55, y0 + (y1 - y0) * 0.45], [cx + hw * 0.25, y0 + (y1 - y0) * 0.7], [cx + hw * 0.4, y1], [cx - hw, y1]], pal.mid);
+    poly(ctx, [[cx - 1, y0 + 2], [cx + hw * 0.1, y0 + (y1 - y0) * 0.5], [cx - hw * 0.25, y0 + (y1 - y0) * 0.75], [cx - hw * 0.15, y1 - 1], [cx - hw + 1, y1 - 1], [cx - hw * 0.55, y0 + (y1 - y0) * 0.55]], pal.light);
+    // frond tips: light pixels along the hem on the lit half, outline notches on the shaded half
+    for (let x = cx - hw + hw / 6; x < cx + hw; x += hw / 3) { const y = y1 - 3 - (Math.round(x) % 2); if (x < cx) px(ctx, Math.round(x) - 1, Math.round(y) - 1, pal.hi, 2, 1); else px(ctx, Math.round(x), Math.round(y) + 1, pal.outline, 1, 2); }
+    for (let i = 0; i < 4; i++) { const nx = rr(r, cx - hw + 3, cx - 1), ny = rr(r, y0 + 4, y1 - 4); ctx.strokeStyle = pal.mid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx - 3, ny + 2); ctx.stroke(); }
+    for (let i = 0; i < 3; i++) { const nx = rr(r, cx + 2, cx + hw - 3), ny = rr(r, y0 + 4, y1 - 4); ctx.strokeStyle = pal.outline; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx + 3, ny + 2); ctx.stroke(); }
+    px(ctx, cx - 2, y0 + 3, pal.hi, 2, 1);
+    ctx.restore();
+    void left; void t;
+  });
+  px(ctx, 15, 0, pal.light, 2, 2); px(ctx, 15, 0, pal.hi, 1, 1); // tip
 }
 
 function drawRock(ctx, r, small = false) {
@@ -467,6 +545,11 @@ export default {
   id: 'tls_outdoor', name: 'Outdoor', assetId: 'ast_starter_tileset', file: 'tileset.png',
   tileSize: 32, columns: 8,
   groundTag: 'grass',
+  /** Multi-tile objects the editor paints in one click; rows of tags, `above` rows mark cells drawn over characters. */
+  stamps: [
+    { name: 'Tree', tags: [['tree_top'], ['tree']], above: [[true], [false]] },
+    { name: 'Pine', tags: [['tree2_top'], ['tree2']], above: [[true], [false]] },
+  ],
   tiles: [
     // ---- row 0: grass family
     ground('grass', (ctx, s) => grassBase(ctx, s)),

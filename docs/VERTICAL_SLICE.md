@@ -187,3 +187,19 @@ frame, a crescent slash, hit-stop, spark particles, floating damage numbers, ene
 enemy lunge telegraphs, defeat bursts, a hurt vignette, and idle breathing. The editor shows
 animated sprite previews in the character list, place palette, entity inspector and a new
 character detail view.
+
+## 11. Trees, import, running and horses (implemented)
+
+- **Stamps.** Tilesets can declare multi-tile objects; the starter set has a two-tile oak and pine
+  drawn as one image. Painting a stamp places its trunk on the Decoration layer with collision
+  and its crown on a Canopy layer drawn above characters, so the player walks behind trees. New
+  projects and scenes get the Canopy layer.
+- **Import.** "+" on Characters opens a sprite-sheet importer: drop a PNG, remove a plain
+  background, detect the frame grid or transparent gaps, cut and repack the frames, map rows to
+  animations with a layout preset, preview, import. "+" on Assets also imports tilesets, which are
+  attached to the current map. Uploads live in IndexedDB and work in Play and Export like starter
+  assets. Server-side storage replaces IndexedDB in the accounts slice.
+- **Running.** Hold Shift for `settings.runSpeedMultiplier` (default 1.7) with dust puffs.
+- **Horses.** A horse in the starter pack with a Ride action: `setPlayerCharacter` swaps the
+  player to the mounted sheet and speed, `removeEntity` hides the horse; interacting with nothing
+  in front dismounts and puts the horse back.

@@ -4,7 +4,7 @@
  * See scripts/art/README.md for the module contracts and the sheet layout.
  */
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -89,13 +89,42 @@ async function renderTileset(page, src) {
       tile.draw(ctx, s, window.__beze.rand(i * 31 + 3));
       ctx.restore();
     });
-    const { tiles, ...meta } = def;
-    return { meta, tiles: tiles.map(({ tag, solid }) => ({ tag, solid: !!solid })), sheet: sheet.toDataURL('image/png'), width: s * cols, height: s * rows };
+    const { tiles, stamps, ...meta } = def;
+    return { meta, tiles: tiles.map(({ tag, solid }) => ({ tag, solid: !!solid })), stamps: stamps ?? [], sheet: sheet.toDataURL('image/png'), width: s * cols, height: s * rows };
   }, { src });
 }
 
 const decode = (dataUrl) => Buffer.from(dataUrl.split(',')[1], 'base64');
 const sha = (buf) => createHash('sha256').update(buf).digest('hex');
+/** Write via a temp file + rename so a concurrent reader (another render, the dev server) never sees a half-written file. */
+const writeAtomic = (path, data) => { const tmp = `${path}.${process.pid}.tmp`; writeFileSync(tmp, data); renameSync(tmp, path); };
+
+/**
+ * Resolves a module's stamps (rows of tags, null = empty cell, plus optional rows of `above` flags)
+ * into TileStampSchema entries: { name, width, height, tiles (local indices, -1 = empty), above }.
+ */
+function resolveStamps(def, tiles) {
+  return (def.stamps ?? []).map((st) => {
+    const rows = st.tags ?? [];
+    const height = rows.length;
+    const width = Math.max(0, ...rows.map((row) => row.length));
+    if (!height || !width || height > 8 || width > 8) throw new Error(`stamp "${st.name}" in ${def.id}: tags must be 1..8 rows of 1..8 cells`);
+    const out = { name: st.name, width, height, tiles: [], above: [] };
+    rows.forEach((row, y) => {
+      for (let x = 0; x < width; x++) {
+        const tag = row[x] ?? null;
+        if (tag === null) out.tiles.push(-1);
+        else {
+          const i = tiles.findIndex((t) => t.tag === tag);
+          if (i < 0) throw new Error(`stamp "${st.name}" in ${def.id}: no tile tagged "${tag}"`);
+          out.tiles.push(i);
+        }
+        out.above.push(!!st.above?.[y]?.[x]);
+      }
+    });
+    return out;
+  });
+}
 
 async function upscale(page, dataUrl, factor) {
   return page.evaluate(async ({ dataUrl, factor }) => {
@@ -138,7 +167,7 @@ for (const path of listModules(join(here, 'characters'))) {
   const r = await renderCharacter(page, src, path);
   const d = r.meta;
   const sheet = decode(r.sheet);
-  writeFileSync(join(OUT, d.file), sheet);
+  writeAtomic(join(OUT, d.file), sheet);
   asset(d.assetId, `${d.name} sheet`, d.file, sheet, r.sheetWidth, r.sheetHeight);
   const character = {
     id: d.id, name: d.name, spriteSheetAssetId: d.assetId, frameWidth: d.frameWidth, frameHeight: d.frameHeight,
@@ -146,7 +175,7 @@ for (const path of listModules(join(here, 'characters'))) {
   };
   if (r.portrait && d.portrait) {
     const buf = decode(r.portrait);
-    writeFileSync(join(OUT, d.portrait.file), buf);
+    writeAtomic(join(OUT, d.portrait.file), buf);
     asset(d.portrait.assetId, `${d.name} portrait`, d.portrait.file, buf, d.portrait.size ?? 256, d.portrait.size ?? 256);
     character.portraitAssetId = d.portrait.assetId;
   }
@@ -165,16 +194,17 @@ for (const path of listModules(join(here, 'tilesets'))) {
   const r = await renderTileset(page, src);
   const d = r.meta;
   const buf = decode(r.sheet);
-  writeFileSync(join(OUT, d.file), buf);
+  writeAtomic(join(OUT, d.file), buf);
   asset(d.assetId, `${d.name} tileset`, d.file, buf, r.width, r.height);
   const tileProperties = {};
   r.tiles.forEach((t, i) => { if (t.solid || t.tag) tileProperties[String(i)] = { ...(t.solid ? { solid: true } : {}), ...(t.tag ? { tag: t.tag } : {}) }; });
-  manifest.tilesets.push({ id: d.id, name: d.name, imageAssetId: d.assetId, tileWidth: d.tileSize, tileHeight: d.tileSize, columns: d.columns, tileCount: r.tiles.length, margin: 0, spacing: 0, tileProperties });
+  const stamps = resolveStamps({ ...d, stamps: r.stamps }, r.tiles);
+  manifest.tilesets.push({ id: d.id, name: d.name, imageAssetId: d.assetId, tileWidth: d.tileSize, tileHeight: d.tileSize, columns: d.columns, tileCount: r.tiles.length, margin: 0, spacing: 0, tileProperties, ...(stamps.length ? { stamps } : {}) });
   const groundIndex = r.tiles.findIndex((t) => t.tag === d.groundTag);
   if (groundIndex >= 0 && manifest.groundGid === 1 && firstGid === 1) manifest.groundGid = firstGid + groundIndex;
   firstGid += r.tiles.length;
   if (previewDir) writeFileSync(join(previewDir, d.file.replace('.png', '@4x.png')), decode(await upscale(page, r.sheet, 4)));
-  console.log(`tileset ${d.id}: ${d.file} ${r.tiles.length} tiles`);
+  console.log(`tileset ${d.id}: ${d.file} ${r.tiles.length} tiles${stamps.length ? `, ${stamps.length} stamps` : ''}`);
 }
 
 await browser.close();
@@ -188,10 +218,10 @@ if (only && existing) {
   merged.tilesets = [...merged.tilesets.filter((t) => !manifest.tilesets.some((n) => n.id === t.id)), ...manifest.tilesets];
   if (manifest.playerCharacterId) merged.playerCharacterId = manifest.playerCharacterId;
   if (manifest.tilesets.length) merged.groundGid = manifest.groundGid;
-  writeFileSync(join(OUT, 'manifest.json'), JSON.stringify(merged, null, 2) + '\n');
+  writeAtomic(join(OUT, 'manifest.json'), JSON.stringify(merged, null, 2) + '\n');
 } else {
   if (!manifest.playerCharacterId) throw new Error('no character module has role "player"');
-  writeFileSync(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  writeAtomic(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 }
-writeFileSync(join(OUT, 'LICENSES.md'), '# Starter pack licences\n\nEvery file in this folder is rendered from the modules in `scripts/art/` and released under CC0 1.0 (public domain). Regenerate with `pnpm starter`.\n');
+writeAtomic(join(OUT, 'LICENSES.md'), '# Starter pack licences\n\nEvery file in this folder is rendered from the modules in `scripts/art/` and released under CC0 1.0 (public domain). Regenerate with `pnpm starter`.\n');
 console.log('wrote manifest.json');

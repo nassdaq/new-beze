@@ -56,6 +56,8 @@ export function createProject(name: string, starter: StarterPack, options: Creat
     layers: [
       { id: newId('lyr'), name: 'Ground', visible: true, aboveEntities: false, data: new Array<number>(cells).fill(starter.groundGid) },
       { id: newId('lyr'), name: 'Decoration', visible: true, aboveEntities: false, data: new Array<number>(cells).fill(0) },
+      // Drawn over characters: tree crowns and roofs go here so the player walks behind them.
+      { id: newId('lyr'), name: 'Canopy', visible: true, aboveEntities: true, data: new Array<number>(cells).fill(0) },
     ],
     collision: new Array<0 | 1>(cells).fill(0),
   };

@@ -3,8 +3,9 @@
 
 Reads apps/editor/public/starter/manifest.json (written by `pnpm starter`, i.e. scripts/art/render.mjs)
 so the fixture's assets, tilesets and characters always match the rendered art, then lays out the
-"Hello, Aiko" village by hand: a grass map with a path cross, a tree border, a pond, and four entities
-(the hero, Aiko, a slime and a bat). Pure Python 3, no dependencies.
+"Hello, Aiko" village by hand: a grass map with a path cross, a tree border painted with the manifest's
+Tree/Pine stamps (trunks on Decoration with collision, crowns on the Canopy layer drawn over characters),
+a pond, and five entities (the hero, Aiko, a slime, a bat and a rideable horse). Pure Python 3, no dependencies.
 
     python3 scripts/generate_fixture.py
 """
@@ -24,9 +25,10 @@ FIRST_GID = 1
 NOW = '2026-09-29T00:00:00.000Z'
 
 # Preferred listing order for the collections copied from the manifest (anything else follows).
-CHARACTER_ORDER = ['chr_hero', 'chr_villager', 'chr_slime', 'chr_bat']
+CHARACTER_ORDER = ['chr_hero', 'chr_villager', 'chr_slime', 'chr_bat', 'chr_horse', 'chr_hero_mounted']
 ASSET_ORDER = ['ast_starter_tileset', 'ast_starter_hero', 'ast_starter_hero_portrait', 'ast_starter_villager',
-               'ast_starter_villager_portrait', 'ast_starter_slime', 'ast_starter_bat']
+               'ast_starter_villager_portrait', 'ast_starter_slime', 'ast_starter_bat', 'ast_starter_horse',
+               'ast_starter_hero_mounted']
 
 
 def ordered(items: list[dict], order: list[str]) -> dict[str, dict]:
@@ -82,15 +84,33 @@ def main() -> int:
         if g is not None:
             ground[idx(PATH_COL + dx, PATH_ROW + dy)] = g
 
-    # --- Decoration: tree border, a 3x2 pond at (3,3), and a few props off the path.
+    # --- Decoration + Canopy: a tree border of whole trees, alternating the Tree and Pine stamps.
+    # A stamp's trunk cell (solid) lands on Decoration, its crown (flagged `above`) on Canopy, which is
+    # drawn over characters. Trunks sit on row 1, row H-1 and columns 0 / W-1; crowns one tile above,
+    # so row 0 holds only crowns and every tree is whole.
+    stamps = {s['name']: s for s in tileset.get('stamps', [])}
+    for name in ('Tree', 'Pine'):
+        if name not in stamps:
+            sys.exit(f'tileset {TILESET_ID} has no stamp {name!r}; re-render the starter art (pnpm starter)')
     deco = [0] * (W * H)
-    tree = gid('tree')
-    for x in range(W):
-        deco[idx(x, 0)] = tree
-        deco[idx(x, H - 1)] = tree
-    for y in range(H):
-        deco[idx(0, y)] = tree
-        deco[idx(W - 1, y)] = tree
+    canopy = [0] * (W * H)
+
+    def stamp_at(stamp: dict, ax: int, ay: int) -> None:
+        """Paints `stamp` with its top-left cell at (ax, ay); cells outside the map are dropped."""
+        w = stamp['width']
+        above = stamp.get('above') or [False] * len(stamp['tiles'])
+        for i, local in enumerate(stamp['tiles']):
+            if local < 0:
+                continue
+            x, y = ax + i % w, ay + i // w
+            if 0 <= x < W and 0 <= y < H:
+                (canopy if above[i] else deco)[idx(x, y)] = FIRST_GID + local
+
+    border = [(x, 1) for x in range(W)] + [(x, H - 1) for x in range(W)] \
+        + [(0, y) for y in range(2, H - 1)] + [(W - 1, y) for y in range(2, H - 1)]
+    for (x, y) in border:  # (x, y) is the trunk cell
+        stamp = stamps['Tree'] if (x + y) % 2 == 0 else stamps['Pine']
+        stamp_at(stamp, x, y - stamp['height'] + 1)
     # A 3x2 pond: shore tiles around the rim when the tileset has them, plain water otherwise.
     POND_X, POND_Y, POND_W, POND_H = 3, 3, 3, 2
     for y in range(POND_Y, POND_Y + POND_H):
@@ -111,13 +131,13 @@ def main() -> int:
             assert deco[idx(x, y)] == 0 and ground[idx(x, y)] == gid('grass'), (tag, x, y)
             deco[idx(x, y)] = gid(tag)
 
-    # --- Collision: every cell whose ground or decoration tile is solid.
+    # --- Collision: every cell whose ground or decoration tile is solid (canopy tiles are never solid).
     collision = [1 if (ground[i] in solid_gids or deco[i] in solid_gids) else 0 for i in range(W * H)]
 
     characters = ordered(manifest['characters'], CHARACTER_ORDER)
     assets = ordered(manifest['assets'], ASSET_ORDER)
     tilesets = {t['id']: t for t in manifest['tilesets']}
-    for cid in ('chr_hero', 'chr_villager', 'chr_slime', 'chr_bat'):
+    for cid in ('chr_hero', 'chr_villager', 'chr_slime', 'chr_bat', 'chr_horse', 'chr_hero_mounted'):
         if cid not in characters:
             sys.exit(f'manifest has no character {cid}')
     if manifest.get('playerCharacterId') != 'chr_hero':
@@ -154,6 +174,15 @@ def main() -> int:
             {'type': 'wander', 'radius': 96, 'speed': 40},
             {'type': 'health', 'max': 1},
             {'type': 'enemy', 'speed': 80, 'aggroRadius': 140, 'damage': 1, 'attackCooldownMs': 1000, 'onDefeat': add_defeated()},
+        ]),
+        # Press E on the horse to ride it: the player swaps to the mounted hero (faster) and the horse
+        # entity is removed; pressing E again with nothing in front dismounts (runtime behaviour).
+        'ent_horse': entity('ent_horse', 'Horse', 'chr_horse', 6, 11, 'left', [
+            {'type': 'wander', 'radius': 48, 'speed': 20},
+            {'type': 'interactable', 'prompt': 'Ride', 'action': {'type': 'sequence', 'actions': [
+                {'type': 'setPlayerCharacter', 'characterId': 'chr_hero_mounted', 'speed': 220},
+                {'type': 'removeEntity', 'entityId': 'ent_horse'},
+            ]}},
         ]),
     }
 
@@ -204,6 +233,7 @@ def main() -> int:
                 'layers': [
                     {'id': 'lyr_ground', 'name': 'Ground', 'visible': True, 'aboveEntities': False, 'data': ground},
                     {'id': 'lyr_deco', 'name': 'Decoration', 'visible': True, 'aboveEntities': False, 'data': deco},
+                    {'id': 'lyr_canopy', 'name': 'Canopy', 'visible': True, 'aboveEntities': True, 'data': canopy},
                 ],
                 'collision': collision,
             }
@@ -213,7 +243,7 @@ def main() -> int:
             'scn_village': {
                 'id': 'scn_village', 'name': 'Village', 'mapId': 'map_village',
                 'entities': entities,
-                'entityOrder': ['ent_hero', 'ent_aiko', 'ent_slime', 'ent_bat'],
+                'entityOrder': ['ent_hero', 'ent_aiko', 'ent_slime', 'ent_bat', 'ent_horse'],
             }
         },
         'dialogues': {'dlg_aiko_intro': dialogue},

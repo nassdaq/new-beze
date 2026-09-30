@@ -30,7 +30,14 @@ export interface EditorState {
   selection: Selection;
   activeSceneId: string | null;
   activeTool: Tool;
-  tileBrush: { gid: number; layerId: string | null };
+  tileBrush: {
+    gid: number;
+    layerId: string | null;
+    /** Set while painting a multi-tile object from `tilesets[tilesetId].stamps[index]`; null paints `gid`. */
+    stamp?: { tilesetId: string; index: number } | null;
+    /** Also mark cells solid when the painted tile's properties say so (never clears collision). */
+    autoCollision: boolean;
+  };
   collisionMode: 'solid' | 'clear';
   placeCharacterId: string | null;
   history: { undo: Transaction[]; redo: Transaction[] };
@@ -61,7 +68,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   selection: NONE,
   activeSceneId: null,
   activeTool: 'select',
-  tileBrush: { gid: 1, layerId: null },
+  tileBrush: { gid: 1, layerId: null, stamp: null, autoCollision: true },
   collisionMode: 'solid',
   placeCharacterId: null,
   history: { undo: [], redo: [] },
@@ -70,18 +77,18 @@ export const useEditor = create<EditorState>((set, get) => ({
   loadProject(project) {
     const sceneId = project.scenes[project.startSceneId] ? project.startSceneId : Object.keys(project.scenes)[0] ?? null;
     const map = sceneId ? project.maps[project.scenes[sceneId]!.mapId ?? ''] : undefined;
-    set({
+    set((s) => ({
       project,
       saveState: 'saved',
       version: 0,
       selection: NONE,
       activeSceneId: sceneId,
       activeTool: 'select',
-      tileBrush: { gid: 1, layerId: map?.layers[0]?.id ?? null },
+      tileBrush: { gid: 1, layerId: map?.layers[0]?.id ?? null, stamp: null, autoCollision: s.tileBrush.autoCollision },
       placeCharacterId: Object.keys(project.characters)[0] ?? null,
       history: { undo: [], redo: [] },
       play: { status: 'stopped', error: null },
-    });
+    }));
   },
 
   closeProject() {

@@ -80,6 +80,27 @@ export class Effects {
     this.scene.time.delayedCall(500, () => emitter.destroy());
   }
 
+  /**
+   * A small puff of dust kicked up behind the feet while running: a few sand-coloured motes drifting away from the
+   * direction of travel and fading out, drawn just behind the runner.
+   */
+  dust(x: number, y: number, facing: Direction): void {
+    const away = Phaser.Math.RadToDeg(FACING_ANGLE[facing]) + 180;
+    const emitter = this.scene.add.particles(x, y, SPARK_TEXTURE, {
+      emitting: false,
+      speed: { min: 12, max: 34 },
+      angle: { min: away - 40, max: away + 40 },
+      lifespan: { min: 220, max: 380 },
+      scale: { start: 1.1, end: 0.2 },
+      alpha: { start: 0.75, end: 0 },
+      gravityY: -18,
+      tint: [0xe0d2b4, 0xd6c4a0, 0xf0e6d0],
+      quantity: 1,
+    }).setDepth(y - 1);
+    emitter.explode(3 + Math.floor(Math.random() * 2), 0, 0);
+    this.scene.time.delayedCall(450, () => emitter.destroy());
+  }
+
   /** A burst of chunkier particles in the entity's own colour plus an expanding ring, for its defeat. */
   burst(e: SpawnedEntity): void {
     const sprite = e.sprite;
