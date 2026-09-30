@@ -61,6 +61,20 @@ export const ProjectSettingsSchema = z.object({
     lampTags: z.array(z.string().max(60)).max(20).optional(),
   }).optional(),
   /**
+   * v4: life in the world, all derived from the map's tile tags. Traffic drives along road tiles, pedestrians (the
+   * listed characters) pace the sidewalks, birds cross the sky, steam rises from `steamTags` tiles, fireflies drift
+   * over grass at night; `weather: 'rain'` adds rain and a darker sky. Everything defaults to on except pedestrians,
+   * which need characters.
+   */
+  ambient: z.object({
+    traffic: z.boolean().optional(),
+    pedestrians: z.array(IdSchema).max(12).optional(),
+    birds: z.boolean().optional(),
+    fireflies: z.boolean().optional(),
+    weather: z.enum(['clear', 'rain']).optional(),
+    steamTags: z.array(z.string().max(60)).max(20).optional(),
+  }).optional(),
+  /**
    * v4: sound. Music is generated in-engine by mood (`auto` picks city with an economy, calm without) unless an
    * uploaded track (`musicAssetId`) replaces it; scenes can override both. Sound effects are always synthesized.
    */

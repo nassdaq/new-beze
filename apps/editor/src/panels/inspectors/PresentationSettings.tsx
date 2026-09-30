@@ -4,6 +4,7 @@ import { Field } from '../../ui/Field.js';
 import { toast } from '../../ui/Toast.js';
 
 type Presentation = NonNullable<ProjectSettings['presentation']>;
+type Ambient = NonNullable<ProjectSettings['ambient']>;
 
 /** Project-level look and feel: title screen, lighting and day/night, bloom, vignette. Every field defaults to on. */
 export function PresentationSettings() {
@@ -25,6 +26,17 @@ export function PresentationSettings() {
     <label className="check" key={key}><input type="checkbox" checked={p[key] !== false} onChange={(e) => patch(label, { [key]: e.target.checked ? undefined : false })} /> {label}</label>
   );
   const images = Object.values(project.assets).filter((a) => a.kind === 'image');
+  const amb: Ambient = project.settings.ambient ?? {};
+  const patchAmbient = (label: string, next: Partial<Ambient>) => {
+    const merged: Ambient = { ...amb, ...next };
+    for (const k of Object.keys(merged) as Array<keyof Ambient>) if (merged[k] === undefined) delete merged[k];
+    run(label, [{ op: 'updateSettings', patch: { ambient: merged } }]);
+  };
+  const ambToggle = (key: 'traffic' | 'birds' | 'fireflies', label: string) => (
+    <label className="check" key={key}><input type="checkbox" checked={amb[key] !== false} onChange={(e) => patchAmbient(label, { [key]: e.target.checked ? undefined : false })} /> {label}</label>
+  );
+  const pedestrians = amb.pedestrians ?? [];
+  const playerCharacterIds = new Set(Object.values(project.scenes).flatMap((s) => Object.values(s.entities)).filter((e) => e.components.some((c) => c.type === 'playerControl')).map((e) => e.components.find((c) => c.type === 'sprite')).map((c) => (c && c.type === 'sprite' ? c.characterId : '')));
 
   return (
     <>
@@ -54,6 +66,19 @@ export function PresentationSettings() {
       {toggle('bloom', 'Bloom (soft glow on bright things)')}
       {toggle('vignette', 'Vignette (darkened corners)')}
       <p className="muted small">With an economy the day/night cycle follows its day clock. Effects switch off by themselves on slow (software) graphics.</p>
+      <h4 className="subhead">Life in the world</h4>
+      {ambToggle('traffic', 'Cars on the roads (they stop for the player)')}
+      {ambToggle('birds', 'Birds crossing the sky')}
+      {ambToggle('fireflies', 'Fireflies over grass at night')}
+      <Field label="Weather">
+        <select value={amb.weather ?? 'clear'} onChange={(e) => patchAmbient('Weather', { weather: e.target.value === 'rain' ? 'rain' : undefined })}>
+          <option value="clear">Clear</option><option value="rain">Rain (with lightning)</option>
+        </select>
+      </Field>
+      <span className="field-label">Pedestrians (characters that pace the sidewalks)</span>
+      {Object.values(project.characters).filter((c) => !playerCharacterIds.has(c.id)).map((c) => (
+        <label className="check" key={c.id}><input type="checkbox" checked={pedestrians.includes(c.id)} onChange={(e) => patchAmbient('Pedestrians', { pedestrians: e.target.checked ? [...pedestrians, c.id] : pedestrians.filter((id) => id !== c.id) })} /> {c.name}</label>
+      ))}
     </>
   );
 }

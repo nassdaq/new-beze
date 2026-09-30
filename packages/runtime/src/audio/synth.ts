@@ -147,6 +147,7 @@ export const SFX: Record<string, SfxParams> = {
   card: { wave: 'sine', freq: 330, freqEnd: 660, slide: 0.5, duration: 0.5, attack: 0.01, decay: 0.1, sustain: 0.6, volume: 0.3, layer: { wave: 'noise', freq: 2000, freqEnd: 400, duration: 0.25, sustain: 0.5, lowpass: 3500, lowpassEnd: 500, volume: 0.25 } },
   door: { wave: 'noise', freq: 600, freqEnd: 150, duration: 0.35, attack: 0.02, decay: 0.1, sustain: 0.6, lowpass: 1200, lowpassEnd: 300, volume: 0.35 },
   title_start: { wave: 'triangle', freq: 392, duration: 0.9, attack: 0.005, decay: 0.08, sustain: 0.7, repeats: 4, arp: [0, 7, 12, 19], volume: 0.4, layer: { wave: 'noise', freq: 4000, freqEnd: 300, duration: 0.6, sustain: 0.5, lowpass: 5000, lowpassEnd: 400, volume: 0.2 } },
+  thunder: { wave: 'noise', freq: 120, freqEnd: 40, slide: 0.5, duration: 2.2, attack: 0.05, decay: 0.6, sustain: 0.5, release: 1.2, lowpass: 400, lowpassEnd: 120, volume: 0.7 },
   step: { wave: 'noise', freq: 500, freqEnd: 200, duration: 0.06, attack: 0.002, decay: 0.02, sustain: 0.4, lowpass: 1200, volume: 0.12 },
 };
 

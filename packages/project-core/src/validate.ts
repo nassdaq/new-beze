@@ -92,6 +92,7 @@ export function validateProject(p: Project): Diagnostic[] {
   if ((abilityKey as string) === p.settings.interactKey) error('keyClash', 'settings.abilityKey', `ability key and interact key are both ${abilityKey}`);
   asset(p.settings.presentation?.titleBackgroundAssetId, 'settings.presentation.titleBackgroundAssetId');
   asset(p.settings.audio?.musicAssetId, 'settings.audio.musicAssetId', 'audio');
+  (p.settings.ambient?.pedestrians ?? []).forEach((id, i) => { if (!p.characters[id]) error('missingCharacter', `settings.ambient.pedestrians.${i}`, `character "${id}" does not exist`); });
   if (p.settings.economy) {
     const eco = p.settings.economy;
     const numberVar = (id: string | undefined, at: string) => {

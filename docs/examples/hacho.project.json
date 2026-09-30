@@ -19,6 +19,9 @@
       "tagline": "A town, a hustle, a fortune to build.",
       "startHour": 8
     },
+    "ambient": {
+      "pedestrians": ["chr_villager", "chr_kid", "chr_vendor"]
+    },
     "economy": {
       "moneyVariableId": "var_money",
       "xpVariableId": "var_xp",

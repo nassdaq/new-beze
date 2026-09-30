@@ -630,6 +630,7 @@ def main() -> int:
             'runSpeedMultiplier': 1.7,
             'backgroundColor': '#141626',
             'presentation': {'tagline': 'Web the thugs. Zip the rooftops. Save downtown.', 'startHour': 8},
+            'ambient': {'pedestrians': [VILLAGER, KID, VENDOR, BANKER]},
             'economy': {
                 'moneyVariableId': MONEY, 'xpVariableId': XP, 'reputationVariableId': REP,
                 'currencyPrefix': '$', 'dayLengthMs': 150_000,

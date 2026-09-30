@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Project, TileMap } from '@beze/project-schema';
 import type { BuiltMap } from '../world/buildTilemap.js';
+import type { TagIndex } from '../world/tags.js';
 import { atmosphereAt, DEFAULT_LAMP_TAGS, isLampTag } from './atmosphere.js';
 
 interface Lamp {
@@ -57,26 +58,17 @@ export class Lighting {
     for (const layer of built.layers) this.attach(layer);
   }
 
-  /** One lamp per lit tile (lamp posts, signs, kiosks) on any visible layer. Only shines at night. */
-  addLampsFromMap(project: Project, map: TileMap): void {
+  /** One lamp per lit tile (lamp posts, signs, kiosks). Only shines at night. */
+  addLampsFromMap(map: TileMap, index: TagIndex): void {
     if (!this.enabled) return;
     const T = map.tileWidth;
-    const refs = [...map.tilesets].sort((a, b) => b.firstGid - a.firstGid);
-    for (const layer of map.layers) {
-      if (!layer.visible) continue;
-      for (let i = 0; i < layer.data.length; i++) {
-        const gid = layer.data[i]!;
-        if (gid === 0) continue;
-        const ref = refs.find((r) => gid >= r.firstGid);
-        const tileset = ref ? project.tilesets[ref.tilesetId] : undefined;
-        if (!ref || !tileset) continue;
-        const tag = tileset.tileProperties[String(gid - ref.firstGid)]?.tag;
-        if (!isLampTag(tag, this.lampTags)) continue;
-        const x = (i % map.width) * T + T / 2;
-        const y = Math.floor(i / map.width) * T + (tag === 'lamp' ? T * 0.3 : T * 0.5);
-        const strong = tag === 'lamp';
-        this.add(x, y, strong ? 4.2 * T : 2.6 * T, lampColor(tag!), strong ? 1.15 : 0.8, true, tag!.startsWith('sign_'));
-      }
+    for (let i = 0; i < index.tags.length; i++) {
+      const tag = index.tags[i]!;
+      if (!isLampTag(tag, this.lampTags)) continue;
+      const x = (i % map.width) * T + T / 2;
+      const y = Math.floor(i / map.width) * T + (tag === 'lamp' ? T * 0.3 : T * 0.5);
+      const strong = tag === 'lamp';
+      this.add(x, y, strong ? 4.2 * T : 2.6 * T, lampColor(tag), strong ? 1.15 : 0.8, true, tag.startsWith('sign_'));
     }
   }
 
@@ -87,12 +79,13 @@ export class Lighting {
     this.lamps.push({ light, base: intensity, night, flicker, seed: Math.random() * 100 });
   }
 
-  /** Called every frame with the world clock's hour (null: no day/night cycle, plain daylight). */
-  update(now: number, hour: number | null): void {
+  /** Called every frame with the world clock's hour (null: no day/night cycle, plain daylight); `dim` darkens for weather. */
+  update(now: number, hour: number | null, dim = 0): void {
     const atmo = hour === null ? null : atmosphereAt(hour);
     const night = atmo?.night ?? 0;
     if (this.enabled) {
-      this.scene.lights.setAmbientColor(atmo?.ambient ?? 0xffffff);
+      const ambient = atmo?.ambient ?? 0xffffff;
+      this.scene.lights.setAmbientColor(dim > 0 ? Phaser.Display.Color.IntegerToColor(ambient).darken(Math.round(dim * 100)).color : ambient);
       for (const l of this.lamps) {
         let k = l.night ? night : 1;
         if (l.flicker && k > 0) k *= 0.8 + 0.2 * Math.sin(now / 70 + l.seed) * Math.sin(now / 190 + l.seed * 2);

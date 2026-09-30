@@ -134,6 +134,14 @@ below is on by default and can be turned off per project under **Project → Pre
 | HUD | Portrait, hearts, money, level and XP bar, reputation, a day clock with sun/moon, the active mission with its timer, an ability cooldown chip, key-cap prompts. |
 | Quality | `auto` turns the lights and post-effects off on software renderers (headless test browsers, VMs) so the frame rate, and with it the physics, stays at speed. Hosts can force it with `window.__BEZE_QUALITY` or the runtime's `quality` option. |
 
+### Life in the world (ambient)
+
+Read from the map's tile tags, so any map gets it: cars drive the road lanes (right-hand traffic, headlights at
+night, they brake for the player and for each other), the characters listed in `settings.ambient.pedestrians` pace
+the sidewalks, birds cross the sky now and then, steam rises from vents and manholes, fireflies drift over grass at
+night, and `weather: 'rain'` adds rain, a darker sky and lightning with thunder. **Project → Presentation → Life in
+the world** toggles each.
+
 ### Sound
 
 Sound effects are synthesized in the runtime from a table of parameters (`packages/runtime/src/audio/synth.ts`, in

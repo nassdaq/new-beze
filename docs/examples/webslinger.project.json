@@ -20,6 +20,9 @@
       "tagline": "Web the thugs. Zip the rooftops. Save downtown.",
       "startHour": 8
     },
+    "ambient": {
+      "pedestrians": ["chr_villager", "chr_kid", "chr_vendor", "chr_banker"]
+    },
     "economy": {
       "moneyVariableId": "var_money",
       "xpVariableId": "var_xp",

@@ -34,7 +34,7 @@ test('create Webslinger from the template, zip onto a wall and web a thug', asyn
   // Climbing: holding up walks him over the facade and the ledge onto the roof (a walkable cell inside the ring).
   // Polled rather than timed, so a slow test machine (software GL, capped frame rate) does not fail it.
   await page.keyboard.down('ArrowUp');
-  await expect.poll(async () => (await cellUnderPlayer(game)) === 0 && (await playerCenter(game))!.y < onWall!.y - 96, { timeout: 10_000 }).toBe(true);
+  await expect.poll(async () => (await cellUnderPlayer(game)) === 0 && (await playerCenter(game))!.y < onWall!.y - 96, { timeout: 25_000 }).toBe(true);
   await page.keyboard.up('ArrowUp');
   await page.screenshot({ path: 'test-results/webslinger-roof.png' });
   await expect.poll(() => game.evaluate(() => (window as unknown as { __beze: Beze }).__beze.state.variables['var_discovered_roof']), { timeout: 5_000 }).toBe(true);

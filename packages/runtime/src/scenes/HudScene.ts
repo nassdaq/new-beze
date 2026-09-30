@@ -159,6 +159,27 @@ export class HudScene extends Phaser.Scene {
     this.cards.push({ kind, title, subtitle });
   }
 
+  private gameOverObjects: Phaser.GameObjects.GameObject[] = [];
+
+  /** The defeat card: a shade, the title in the display face and the retry key. */
+  showGameOver(attackKey: string): void {
+    this.hideGameOver();
+    const { width, height } = this.scale;
+    const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x05060c, 0.55).setDepth(40).setAlpha(0);
+    const title = this.add.text(width / 2, height / 2 - 10, 'DOWN FOR THE COUNT', { ...TEXT.display(58, UI.bad), stroke: '#0a0a14', strokeThickness: 8 }).setOrigin(0.5).setDepth(41).setAlpha(0).setScale(1.3);
+    const cap = keycap(this, width / 2 - 60, height / 2 + 44, attackKey, 24).setDepth(41).setAlpha(0);
+    const hint = this.add.text(width / 2 - 36, height / 2 + 44, 'to get back up', { ...TEXT.body, fontSize: '18px', color: UI.muted }).setOrigin(0, 0.5).setDepth(41).setAlpha(0);
+    this.gameOverObjects = [shade, title, cap, hint];
+    this.tweens.add({ targets: shade, alpha: 1, duration: 600, delay: 300, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: title, alpha: 1, scale: 1, duration: 420, delay: 700, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: [cap, hint], alpha: 1, duration: 300, delay: 1100 });
+  }
+
+  hideGameOver(): void {
+    for (const o of this.gameOverObjects) o.destroy();
+    this.gameOverObjects = [];
+  }
+
   override update(): void {
     const ctx = ctxOf(this);
     const { project, state } = ctx;
