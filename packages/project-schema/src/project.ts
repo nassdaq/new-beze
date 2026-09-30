@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SCHEMA_VERSION = 2 as const;
+export const SCHEMA_VERSION = 3 as const;
 
 /** Opaque id: a three-letter type prefix, an underscore, then up to 40 url-safe characters. */
 export const IdSchema = z.string().regex(/^[a-z]{3}_[A-Za-z0-9_-]{1,40}$/, 'invalid id');
@@ -40,6 +40,18 @@ export const ProjectSettingsSchema = z.object({
   /** Speed factor while the run key (Shift) is held. Default 1.7 when absent. */
   runSpeedMultiplier: z.number().min(1).max(4).optional(),
   backgroundColor: Color,
+  /** v3: turns on money, XP/level, the day clock and the HUD. Absent = plain adventure. */
+  economy: z.object({
+    moneyVariableId: IdSchema,
+    xpVariableId: IdSchema.optional(),
+    reputationVariableId: IdSchema.optional(),
+    /** Printed before amounts, e.g. "TSh ". */
+    currencyPrefix: z.string().max(12),
+    /** Real milliseconds per in-game day. Property income is paid once per day. */
+    dayLengthMs: PosInt.min(5000).max(3_600_000),
+    /** XP needed for level 2, 3, ... ; level = 1 + number of thresholds reached. */
+    levelThresholds: z.array(NonNegInt).max(50).optional(),
+  }).optional(),
 });
 export type ProjectSettings = z.infer<typeof ProjectSettingsSchema>;
 
@@ -128,10 +140,12 @@ export const CharacterSchema = z.object({
   spriteSheetAssetId: IdSchema,
   frameWidth: PosInt,
   frameHeight: PosInt,
+  /** The 8 directional animations are required; attack_* optional; any other name (emotes such as
+   * "celebrate", "map", "point", "interact") is allowed and playable through the playAnimation action. */
   animations: z.object({
     ...(Object.fromEntries(ANIMATION_NAMES.map((n) => [n, AnimationSchema])) as Record<(typeof ANIMATION_NAMES)[number], typeof AnimationSchema>),
     ...(Object.fromEntries(OPTIONAL_ANIMATION_NAMES.map((n) => [n, AnimationSchema.optional()])) as Record<(typeof OPTIONAL_ANIMATION_NAMES)[number], z.ZodOptional<typeof AnimationSchema>>),
-  }),
+  }).catchall(AnimationSchema),
   collider: z.object({ width: PosInt, height: PosInt, offsetX: NonNegInt, offsetY: NonNegInt }),
   portraitAssetId: IdSchema.optional(),
 });
@@ -159,6 +173,14 @@ const ActionBase = z.discriminatedUnion('type', [
   z.object({ type: z.literal('setPlayerCharacter'), characterId: IdSchema, speed: z.number().positive().max(2000).optional() }),
   /** Remove an entity from the running scene (the horse you just mounted, a picked-up item). Runtime only; the document is untouched. */
   z.object({ type: z.literal('removeEntity'), entityId: IdSchema }),
+  /** v3: a short on-screen message ("Discovered: Market", "+TSh 5,000"). */
+  z.object({ type: z.literal('notify'), text: z.string().max(200), kind: z.enum(['info', 'reward', 'warning']).optional() }),
+  /** v3: play a named animation on the player (an emote) and lock movement for its duration. */
+  z.object({ type: z.literal('playAnimation'), animation: z.string().min(1).max(40), durationMs: PosInt.max(10000).optional() }),
+  /** v3: activate a quest (mission). Steps complete automatically when their conditions hold. */
+  z.object({ type: z.literal('startQuest'), questId: IdSchema }),
+  /** v3: mark a quest step complete explicitly (for steps without a condition). */
+  z.object({ type: z.literal('completeQuestStep'), questId: IdSchema, stepId: IdSchema }),
 ]);
 export type Action =
   | z.infer<typeof ActionBase>
@@ -182,6 +204,28 @@ export const ComponentSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('wander'), radius: PosInt.max(2000), speed: z.number().positive().max(2000) }),
   /** Hit points. Entities with health can be hurt; at 0 they are defeated. */
   z.object({ type: z.literal('health'), max: PosInt.max(9999) }),
+  /** v3: a purchasable place. Interact to buy; owned properties pay incomePerDay every in-game day. */
+  z.object({
+    type: z.literal('property'),
+    name: Name,
+    price: NonNegInt,
+    incomePerDay: NonNegInt,
+    ownedVariableId: IdSchema,
+    description: z.string().max(200).optional(),
+  }),
+  /** v3: a shop. Interact to open a buy/sell list over item variables. */
+  z.object({
+    type: z.literal('shop'),
+    name: Name,
+    sells: z.array(z.object({ variableId: IdSchema, price: NonNegInt })).max(24),
+    buys: z.array(z.object({ variableId: IdSchema, price: NonNegInt })).max(24),
+  }),
+  /** v3: walk over to collect: adds `amount` to a variable and removes the entity (once per session when `once`). */
+  z.object({ type: z.literal('pickup'), variableId: IdSchema, amount: z.number(), once: z.boolean() }),
+  /** v3: solid until `condition` holds; interacting while locked shows `lockedText`. Unlocks with an effect. */
+  z.object({ type: z.literal('lock'), condition: ConditionSchema, lockedText: z.string().max(200) }),
+  /** v3: shows on the map screen and names the place for discovery. */
+  z.object({ type: z.literal('mapMarker'), label: Name, icon: z.enum(['shop', 'bank', 'food', 'bus', 'home', 'park', 'mission', 'market', 'place']).optional(), discoverXp: NonNegInt.optional() }),
   /** Chases the player within `aggroRadius` px and hurts on contact. Needs sprite + health. */
   z.object({
     type: z.literal('enemy'),
@@ -193,7 +237,7 @@ export const ComponentSchema = z.discriminatedUnion('type', [
   }),
 ]);
 export type Component = z.infer<typeof ComponentSchema>;
-export const ComponentTypeSchema = z.enum(['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy']);
+export const ComponentTypeSchema = z.enum(['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy', 'property', 'shop', 'pickup', 'lock', 'mapMarker']);
 export type ComponentType = z.infer<typeof ComponentTypeSchema>;
 
 export const EntitySchema = z.object({
@@ -252,6 +296,10 @@ export const GameVariableSchema = z.object({
   name: z.string().min(1).max(60).regex(/^[A-Za-z_][A-Za-z0-9_]*$/, 'identifier'),
   type: z.enum(['boolean', 'number', 'string']),
   initial: ScalarSchema,
+  /** v3: human label for HUD/inventory ("Parcel", "Money"). */
+  label: z.string().max(60).optional(),
+  /** v3: items show in the inventory; stats in the status screen; flags are hidden. */
+  category: z.enum(['item', 'stat', 'flag']).optional(),
 });
 export type GameVariable = z.infer<typeof GameVariableSchema>;
 
@@ -259,7 +307,15 @@ export const QuestSchema = z.object({
   id: IdSchema,
   name: Name,
   description: Text,
-  steps: z.array(z.object({ id: IdSchema, text: Text, completeWhen: ConditionSchema })).max(50),
+  /** Steps complete in order. A step without completeWhen completes only through completeQuestStep. */
+  steps: z.array(z.object({ id: IdSchema, text: Text, completeWhen: ConditionSchema.optional() })).min(1).max(50),
+  /** v3: run when the last step completes (setVariable money/xp, notify, playAnimation celebrate). */
+  rewards: z.array(ActionSchema).max(20).optional(),
+  /** v3: countdown from startQuest; on expiry the quest fails and onFail runs. */
+  timeLimitMs: PosInt.max(3_600_000).optional(),
+  onFail: z.array(ActionSchema).max(20).optional(),
+  /** v3: a quest that can be started again after completion (daily deliveries). */
+  repeatable: z.boolean().optional(),
 });
 export type Quest = z.infer<typeof QuestSchema>;
 

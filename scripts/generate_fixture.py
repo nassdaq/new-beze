@@ -210,7 +210,7 @@ def main() -> int:
     }
 
     doc = {
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'id': 'prj_hello_aiko',
         'name': 'Hello, Aiko',
         'settings': {

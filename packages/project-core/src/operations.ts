@@ -29,7 +29,7 @@ class OpFailure extends Error {
   }
 }
 
-const COMPONENT_ORDER: ComponentType[] = ['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy'];
+const COMPONENT_ORDER: ComponentType[] = ['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy', 'property', 'shop', 'pickup', 'lock', 'mapMarker'];
 
 /** Components are kept in a fixed order so that documents compare structurally regardless of edit history. */
 export function canonicalComponents(components: Component[]): Component[] {

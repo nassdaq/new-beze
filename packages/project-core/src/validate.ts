@@ -66,6 +66,19 @@ export function validateProject(p: Project): Diagnostic[] {
       case 'removeEntity':
         if (!Object.values(p.scenes).some((s) => s.entities[a.entityId])) error('missingEntity', `${path}.entityId`, `entity "${a.entityId}" does not exist in any scene`);
         break;
+      case 'notify':
+        break;
+      case 'playAnimation':
+        break;
+      case 'startQuest':
+        if (!p.quests[a.questId]) error('missingQuest', `${path}.questId`, `quest "${a.questId}" does not exist`);
+        break;
+      case 'completeQuestStep': {
+        const q = p.quests[a.questId];
+        if (!q) error('missingQuest', `${path}.questId`, `quest "${a.questId}" does not exist`);
+        else if (!q.steps.some((st) => st.id === a.stepId)) error('missingStep', `${path}.stepId`, `quest "${q.name}" has no step "${a.stepId}"`);
+        break;
+      }
       case 'sequence':
         a.actions.forEach((s, i) => action(s, `${path}.actions.${i}`));
         break;
@@ -74,6 +87,18 @@ export function validateProject(p: Project): Diagnostic[] {
 
   if (!p.scenes[p.startSceneId]) error('missingScene', 'startSceneId', `start scene "${p.startSceneId}" does not exist`);
   if (p.settings.attackKey === p.settings.interactKey) error('keyClash', 'settings.attackKey', `attack key and interact key are both ${p.settings.attackKey}`);
+  if (p.settings.economy) {
+    const eco = p.settings.economy;
+    const numberVar = (id: string | undefined, at: string) => {
+      if (id === undefined) return;
+      const v = p.variables[id];
+      if (!v) error('missingVariable', at, `variable "${id}" does not exist`);
+      else if (v.type !== 'number') error('variableType', at, `"${v.name}" must be a number variable`);
+    };
+    numberVar(eco.moneyVariableId, 'settings.economy.moneyVariableId');
+    numberVar(eco.xpVariableId, 'settings.economy.xpVariableId');
+    numberVar(eco.reputationVariableId, 'settings.economy.reputationVariableId');
+  }
 
   for (const [id, t] of Object.entries(p.tilesets)) {
     asset(t.imageAssetId, `tilesets.${id}.imageAssetId`);
@@ -113,7 +138,7 @@ export function validateProject(p: Project): Diagnostic[] {
     }
   }
 
-  for (const [id, s] of Object.entries(p.scenes)) validateScene(p, s, `scenes.${id}`, { error, warn, asset, action });
+  for (const [id, s] of Object.entries(p.scenes)) validateScene(p, s, `scenes.${id}`, { error, warn, asset, action, condition });
 
   for (const [id, d] of Object.entries(p.dialogues)) {
     const path = `dialogues.${id}`;
@@ -166,7 +191,14 @@ export function validateProject(p: Project): Diagnostic[] {
   }
 
   for (const [id, q] of Object.entries(p.quests)) {
-    q.steps.forEach((s, i) => condition(s.completeWhen, `quests.${id}.steps.${i}.completeWhen`));
+    q.steps.forEach((s, i) => { if (s.completeWhen) condition(s.completeWhen, `quests.${id}.steps.${i}.completeWhen`); });
+    (q.rewards ?? []).forEach((a, i) => action(a, `quests.${id}.rewards.${i}`));
+    (q.onFail ?? []).forEach((a, i) => action(a, `quests.${id}.onFail.${i}`));
+    const stepIds = new Set<string>();
+    for (const st of q.steps) {
+      if (stepIds.has(st.id)) error('duplicateStep', `quests.${id}.steps`, `quest "${q.name}" repeats step id "${st.id}"`);
+      stepIds.add(st.id);
+    }
   }
 
   return out;
@@ -206,6 +238,7 @@ interface SceneHelpers {
   warn: (c: string, p: string, m: string) => void;
   asset: (id: string | undefined, path: string) => void;
   action: (a: Action, path: string) => void;
+  condition: (c: Condition, path: string) => void;
 }
 
 function validateScene(p: Project, s: Scene, path: string, h: SceneHelpers) {
@@ -242,6 +275,32 @@ function validateScene(p: Project, s: Scene, path: string, h: SceneHelpers) {
           break;
         case 'enemy':
           if (c.onDefeat) h.action(c.onDefeat, `${cp}.onDefeat`);
+          break;
+        case 'property': {
+          const v = p.variables[c.ownedVariableId];
+          if (!v) h.error('missingVariable', `${cp}.ownedVariableId`, `variable "${c.ownedVariableId}" does not exist`);
+          else if (v.type !== 'boolean') h.error('variableType', `${cp}.ownedVariableId`, `"${v.name}" must be a boolean variable`);
+          if (!p.settings.economy) h.error('noEconomy', cp, `property "${c.name}" needs settings.economy`);
+          break;
+        }
+        case 'shop':
+          if (!p.settings.economy) h.error('noEconomy', cp, `shop "${c.name}" needs settings.economy`);
+          [...c.sells, ...c.buys].forEach((line, li) => {
+            const v = p.variables[line.variableId];
+            if (!v) h.error('missingVariable', `${cp}.${li}`, `variable "${line.variableId}" does not exist`);
+            else if (v.type !== 'number') h.error('variableType', `${cp}.${li}`, `shop line "${v.name}" must be a number variable`);
+          });
+          break;
+        case 'pickup': {
+          const v = p.variables[c.variableId];
+          if (!v) h.error('missingVariable', `${cp}.variableId`, `variable "${c.variableId}" does not exist`);
+          else if (v.type !== 'number') h.error('variableType', `${cp}.variableId`, `pickup "${v.name}" must be a number variable`);
+          break;
+        }
+        case 'lock':
+          h.condition(c.condition, `${cp}.condition`);
+          break;
+        case 'mapMarker':
           break;
         case 'body':
         case 'wander':

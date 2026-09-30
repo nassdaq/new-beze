@@ -4,7 +4,7 @@
   "properties": {
     "schemaVersion": {
       "type": "number",
-      "const": 2
+      "const": 3
     },
     "id": {
       "type": "string",
@@ -88,6 +88,47 @@
         "backgroundColor": {
           "type": "string",
           "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "economy": {
+          "type": "object",
+          "properties": {
+            "moneyVariableId": {
+              "type": "string",
+              "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+            },
+            "xpVariableId": {
+              "type": "string",
+              "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+            },
+            "reputationVariableId": {
+              "type": "string",
+              "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+            },
+            "currencyPrefix": {
+              "type": "string",
+              "maxLength": 12
+            },
+            "dayLengthMs": {
+              "type": "integer",
+              "minimum": 5000,
+              "maximum": 3600000
+            },
+            "levelThresholds": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "required": [
+            "moneyVariableId",
+            "currencyPrefix",
+            "dayLengthMs"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -825,7 +866,34 @@
               "walk_right",
               "walk_up"
             ],
-            "additionalProperties": false
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "frames": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "frameRate": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 60
+                },
+                "loop": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "frames",
+                "frameRate",
+                "loop"
+              ],
+              "additionalProperties": false
+            }
           },
           "collider": {
             "type": "object",
@@ -1104,6 +1172,236 @@
                         "required": [
                           "type",
                           "max"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "property"
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120
+                          },
+                          "price": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "incomePerDay": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "ownedVariableId": {
+                            "type": "string",
+                            "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                          },
+                          "description": {
+                            "type": "string",
+                            "maxLength": 200
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "name",
+                          "price",
+                          "incomePerDay",
+                          "ownedVariableId"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "shop"
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120
+                          },
+                          "sells": {
+                            "maxItems": 24,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "variableId": {
+                                  "type": "string",
+                                  "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                                },
+                                "price": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "variableId",
+                                "price"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "buys": {
+                            "maxItems": 24,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "variableId": {
+                                  "type": "string",
+                                  "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                                },
+                                "price": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "variableId",
+                                "price"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "name",
+                          "sells",
+                          "buys"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "pickup"
+                          },
+                          "variableId": {
+                            "type": "string",
+                            "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                          },
+                          "amount": {
+                            "type": "number"
+                          },
+                          "once": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "variableId",
+                          "amount",
+                          "once"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "lock"
+                          },
+                          "condition": {
+                            "type": "object",
+                            "properties": {
+                              "variableId": {
+                                "type": "string",
+                                "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                              },
+                              "op": {
+                                "type": "string",
+                                "enum": [
+                                  "eq",
+                                  "neq",
+                                  "gt",
+                                  "gte",
+                                  "lt",
+                                  "lte"
+                                ]
+                              },
+                              "value": {
+                                "anyOf": [
+                                  {
+                                    "type": "boolean"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "maxLength": 2000
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "variableId",
+                              "op",
+                              "value"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "lockedText": {
+                            "type": "string",
+                            "maxLength": 200
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "condition",
+                          "lockedText"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "mapMarker"
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120
+                          },
+                          "icon": {
+                            "type": "string",
+                            "enum": [
+                              "shop",
+                              "bank",
+                              "food",
+                              "bus",
+                              "home",
+                              "park",
+                              "mission",
+                              "market",
+                              "place"
+                            ]
+                          },
+                          "discoverXp": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "label"
                         ],
                         "additionalProperties": false
                       },
@@ -1575,6 +1873,7 @@
             "maxLength": 2000
           },
           "steps": {
+            "minItems": 1,
             "maxItems": 50,
             "type": "array",
             "items": {
@@ -1631,11 +1930,32 @@
               },
               "required": [
                 "id",
-                "text",
-                "completeWhen"
+                "text"
               ],
               "additionalProperties": false
             }
+          },
+          "rewards": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "timeLimitMs": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600000
+          },
+          "onFail": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "repeatable": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -1686,6 +2006,18 @@
                 "type": "string",
                 "maxLength": 2000
               }
+            ]
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "item",
+              "stat",
+              "flag"
             ]
           }
         },
@@ -1887,6 +2219,97 @@
               "required": [
                 "type",
                 "entityId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "notify"
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "info",
+                    "reward",
+                    "warning"
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "playAnimation"
+                },
+                "animation": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "durationMs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10000
+                }
+              },
+              "required": [
+                "type",
+                "animation"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "startQuest"
+                },
+                "questId": {
+                  "type": "string",
+                  "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                }
+              },
+              "required": [
+                "type",
+                "questId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "completeQuestStep"
+                },
+                "questId": {
+                  "type": "string",
+                  "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                },
+                "stepId": {
+                  "type": "string",
+                  "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                }
+              },
+              "required": [
+                "type",
+                "questId",
+                "stepId"
               ],
               "additionalProperties": false
             }

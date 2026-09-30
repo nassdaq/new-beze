@@ -14,6 +14,14 @@ const MIGRATIONS: Migration[] = [
       return { ...doc, settings: { attackKey: interact === 'SPACE' ? 'X' : 'SPACE', ...settings } };
     },
   },
+  {
+    from: 2,
+    to: 3,
+    // v3 is purely additive (economy, quests rewards/timers, property/shop/pickup/lock/mapMarker components).
+    run(doc) {
+      return { ...doc };
+    },
+  },
 ];
 
 export class MigrationError extends Error {}
