@@ -22,6 +22,7 @@ export const OperationSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('deleteCharacter'), id: IdSchema }),
   // tilesets and maps
   z.object({ op: z.literal('createTileset'), tileset: TilesetSchema }),
+  z.object({ op: z.literal('updateTileset'), id: IdSchema, patch: TilesetSchema.omit({ id: true }).partial() }),
   z.object({ op: z.literal('deleteTileset'), id: IdSchema }),
   z.object({ op: z.literal('createMap'), map: TileMapSchema }),
   z.object({ op: z.literal('deleteMap'), id: IdSchema }),

@@ -60,6 +60,12 @@ export function validateProject(p: Project): Diagnostic[] {
         if (v && a.op === 'add' && v.type !== 'number') error('variableOp', `${path}.op`, `"add" needs a number variable`);
         break;
       }
+      case 'setPlayerCharacter':
+        if (!p.characters[a.characterId]) error('missingCharacter', `${path}.characterId`, `character "${a.characterId}" does not exist`);
+        break;
+      case 'removeEntity':
+        if (!Object.values(p.scenes).some((s) => s.entities[a.entityId])) error('missingEntity', `${path}.entityId`, `entity "${a.entityId}" does not exist in any scene`);
+        break;
       case 'sequence':
         a.actions.forEach((s, i) => action(s, `${path}.actions.${i}`));
         break;
@@ -80,6 +86,12 @@ export function validateProject(p: Project): Diagnostic[] {
     for (const key of Object.keys(t.tileProperties)) {
       if (Number(key) >= t.tileCount) error('tileIndex', `tilesets.${id}.tileProperties.${key}`, `tile ${key} is outside the tileset`);
     }
+    (t.stamps ?? []).forEach((st, i) => {
+      const sp = `tilesets.${id}.stamps.${i}`;
+      if (st.tiles.length !== st.width * st.height) error('stampSize', `${sp}.tiles`, `stamp "${st.name}" has ${st.tiles.length} cells, expected ${st.width * st.height}`);
+      if (st.above && st.above.length !== st.tiles.length) error('stampSize', `${sp}.above`, `stamp "${st.name}" above[] must match tiles[]`);
+      if (st.tiles.some((x) => x >= t.tileCount)) error('tileIndex', `${sp}.tiles`, `stamp "${st.name}" references a tile outside the tileset`);
+    });
   }
 
   for (const [id, m] of Object.entries(p.maps)) validateMap(p, m, `maps.${id}`, error);

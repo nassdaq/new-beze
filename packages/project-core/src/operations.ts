@@ -135,6 +135,13 @@ function applyOne(d: Project, op: Operation): Operation[] {
       d.tilesets[op.tileset.id] = op.tileset;
       return [{ op: 'deleteTileset', id: op.tileset.id }];
     }
+    case 'updateTileset': {
+      const prev = must(d.tilesets[op.id], 'missing', `tileset "${op.id}" does not exist`);
+      const inv = patchInverse(prev, op.patch);
+      const snapshot = clone(prev);
+      Object.assign(prev, op.patch);
+      return inv ? [{ op: 'updateTileset', id: op.id, patch: inv }] : [{ op: 'deleteTileset', id: op.id }, { op: 'createTileset', tileset: snapshot }];
+    }
     case 'deleteTileset': {
       const prev = must(d.tilesets[op.id], 'missing', `tileset "${op.id}" does not exist`);
       const snapshot = clone(prev);

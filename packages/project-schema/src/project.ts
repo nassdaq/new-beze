@@ -37,6 +37,8 @@ export const ProjectSettingsSchema = z.object({
   interactKey: z.enum(['E', 'SPACE', 'ENTER']),
   /** v2: the player's attack key. Must differ from interactKey (checked by the validator). */
   attackKey: z.enum(['SPACE', 'X', 'J', 'K']),
+  /** Speed factor while the run key (Shift) is held. Default 1.7 when absent. */
+  runSpeedMultiplier: z.number().min(1).max(4).optional(),
   backgroundColor: Color,
 });
 export type ProjectSettings = z.infer<typeof ProjectSettingsSchema>;
@@ -59,6 +61,20 @@ export const TilePropertiesSchema = z.object({
   tag: z.string().max(60).optional(),
 });
 
+/**
+ * A multi-tile object painted in one click (a two-tile tree, a 2×2 house). `tiles` are local
+ * tile indices row-major, -1 for empty. Cells flagged in `above` go on the layer drawn over
+ * characters (canopies, roofs) so characters can walk behind them.
+ */
+export const TileStampSchema = z.object({
+  name: Name,
+  width: PosInt.max(8),
+  height: PosInt.max(8),
+  tiles: z.array(Int.min(-1)).min(1).max(64),
+  above: z.array(z.boolean()).max(64).optional(),
+});
+export type TileStamp = z.infer<typeof TileStampSchema>;
+
 export const TilesetSchema = z.object({
   id: IdSchema,
   name: Name,
@@ -71,6 +87,7 @@ export const TilesetSchema = z.object({
   spacing: NonNegInt,
   /** keyed by local tile index as a decimal string */
   tileProperties: z.record(z.string().regex(/^\d+$/), TilePropertiesSchema),
+  stamps: z.array(TileStampSchema).max(64).optional(),
 });
 export type Tileset = z.infer<typeof TilesetSchema>;
 
@@ -138,6 +155,10 @@ const ActionBase = z.discriminatedUnion('type', [
     spawn: z.object({ x: Int, y: Int, facing: DirectionSchema.optional() }),
   }),
   z.object({ type: z.literal('setVariable'), variableId: IdSchema, op: VariableOpSchema, value: ScalarSchema }),
+  /** Swap the player's look and speed, e.g. mounting a horse. `speed` overrides move speed while active. */
+  z.object({ type: z.literal('setPlayerCharacter'), characterId: IdSchema, speed: z.number().positive().max(2000).optional() }),
+  /** Remove an entity from the running scene (the horse you just mounted, a picked-up item). Runtime only; the document is untouched. */
+  z.object({ type: z.literal('removeEntity'), entityId: IdSchema }),
 ]);
 export type Action =
   | z.infer<typeof ActionBase>
