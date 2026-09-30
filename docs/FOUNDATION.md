@@ -260,6 +260,7 @@ The play panel mounts `<iframe sandbox="allow-scripts" src="/runtime/index.html"
 | runtime → editor | `beze:ready` | `{ runtimeVersion, supportedSchema: [min, max] }` |
 | editor → runtime | `beze:load` | `{ project, assetUrls: Record<assetId, url>, options: { startSceneId?, debug } }` |
 | runtime → editor | `beze:loaded` | `{}` |
+| runtime → editor | `beze:exit` | `{}` (the player pressed Escape; keyboard focus is inside the iframe, so the editor cannot see it) |
 | runtime → editor | `beze:error` | `{ message, path? }` |
 | runtime → editor | `beze:log` | `{ level, message }` |
 | editor → runtime | `beze:stop` | `{}` |
@@ -365,7 +366,18 @@ Principles:
 - The runtime declares the schema versions it supports. The editor refuses to send a newer document to an older runtime; the export pins the runtime version in `exports.runtime_version`.
 - No DOM text injection. Dialogue text is drawn by Phaser text objects, which are not HTML.
 
-### 6.3 Movement and interaction conventions (v1)
+### 6.3 Combat conventions (v2)
+
+- `health` gives an entity hit points. `enemy` chases the player inside `aggroRadius`, hurts on
+  contact every `attackCooldownMs`, and otherwise wanders (if it has `wander`) or idles.
+- The player attacks with `settings.attackKey`: a hitbox one tile deep in the facing direction
+  for one swing, damage from `playerControl.attackDamage`. Hits flash white, knock back, and
+  give the player 700 ms of invulnerability. Defeated enemies fade out, run `onDefeat`, and are
+  recorded in `GameState.defeated` so they stay gone when the scene is revisited.
+- A defeated player sees a retry overlay; the attack key restarts the scene with variables kept.
+- Hearts HUD in the top-left whenever the player has health.
+
+### 6.4 Movement and interaction conventions (v1)
 
 - Player moves continuously with arcade physics at `settings.defaultMoveSpeed` pixels per second, 4 directions, no diagonal in v1 (diagonal is a settings flag later).
 - Collision comes from the map's collision grid plus entities whose `body.solid` is true.
@@ -390,7 +402,7 @@ Source of truth: `packages/project-schema/src/*.ts` using Zod. What follows is t
 ### 7.2 Types
 
 ```ts
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;   // v2 added settings.attackKey and the health/enemy components
 
 export interface Project {
   schemaVersion: 1;
@@ -416,6 +428,7 @@ export interface ProjectSettings {
   pixelArt: boolean;
   defaultMoveSpeed: number;                        // px/s
   interactKey: 'E' | 'SPACE' | 'ENTER';
+  attackKey: 'SPACE' | 'X' | 'J' | 'K';           // v2; must differ from interactKey
   backgroundColor: string;
 }
 
@@ -499,10 +512,12 @@ export interface Entity {
 export type Component =
   | { type: 'sprite'; characterId: string }
   | { type: 'body'; solid: boolean }
-  | { type: 'playerControl'; speed?: number }
+  | { type: 'playerControl'; speed?: number; attackDamage?: number }
   | { type: 'interactable'; action: Action; prompt?: string }
   | { type: 'trigger'; width: number; height: number; onEnter: Action; once: boolean }
-  | { type: 'wander'; radius: number; speed: number };        // milestone 2
+  | { type: 'wander'; radius: number; speed: number }         // random strolls around the spawn point
+  | { type: 'health'; max: number }                             // v2: can be hurt; 0 = defeated
+  | { type: 'enemy'; speed: number; aggroRadius: number; damage: number; attackCooldownMs: number; onDefeat?: Action };  // v2
 
 export type Action =
   | { type: 'startDialogue'; dialogueId: string }
@@ -569,8 +584,12 @@ export type Operation =
   | { op: 'deleteCharacter'; id: string }
   // tilesets and maps
   | { op: 'createTileset'; tileset: Tileset }
+  | { op: 'deleteTileset'; id: string }
   | { op: 'createMap'; map: TileMap }
+  | { op: 'deleteMap'; id: string }
   | { op: 'paintTiles'; mapId: string; layerId: string; cells: Array<{ x: number; y: number; gid: number }> }
+  | { op: 'paintRect'; mapId: string; layerId: string; x: number; y: number; width: number; height: number; gid: number }
+  | { op: 'setCollisionRect'; mapId: string; x: number; y: number; width: number; height: number; solid: boolean }
   | { op: 'setCollision'; mapId: string; cells: Array<{ x: number; y: number; solid: boolean }> }
   | { op: 'addLayer'; mapId: string; layer: TileLayer; index?: number }
   | { op: 'deleteLayer'; mapId: string; layerId: string }
@@ -579,7 +598,7 @@ export type Operation =
   | { op: 'updateScene'; id: string; patch: Partial<Pick<Scene, 'name' | 'mapId' | 'backgroundAssetId'>> }
   | { op: 'deleteScene'; id: string }
   | { op: 'setStartScene'; sceneId: string }
-  | { op: 'createEntity'; sceneId: string; entity: Entity }
+  | { op: 'createEntity'; sceneId: string; entity: Entity; index?: number }   // index restores order on undo
   | { op: 'placeEntity'; sceneId: string; entityId: string; x: number; y: number; facing?: Direction }
   | { op: 'modifyEntity'; sceneId: string; entityId: string; patch: Partial<Pick<Entity, 'name' | 'facing'>> }
   | { op: 'setComponent'; sceneId: string; entityId: string; component: Component }   // upsert by type
@@ -614,7 +633,8 @@ Rules:
 
 - A batch is atomic. If any operation fails (unknown id, integrity violation, limit exceeded), none apply.
 - `applyOperations` runs `validateProject` on the result. Operations cannot leave the document inconsistent; a `deleteCharacter` with entities still referencing it fails with a diagnostic listing them. The editor offers "delete and remove 3 sprites" as a composed batch.
-- Every operation has a total inverse. The property test in `project-core` is: for any valid project and any generated valid operation batch, `apply(inverse(apply(p, ops))) deepEquals p`.
+- Every operation has a total inverse. The property test in `project-core` is: for any valid project and any generated valid operation batch, `apply(inverse(apply(p, ops))) deepEquals p`. `update*` operations whose patch touches an optional field that was absent invert as delete + create, which is exact.
+- Components are stored in a fixed canonical order (`sprite, body, playerControl, interactable, trigger, wander`) so documents compare structurally regardless of edit history.
 - The catalog is deliberately fine-grained. Coarse convenience for humans and AI (for example "create an NPC with a dialogue") is a composition of these, built by helper functions in `project-core/recipes.ts`, so the AI can be given either the raw operations or the recipes as tools depending on what works better.
 
 ---
@@ -627,7 +647,7 @@ Assets that the editor, runtime and AI all agree on. Everything else is converte
 
 | Format | Spec |
 |--------|------|
-| **Character sheet v1** | PNG, RGBA. Four rows in the order down, left, right, up. N columns of walk frames (starter pack: 4). Frame size declared in `Character` (starter: 32×48 for 32 px tiles). Idle is frame 0 of the row unless `animations` say otherwise. Transparent background. |
+| **Character sheet v2** | PNG, RGBA, 4 columns × 8 rows: walk down/left/right/up (4 frames each, frame 0 doubles as idle) then attack down/left/right/up (3 frames each). Frame size declared in `Character` (starter: 48×64 on 32 px tiles). Attack rows are optional in the schema. Transparent background. Spec and renderer: `scripts/art/README.md`. |
 | **Tileset v1** | PNG. Uniform grid, `tileWidth` × `tileHeight`, optional margin and spacing. Local tile index is row-major from 0. Solidity lives in `tileProperties` and is copied into the map collision grid when painting with "auto-collision" on. |
 | **Portrait** | PNG or WebP, up to 512×512, shown in dialogue boxes. |
 | **Background** | PNG or WebP, up to 2048×2048, for map-less scenes (later). |
@@ -653,7 +673,7 @@ Until step 4 finishes the editor shows a placeholder. Failed validation returns 
 
 ### 8.4 Resolution
 
-`AssetStore.urlMap(projectId, ids)` gives the runtime what it needs. Locally these are `blob:` URLs from IndexedDB or `/starter/...` paths. Remotely they are signed URLs. Exports rewrite them to `assets/{id}.{ext}` and write `assets/manifest.json`.
+`AssetStore.dataUrls(ids)` gives the runtime what it needs. The Play iframe has an opaque origin, so `blob:` URLs (origin-bound) and cross-origin image fetches (which taint WebGL textures) both fail there; data URLs cross the boundary cleanly and starter assets are small. Remotely the runtime will receive signed URLs from an asset origin that sends CORS headers. Exports rewrite everything to `assets/{id}.{ext}` and write `assets/manifest.json`.
 
 ### 8.5 Starter pack
 
@@ -666,6 +686,9 @@ Deleting an asset in the editor requires no document references. Orphaned `pendi
 ---
 
 ## 9. AI abstraction
+
+Implemented for content generation in `apps/api` (see `docs/AI_AND_GPU.md` for the running
+system, the self-hosted GPU path and the asset-generation plan). This section is the design.
 
 ### 9.1 Principles
 

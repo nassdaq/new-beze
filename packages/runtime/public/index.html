@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Beze Play</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #game { position: fixed; inset: 0; }
+  #game canvas { image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<div id="game"></div>
+<script src="beze-runtime.js"></script>
+<script>BezeRuntime.startEditorLoader({ container: document.getElementById('game') });</script>
+</body>
+</html>

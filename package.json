@@ -1,0 +1,22 @@
+{
+  "name": "beze",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @beze/runtime build && pnpm -r --parallel --filter @beze/runtime --filter @beze/editor dev",
+    "build": "pnpm -r --filter './packages/**' build && pnpm --filter @beze/editor build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "schemas": "pnpm --filter @beze/project-schema schemas",
+    "e2e": "pnpm --filter @beze/editor e2e",
+    "starter": "node scripts/art/render.mjs",
+    "dev:api": "cd apps/api && uv run uvicorn beze_api.main:app --reload --port 8000",
+    "test:api": "cd apps/api && uv run pytest -q"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
