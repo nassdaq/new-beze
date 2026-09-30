@@ -3,6 +3,11 @@ import { spriteTop, type SpawnedEntity } from '../world/spawnEntity.js';
 
 const DIR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] } as const;
 
+/** True for anything the player can press interact on: an `interactable`, a property, a shop or a lock. */
+export function hasInteraction(e: SpawnedEntity): boolean {
+  return !!(e.interact || e.property || e.shop || e.lock);
+}
+
 /** Returns the interactable entity directly in front of the player, if any. */
 export function findInteractable(player: SpawnedEntity, entities: SpawnedEntity[], tileSize: number): SpawnedEntity | null {
   const body = player.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
@@ -13,7 +18,7 @@ export function findInteractable(player: SpawnedEntity, entities: SpawnedEntity[
   const px = dx === 0 ? body.center.x : dx < 0 ? body.left - reach : body.right + reach;
   const py = dy === 0 ? body.center.y : dy < 0 ? body.top - reach : body.bottom + reach;
   for (const e of entities) {
-    if (!e.interact || e === player) continue;
+    if (!hasInteraction(e) || e === player || e.defeated) continue;
     const rect = interactRect(e);
     if (rect && Phaser.Geom.Rectangle.Contains(rect, px, py)) return e;
   }

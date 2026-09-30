@@ -4,6 +4,8 @@ import { useEditor, useProject } from '../../store/editorStore.js';
 import { Field, Section } from '../../ui/Field.js';
 import { AssetImagePreview, SpritePreview } from '../../ui/SpritePreview.js';
 import { toast } from '../../ui/Toast.js';
+import { EntityActions } from './EntityActions.js';
+import { CityComponents } from './CityComponents.js';
 
 export function EntityInspector({ sceneId, entityId }: { sceneId: string; entityId: string }) {
   const project = useProject();
@@ -134,6 +136,13 @@ export function EntityInspector({ sceneId, entityId }: { sceneId: string; entity
           </Field>
           {portraitId && <AssetImagePreview assetId={portraitId} size={40} className="portrait-preview" title={`${character?.name ?? 'Character'} portrait, shown in dialogue`} />}
         </div>
+      )}
+      {!isPlayer && (
+        <>
+          <EntityActions sceneId={sceneId} entityId={entityId} />
+          <h4 className="subhead">City</h4>
+          <CityComponents sceneId={sceneId} entityId={entityId} />
+        </>
       )}
     </Section>
   );

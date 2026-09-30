@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ctxOf, KEYS, SCENE_KEYS } from '../context.js';
+import { hasTouch } from '../systems/input.js';
 
 /** Loads every asset the project references, builds animations, then starts the world. */
 export class BootScene extends Phaser.Scene {
@@ -54,6 +55,9 @@ export class BootScene extends Phaser.Scene {
       }
     }
     ctx.emit({ type: 'loaded' });
+    // The HUD and the on-screen controls run for the whole session, beside whichever world scene is current.
+    this.scene.launch(SCENE_KEYS.hud);
+    if (hasTouch()) this.scene.launch(SCENE_KEYS.mobile);
     this.scene.start(SCENE_KEYS.world, { sceneId: ctx.state.currentSceneId });
   }
 }

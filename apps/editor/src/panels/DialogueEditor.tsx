@@ -1,6 +1,8 @@
-import type { Condition, Dialogue, DialogueNode, Scalar } from '@beze/project-schema';
+import type { Dialogue, DialogueNode } from '@beze/project-schema';
 import { newId } from '@beze/project-core';
 import { useEditor, useProject } from '../store/editorStore.js';
+import { ActionEditor } from '../ui/ActionEditor.js';
+import { ConditionEditor, ValueInput, VariablePicker, defaultFor } from '../ui/ValueEditors.js';
 import { toast } from '../ui/Toast.js';
 
 /**
@@ -70,6 +72,7 @@ export function DialogueEditor({ dialogueId }: { dialogueId: string }) {
         <button className="small" onClick={() => append((id) => ({ id, type: 'choice', prompt: '', options: [{ text: 'Yes', next: null }, { text: 'No', next: null }] }))} data-testid="add-choice">+ Choice</button>
         <button className="small" disabled={!firstVar} title={firstVar ? '' : 'Create a variable first'} onClick={() => firstVar && append((id) => ({ id, type: 'set', variableId: firstVar.id, op: 'set', value: defaultFor(firstVar.type), next: null }))} data-testid="add-set">+ Set variable</button>
         <button className="small" disabled={!firstVar} title={firstVar ? '' : 'Create a variable first'} onClick={() => firstVar && append((id) => ({ id, type: 'branch', condition: { variableId: firstVar.id, op: 'eq', value: defaultFor(firstVar.type) }, ifTrue: null, ifFalse: null }))}>+ Branch</button>
+        <button className="small" onClick={() => append((id) => ({ id, type: 'action', action: { type: 'notify', text: 'Hello!' }, next: null }))} data-testid="add-action">+ Action</button>
       </div>
       <ol className="nodes">
         {ordered.map((n, i) => (
@@ -123,43 +126,17 @@ export function DialogueEditor({ dialogueId }: { dialogueId: string }) {
                 <label className="field-inline"><span className="muted small">else</span><select value={n.ifFalse ?? ''} onChange={(e) => setNode({ ...n, ifFalse: e.target.value || null })}>{nodeOptions}</select></label>
               </div>
             )}
-            {n.type === 'action' && <div className="node-body muted small">action: {n.action.type}</div>}
+            {n.type === 'action' && (
+              <div className="node-body row">
+                <ActionEditor value={n.action} onChange={(action) => setNode({ ...n, action })} />
+                <label className="field-inline"><span className="muted small">then</span><select value={n.next ?? ''} onChange={(e) => setNode({ ...n, next: e.target.value || null })}>{nodeOptions}</select></label>
+              </div>
+            )}
           </li>
         ))}
       </ol>
     </div>
   );
-
-  function VariablePicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
-    return (
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        {variables.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-      </select>
-    );
-  }
-
-  function ConditionEditor({ value, onChange }: { value: Condition; onChange: (c: Condition) => void }) {
-    const type = project!.variables[value.variableId]?.type ?? 'boolean';
-    return (
-      <>
-        <VariablePicker value={value.variableId} onChange={(id) => onChange({ ...value, variableId: id, value: defaultFor(project!.variables[id]?.type ?? 'boolean') })} />
-        <select value={value.op} onChange={(e) => onChange({ ...value, op: e.target.value as Condition['op'] })}>
-          {(['eq', 'neq', 'gt', 'gte', 'lt', 'lte'] as const).map((op) => <option key={op} value={op}>{{ eq: '=', neq: '≠', gt: '>', gte: '≥', lt: '<', lte: '≤' }[op]}</option>)}
-        </select>
-        <ValueInput type={type} value={value.value} onChange={(v) => onChange({ ...value, value: v })} />
-      </>
-    );
-  }
-}
-
-function ValueInput({ type, value, onChange }: { type: 'boolean' | 'number' | 'string'; value: Scalar; onChange: (v: Scalar) => void }) {
-  if (type === 'boolean') return <select value={String(value)} onChange={(e) => onChange(e.target.value === 'true')}><option value="true">true</option><option value="false">false</option></select>;
-  if (type === 'number') return <input type="number" value={typeof value === 'number' ? value : 0} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
-  return <input value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} />;
-}
-
-function defaultFor(type: 'boolean' | 'number' | 'string'): Scalar {
-  return type === 'boolean' ? true : type === 'number' ? 0 : '';
 }
 
 function lastSpeaker(nodes: DialogueNode[]): string {

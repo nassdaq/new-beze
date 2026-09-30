@@ -28,7 +28,10 @@ async function launch() {
   return chromium.launch(executablePath ? { executablePath } : {});
 }
 
-const listModules = (dir) => readdirSync(dir).filter((f) => f.endsWith('.mjs')).filter((f) => !only || f.replace(/\.mjs$/, '') === only).map((f) => join(dir, f));
+/** Tileset order fixes firstGid and groundGid in the manifest: the Outdoor tileset (grass = gid 1) always comes first. */
+const FIRST = ['outdoor'];
+const rank = (f) => { const i = FIRST.indexOf(f.replace(/\.mjs$/, '')); return i < 0 ? FIRST.length : i; };
+const listModules = (dir) => readdirSync(dir).filter((f) => f.endsWith('.mjs')).filter((f) => !only || f.replace(/\.mjs$/, '') === only).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map((f) => join(dir, f));
 
 /** The in-page harness: loads a module from source via a blob URL and rasterises frames. */
 const HARNESS = `
@@ -215,9 +218,11 @@ if (only && existing) {
   for (const [id, file] of Object.entries(manifest.files)) merged.files[id] = file;
   merged.assets = [...merged.assets.filter((a) => !manifest.files[a.id]), ...manifest.assets];
   merged.characters = [...merged.characters.filter((c) => !manifest.characters.some((n) => n.id === c.id)), ...manifest.characters];
-  merged.tilesets = [...merged.tilesets.filter((t) => !manifest.tilesets.some((n) => n.id === t.id)), ...manifest.tilesets];
+  merged.tilesets = [...merged.tilesets.filter((t) => !manifest.tilesets.some((n) => n.id === t.id)), ...manifest.tilesets]
+    .sort((a, b) => rank(a.id.replace(/^tls_/, '')) - rank(b.id.replace(/^tls_/, '')));
   if (manifest.playerCharacterId) merged.playerCharacterId = manifest.playerCharacterId;
-  if (manifest.tilesets.length) merged.groundGid = manifest.groundGid;
+  // groundGid belongs to the first tileset; a partial render of another tileset must not touch it.
+  if (manifest.tilesets.length && merged.tilesets[0] && manifest.tilesets.some((t) => t.id === merged.tilesets[0].id)) merged.groundGid = manifest.groundGid;
   writeAtomic(join(OUT, 'manifest.json'), JSON.stringify(merged, null, 2) + '\n');
 } else {
   if (!manifest.playerCharacterId) throw new Error('no character module has role "player"');

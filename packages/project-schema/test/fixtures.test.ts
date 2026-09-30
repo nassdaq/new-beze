@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { parseProject, parseOperations, SCHEMA_VERSION, migrateProject, MigrationError } from '../src/index.js';
 
 const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, '../../../docs/examples/hello-aiko.project.json'), 'utf8'));
+const hacho = JSON.parse(readFileSync(resolve(import.meta.dirname, '../../../docs/examples/hacho.project.json'), 'utf8'));
 
 describe('golden fixtures', () => {
   it('hello-aiko parses', () => {
@@ -11,6 +12,15 @@ describe('golden fixtures', () => {
     if (!r.ok) throw new Error(JSON.stringify(r.issues, null, 2));
     expect(r.value.schemaVersion).toBe(SCHEMA_VERSION);
     expect(Object.keys(r.value.scenes)).toEqual(['scn_village']);
+  });
+
+  it('hacho parses (v3: economy, quests, city components)', () => {
+    const r = parseProject(hacho);
+    if (!r.ok) throw new Error(JSON.stringify(r.issues, null, 2));
+    expect(r.value.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(r.value.settings.economy?.currencyPrefix).toBe('TSh ');
+    expect(Object.keys(r.value.scenes)).toEqual(['scn_town', 'scn_bank', 'scn_restaurant']);
+    expect(Object.keys(r.value.quests).length).toBeGreaterThanOrEqual(6);
   });
 
   it('rejects a broken document with a path', () => {

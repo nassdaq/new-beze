@@ -24,6 +24,12 @@ textarea { resize: vertical; }
 .projects { max-width: 640px; margin: 60px auto; padding: 0 16px; }
 .projects h1 { font-size: 32px; margin: 0 0 4px; }
 .projects-new { display: flex; gap: 8px; margin: 20px 0; }
+.projects-subhead { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 22px 0 8px; }
+.template-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+.template-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 220px; padding: 12px 14px; text-align: left; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+.template-card:hover:not(:disabled) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.template-name { font-size: 15px; font-weight: 600; }
+.template-cta { margin-top: 6px; font-size: 12px; color: var(--accent); }
 .projects-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .projects-list li { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
 .projects-list li .link { flex: 1; text-align: left; font-size: 15px; }
@@ -178,3 +184,26 @@ textarea { resize: vertical; }
 .import-chooser { position: relative; display: inline-block; }
 .import-menu { position: absolute; right: 0; top: 24px; z-index: 20; min-width: 140px; display: flex; flex-direction: column; padding: 4px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
 .import-menu .row { white-space: nowrap; }
+
+/* v3 inspectors: actions, quests, city components, economy */
+.component-body { margin: 0 0 8px 22px; padding-left: 8px; border-left: 2px solid var(--border); }
+.component-body .field:last-child { margin-bottom: 4px; }
+.action-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.action-editor > select.action-type { flex: 1 1 100%; min-width: 0; max-width: 100%; }
+.action-editor select, .action-editor input { width: auto; min-width: 0; max-width: 100%; }
+.action-editor input.grow { flex: 1; min-width: 120px; }
+.action-editor input.num, .shop-line input.num { width: 64px; }
+.action-nested { padding-left: 6px; border-left: 2px solid var(--border); }
+.action-sequence, .action-list { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.action-step { display: flex; align-items: flex-start; gap: 6px; }
+.action-step > .action-editor { flex: 1; }
+.quest-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.quest-step { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
+.quest-step-head { display: flex; align-items: center; gap: 6px; }
+.quest-step-head input.grow { flex: 1; }
+.quest-step-when { margin-top: 4px; }
+.quest-step-when .check { margin: 2px 0; }
+.shop-side { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.shop-line { display: flex; align-items: center; gap: 6px; }
+.shop-line select { flex: 1; width: auto; min-width: 0; }
+.economy { margin: 0 0 8px 22px; padding-left: 8px; border-left: 2px solid var(--border); }

@@ -5,8 +5,8 @@ import type { SpawnedEntity } from '../world/spawnEntity.js';
 export class Hud {
   private text: Phaser.GameObjects.Text;
 
-  constructor(scene: Phaser.Scene) {
-    this.text = scene.add.text(6, 4, '', { fontFamily: 'sans-serif', fontSize: '14px', color: '#ff6b81', stroke: '#000000', strokeThickness: 3 })
+  constructor(scene: Phaser.Scene, y = 4) {
+    this.text = scene.add.text(6, y, '', { fontFamily: 'sans-serif', fontSize: '14px', color: '#ff6b81', stroke: '#000000', strokeThickness: 3 })
       .setScrollFactor(0).setDepth(30_000);
   }
 

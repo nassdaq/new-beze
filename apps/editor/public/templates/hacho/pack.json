@@ -1,0 +1,64 @@
+{
+  "files": {
+    "ast_hacho_hero": "hacho_hero.png",
+    "ast_hacho_hero_portrait": "hacho_hero_portrait.png"
+  },
+  "assets": [
+    {
+      "id": "ast_hacho_hero",
+      "kind": "image",
+      "name": "Hacho sheet",
+      "mime": "image/png",
+      "width": 256,
+      "height": 384,
+      "hash": "ba566b38130daee93d66122d9cd55af8428c32c85ba893c2991275766b9c764f",
+      "origin": "upload",
+      "license": "user-provided"
+    },
+    {
+      "id": "ast_hacho_hero_portrait",
+      "kind": "image",
+      "name": "Hacho portrait",
+      "mime": "image/png",
+      "width": 256,
+      "height": 256,
+      "hash": "6e2e29f1d88eafc8a9d528df58d941b53482eaee753475880a43c65ab2b9c5be",
+      "origin": "upload",
+      "license": "user-provided"
+    }
+  ],
+  "tilesets": [],
+  "characters": [
+    {
+      "id": "chr_hacho_hero",
+      "name": "Hacho",
+      "spriteSheetAssetId": "ast_hacho_hero",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "animations": {
+        "idle_down": { "frames": [0], "frameRate": 1, "loop": false },
+        "walk_down": { "frames": [0, 1, 2, 3], "frameRate": 8, "loop": true },
+        "attack_down": { "frames": [22], "frameRate": 10, "loop": false },
+        "idle_right": { "frames": [4], "frameRate": 1, "loop": false },
+        "walk_right": { "frames": [4, 5, 6, 7], "frameRate": 8, "loop": true },
+        "attack_right": { "frames": [22], "frameRate": 10, "loop": false },
+        "idle_left": { "frames": [8], "frameRate": 1, "loop": false },
+        "walk_left": { "frames": [8, 9, 10, 11], "frameRate": 8, "loop": true },
+        "attack_left": { "frames": [22], "frameRate": 10, "loop": false },
+        "idle_up": { "frames": [12], "frameRate": 1, "loop": false },
+        "walk_up": { "frames": [12, 13, 14, 15], "frameRate": 8, "loop": true },
+        "attack_up": { "frames": [22], "frameRate": 10, "loop": false },
+        "phone": { "frames": [16], "frameRate": 1, "loop": false },
+        "map": { "frames": [17], "frameRate": 1, "loop": false },
+        "point": { "frames": [18], "frameRate": 1, "loop": false },
+        "interact": { "frames": [19], "frameRate": 1, "loop": false },
+        "celebrate": { "frames": [20, 21, 23], "frameRate": 6, "loop": false },
+        "action": { "frames": [22], "frameRate": 1, "loop": false }
+      },
+      "collider": { "width": 22, "height": 14, "offsetX": 21, "offsetY": 50 },
+      "portraitAssetId": "ast_hacho_hero_portrait"
+    }
+  ],
+  "groundGid": 0,
+  "playerCharacterId": "chr_hacho_hero"
+}

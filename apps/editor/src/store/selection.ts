@@ -4,7 +4,8 @@ export type Selection =
   | { kind: 'entity'; sceneId: string; entityId: string }
   | { kind: 'character'; characterId: string }
   | { kind: 'dialogue'; dialogueId: string }
-  | { kind: 'variable'; variableId: string };
+  | { kind: 'variable'; variableId: string }
+  | { kind: 'quest'; questId: string };
 
 export const NONE: Selection = { kind: 'none' };
 

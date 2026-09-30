@@ -4,6 +4,8 @@ import { SceneInspector } from './inspectors/SceneInspector.js';
 import { VariableInspector } from './inspectors/VariableInspector.js';
 import { DialogueInspector } from './inspectors/DialogueInspector.js';
 import { CharacterInspector } from './inspectors/CharacterInspector.js';
+import { QuestInspector } from './inspectors/QuestInspector.js';
+import { EconomySettings } from './inspectors/EconomySettings.js';
 import { Field, Section } from '../ui/Field.js';
 import { AskPanel } from './AskPanel.js';
 
@@ -20,6 +22,7 @@ export function InspectorPanel() {
     case 'variable': body = <VariableInspector variableId={selection.variableId} />; break;
     case 'dialogue': body = <DialogueInspector dialogueId={selection.dialogueId} />; break;
     case 'character': body = <CharacterInspector characterId={selection.characterId} />; break;
+    case 'quest': body = <QuestInspector questId={selection.questId} />; break;
     default:
       body = (
         <Section title="Project">
@@ -37,6 +40,7 @@ export function InspectorPanel() {
               <option value="SPACE">Space</option><option value="X">X</option><option value="J">J</option><option value="K">K</option>
             </select>
           </Field>
+          <EconomySettings />
         </Section>
       );
   }

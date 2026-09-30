@@ -175,6 +175,7 @@ function reconcileSelection(get: () => EditorState, set: (p: Partial<EditorState
     (selection.kind === 'scene' && !project.scenes[selection.sceneId]) ||
     (selection.kind === 'dialogue' && !project.dialogues[selection.dialogueId]) ||
     (selection.kind === 'variable' && !project.variables[selection.variableId]) ||
+    (selection.kind === 'quest' && !project.quests[selection.questId]) ||
     (selection.kind === 'character' && !project.characters[selection.characterId]);
   if (gone) set({ selection: NONE });
 }

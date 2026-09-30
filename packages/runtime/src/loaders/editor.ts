@@ -1,6 +1,15 @@
 import type { EditorToRuntime, RuntimeToEditor } from '../protocol.js';
 import { mountGame, type MountedGame } from '../mount.js';
 import { RUNTIME_VERSION, SUPPORTED_SCHEMA } from '../version.js';
+import { SCENE_KEYS } from '../context.js';
+import type { WorldScene } from '../scenes/WorldScene.js';
+
+/** True while a menu overlay (pause, map, inventory, shop) owns input in the mounted game. */
+function overlayOpen(mounted: MountedGame): boolean {
+  const world = mounted.game.scene.getScene(SCENE_KEYS.world) as WorldScene | null;
+  if (!world) return false;
+  return world.activeOverlay !== null;
+}
 
 /**
  * Runs inside the editor's sandboxed iframe. The iframe has an opaque origin, so the only
@@ -42,7 +51,13 @@ export function startEditorLoader(opts: { container: HTMLElement }): void {
   });
 
   window.addEventListener('error', (ev) => post({ type: 'beze:error', message: ev.message }));
-  window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') post({ type: 'beze:exit' }); });
+  // Escape leaves Play, unless a menu (pause, map, inventory, shop) is open: then the runtime's own
+  // Escape handling closes it and the next Escape exits. This listener runs before Phaser's (registered at boot).
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape' || ev.repeat) return;
+    if (mounted && overlayOpen(mounted)) return;
+    post({ type: 'beze:exit' });
+  });
   opts.container.addEventListener('pointerdown', () => window.focus());
   post({ type: 'beze:ready', runtimeVersion: RUNTIME_VERSION, supportedSchema: { ...SUPPORTED_SCHEMA } });
 }

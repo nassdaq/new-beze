@@ -53,4 +53,28 @@ describe('editor store', () => {
     expect(useEditor.getState().selection).toEqual({ kind: 'none' });
     expect(useEditor.getState().dispatch('Move', [{ op: 'placeEntity', sceneId: SCENE, entityId: 'ent_aiko', x: 64, y: 64 }]).ok).toBe(true);
   });
+
+  it('drops a quest selection that undo removes', () => {
+    const s = useEditor.getState();
+    const quest = { id: 'qst_new', name: 'Lost Package', description: 'Find it.', steps: [{ id: 'stp_one', text: 'Look in the market' }] };
+    expect(s.dispatch('Add quest', [{ op: 'createQuest', quest }]).ok).toBe(true);
+    useEditor.getState().select({ kind: 'quest', questId: 'qst_new' });
+    useEditor.getState().redo();
+    expect(useEditor.getState().selection).toEqual({ kind: 'quest', questId: 'qst_new' });
+    useEditor.getState().undo();
+    expect(useEditor.getState().selection).toEqual({ kind: 'none' });
+    useEditor.getState().redo();
+    expect(useEditor.getState().project?.quests['qst_new']?.name).toBe('Lost Package');
+  });
+
+  it('enables and disables the economy through updateSettings', () => {
+    const s = useEditor.getState();
+    expect(s.dispatch('Add money', [{ op: 'createVariable', variable: { id: 'var_money', name: 'money', type: 'number', initial: 50000, label: 'Money', category: 'stat' } }]).ok).toBe(true);
+    const r = useEditor.getState().dispatch('Enable economy', [{ op: 'updateSettings', patch: { economy: { moneyVariableId: 'var_money', currencyPrefix: 'TSh ', dayLengthMs: 120000, levelThresholds: [100, 300] } } }]);
+    expect(r.ok).toBe(true);
+    expect(useEditor.getState().project?.settings.economy?.currencyPrefix).toBe('TSh ');
+    expect(useEditor.getState().dispatch('Disable economy', [{ op: 'updateSettings', patch: { economy: undefined } }]).ok).toBe(true);
+    expect(useEditor.getState().project?.settings.economy).toBeUndefined();
+    expect(JSON.stringify(useEditor.getState().project?.settings)).not.toContain('economy');
+  });
 });

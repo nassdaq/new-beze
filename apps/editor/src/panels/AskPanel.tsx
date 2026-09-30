@@ -118,34 +118,43 @@ export function AskPanel() {
 
 /** Human-readable summary of a batch, grouped by what it does, using names from the resulting project. */
 export function describe(ops: Operation[], after: Project): string[] {
-  const counts = new Map<string, string[]>();
+  const groups = new Map<string, { count: number; names: string[] }>();
   const add = (key: string, name?: string) => {
-    const list = counts.get(key) ?? [];
-    if (name) list.push(name);
-    counts.set(key, list);
+    const g = groups.get(key) ?? { count: 0, names: [] };
+    g.count++;
+    if (name) g.names.push(name);
+    groups.set(key, g);
   };
   for (const op of ops) {
     switch (op.op) {
       case 'createEntity': {
         const kinds = op.entity.components.map((c) => c.type);
-        add(kinds.includes('enemy') ? 'enemies' : kinds.includes('playerControl') ? 'player' : 'characters', op.entity.name);
+        add(kinds.includes('property') ? 'properties' : kinds.includes('shop') ? 'shops' : kinds.includes('enemy') ? 'enemies' : kinds.includes('playerControl') ? 'player' : 'characters', op.entity.name);
         break;
       }
       case 'createDialogue': add('dialogues', `${op.dialogue.name} (${Object.keys(op.dialogue.nodes).length} nodes)`); break;
       case 'createVariable': add('variables', op.variable.name); break;
-      case 'createQuest': add('quests', op.quest.name); break;
+      case 'createQuest': add('quests', `${op.quest.name} (${op.quest.steps.length} steps${op.quest.rewards?.length ? ', rewards' : ''})`); break;
+      case 'updateQuest': add('quest edits', after.quests[op.id]?.name); break;
+      case 'updateSettings': add(op.patch.economy !== undefined ? 'economy settings' : 'settings'); break;
       case 'createScene': add('scenes', op.scene.name); break;
       case 'createMap': add('maps', op.map.name); break;
       case 'paintRect': case 'paintTiles': add('map painting'); break;
       case 'setCollisionRect': case 'setCollision': add('collision edits'); break;
-      case 'setComponent': add('component changes', `${after.scenes[op.sceneId]?.entities[op.entityId]?.name ?? op.entityId}: ${op.component.type}`); break;
+      case 'setComponent': {
+        const entityName = after.scenes[op.sceneId]?.entities[op.entityId]?.name ?? op.entityId;
+        const c = op.component;
+        if (c.type === 'property') add('properties', `${c.name} (${entityName})`);
+        else if (c.type === 'shop') add('shops', `${c.name} (${entityName})`);
+        else add('component changes', `${entityName}: ${c.type}`);
+        break;
+      }
       case 'setDialogueNode': add('dialogue edits'); break;
       case 'placeEntity': add('moves', after.scenes[op.sceneId]?.entities[op.entityId]?.name); break;
       default: add(op.op.replace(/([A-Z])/g, ' $1').toLowerCase()); break;
     }
   }
-  return [...counts.entries()].map(([key, names]) => {
-    const n = names.length || ops.filter((o) => key.startsWith(o.op.replace(/([A-Z])/g, ' $1').toLowerCase()) || key === 'map painting' || key === 'collision edits' || key === 'dialogue edits').length;
-    return names.length ? `${key}: ${names.slice(0, 6).join(', ')}${names.length > 6 ? ` and ${names.length - 6} more` : ''}` : `${n} ${key}`;
-  });
+  return [...groups.entries()].map(([key, { count, names }]) =>
+    names.length ? `${key}: ${names.slice(0, 6).join(', ')}${names.length > 6 ? ` and ${names.length - 6} more` : ''}` : `${count} ${key}`,
+  );
 }

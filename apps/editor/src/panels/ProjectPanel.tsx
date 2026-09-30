@@ -3,6 +3,7 @@ import { newId } from '@beze/project-core';
 import type { Dialogue, GameVariable } from '@beze/project-schema';
 import { ImportSheetDialog } from '../import/ImportSheetDialog.js';
 import { ImportTilesetDialog } from '../import/ImportTilesetDialog.js';
+import { newQuest } from './inspectors/QuestInspector.js';
 import { useEditor, useProject } from '../store/editorStore.js';
 import { sameSelection, type Selection } from '../store/selection.js';
 import { Section } from '../ui/Field.js';
@@ -61,6 +62,13 @@ export function ProjectPanel() {
     if (r.ok) select({ kind: 'dialogue', dialogueId: dialogue.id });
   };
 
+  const addQuest = () => {
+    const quest = newQuest(Object.keys(project.quests).length + 1);
+    const r = dispatch('Add quest', [{ op: 'createQuest', quest }]);
+    if (r.ok) select({ kind: 'quest', questId: quest.id });
+    else toast.error('Could not add quest', r.errors.map((e) => e.message));
+  };
+
   const addVariable = () => {
     const n = Object.keys(project.variables).length + 1;
     const variable: GameVariable = { id: newId('var'), name: `flag${n}`, type: 'boolean', initial: false };
@@ -89,9 +97,14 @@ export function ProjectPanel() {
           {Object.values(project.dialogues).map((d) => row({ kind: 'dialogue', dialogueId: d.id }, d.name, `${Object.keys(d.nodes).length} nodes`))}
         </ul>
       </Section>
+      <Section title="Quests" actions={<button className="small" onClick={addQuest} title="Add quest (mission)" data-testid="add-quest">+</button>}>
+        <ul className="list" data-testid="quest-list">
+          {Object.values(project.quests).map((q) => row({ kind: 'quest', questId: q.id }, q.name, `${q.steps.length} step${q.steps.length === 1 ? '' : 's'}${q.timeLimitMs ? ' · timed' : ''}`))}
+        </ul>
+      </Section>
       <Section title="Variables" actions={<button className="small" onClick={addVariable} title="Add variable">+</button>}>
-        <ul className="list">
-          {Object.values(project.variables).map((v) => row({ kind: 'variable', variableId: v.id }, v.name, `${v.type} = ${String(v.initial)}`))}
+        <ul className="list" data-testid="variable-list">
+          {Object.values(project.variables).map((v) => row({ kind: 'variable', variableId: v.id }, v.label ? `${v.label} (${v.name})` : v.name, `${v.category ? v.category + ' ' : ''}${v.type} = ${String(v.initial)}`))}
         </ul>
       </Section>
       <Section

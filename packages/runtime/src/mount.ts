@@ -6,6 +6,13 @@ import { initGameState } from './state/GameState.js';
 import { BootScene } from './scenes/BootScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
 import { DialogueScene } from './scenes/DialogueScene.js';
+import { HudScene } from './scenes/HudScene.js';
+import { ShopScene } from './scenes/ShopScene.js';
+import { MapScene } from './scenes/MapScene.js';
+import { InventoryScene } from './scenes/InventoryScene.js';
+import { PauseScene } from './scenes/PauseScene.js';
+import { MobileControlsScene } from './scenes/MobileControlsScene.js';
+import { VirtualInput } from './systems/input.js';
 import { RUNTIME_VERSION } from './version.js';
 
 export interface MountedGame {
@@ -48,12 +55,21 @@ export function mountGame(opts: RuntimeOptions): MountedGame {
     physics: { default: 'arcade', arcade: { debug: false } },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     audio: { noAudio: true },
-    input: { keyboard: true, mouse: true, touch: false },
+    input: { keyboard: true, mouse: true, touch: true, activePointers: 4 },
     banner: false,
   });
   game.registry.set('ctx', ctx);
+  game.registry.set('input', new VirtualInput());
+  // Scene order is render order: the HUD sits over the world and the dialogue box, menus over the HUD, and the
+  // on-screen controls over everything so they stay usable inside a menu.
   game.scene.add('world', WorldScene, false);
   game.scene.add('dialogue', DialogueScene, false);
+  game.scene.add('hud', HudScene, false);
+  game.scene.add('shop', ShopScene, false);
+  game.scene.add('map', MapScene, false);
+  game.scene.add('inventory', InventoryScene, false);
+  game.scene.add('pause', PauseScene, false);
+  game.scene.add('mobile', MobileControlsScene, false);
   game.scene.add('boot', BootScene, true);
 
   if (ctx.debug) window.__beze = { state: ctx.state, project, runtimeVersion: RUNTIME_VERSION, game };

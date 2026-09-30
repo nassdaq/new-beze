@@ -36,6 +36,17 @@ export function VariableInspector({ variableId }: { variableId: string }) {
           ? <select value={String(v.initial)} onChange={(e) => setInitial(e.target.value)}><option value="false">false</option><option value="true">true</option></select>
           : <input type={v.type === 'number' ? 'number' : 'text'} value={String(v.initial)} onChange={(e) => setInitial(e.target.value)} />}
       </Field>
+      <Field label="Label (shown in the HUD and inventory)">
+        <input value={v.label ?? ''} maxLength={60} placeholder={v.name} data-testid="variable-label" onChange={(e) => { const label = e.target.value; run('Variable label', [{ op: 'updateVariable', id: v.id, patch: { label: label || undefined } }]); }} />
+      </Field>
+      <Field label="Category">
+        <select value={v.category ?? ''} data-testid="variable-category" onChange={(e) => run('Variable category', [{ op: 'updateVariable', id: v.id, patch: { category: (e.target.value || undefined) as GameVariable['category'] } }])}>
+          <option value="">(none)</option>
+          <option value="item">item (shows in the inventory)</option>
+          <option value="stat">stat (shows in the status screen)</option>
+          <option value="flag">flag (hidden)</option>
+        </select>
+      </Field>
     </Section>
   );
 }

@@ -23,4 +23,10 @@ export const KEYS = {
   animation: (characterId: string, name: string) => `chr:${characterId}:${name}`,
 } as const;
 
-export const SCENE_KEYS = { boot: 'boot', world: 'world', dialogue: 'dialogue' } as const;
+export const SCENE_KEYS = {
+  boot: 'boot', world: 'world', dialogue: 'dialogue',
+  /** v3: HUD (always running), overlays (one at a time, they pause the world) and the on-screen controls. */
+  hud: 'hud', shop: 'shop', pause: 'pause', map: 'map', inventory: 'inventory', mobile: 'mobile',
+} as const;
+/** Overlay scenes: only one runs at a time and the world is paused underneath. */
+export type OverlayKey = typeof SCENE_KEYS.shop | typeof SCENE_KEYS.pause | typeof SCENE_KEYS.map | typeof SCENE_KEYS.inventory;

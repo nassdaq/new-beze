@@ -51,7 +51,7 @@ export function PlayPanel() {
   return (
     <div className="play" data-testid="play-panel" data-status={status}>
       <div className="play-bar">
-        <span>{status === 'starting' ? 'Starting…' : status === 'running' ? 'Playing · arrows/WASD move · E talks · Space attacks · Esc stops' : status === 'error' ? 'Error' : ''}</span>
+        <span>{status === 'starting' ? 'Starting…' : status === 'running' ? 'Playing · arrows/WASD move · Shift runs · E interacts · Space attacks · M map · I inventory · Esc stops' : status === 'error' ? 'Error' : ''}</span>
         <span className="spacer" />
         <button className="danger small" onClick={() => setPlay({ status: 'stopped', error: null })}>Stop</button>
       </div>

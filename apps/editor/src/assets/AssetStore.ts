@@ -30,4 +30,10 @@ export interface AssetStore {
    * `image()`, `bytes()` and `dataUrls()` all serve the new asset.
    */
   put(data: Blob, meta: PutAssetMeta): Promise<Asset>;
+  /**
+   * Loads a template's image pack (`pack.json`, see pack.ts) so a project created from the
+   * template can render, play and export. Files already held with the same hash are skipped;
+   * new ones are decoded, kept in memory and persisted so they survive a reload.
+   */
+  loadPack(url: string): Promise<{ loaded: number; skipped: number }>;
 }
