@@ -76,6 +76,35 @@ function pose(f) {
   }
   const k = f.index;
   const side = f.dir === 'left' || f.dir === 'right';
+  if (f.anim === 'run') {
+    // A sprint: longer stride, more bounce, a forward lean in profile, fists pumping.
+    const s = [0, 1, 0, -1][k];
+    const p = { ...base, s: s * 1.3, by: k % 2 ? -3 : 0, mood: 'focus', lean: side ? -3 : 0, spread: 1 };
+    if (!side) {
+      const up = f.dir === 'up';
+      const sw = up ? -s : s;
+      p.L = { via: [12.5, 40 - sw * 2], h: [11.5 + sw * 1.5, 36 - sw * 5], fist: true };
+      p.R = { via: [35.5, 40 + sw * 2], h: [36.5 - sw * 1.5, 36 + sw * 5], fist: true };
+    } else {
+      p.near = { via: [19 + s * 4, 40 - Math.abs(s) * 2], h: [15 + s * 6, 38 - s * 6], fist: true };
+      p.far = { via: [29 - s * 3, 41], h: [31 - s * 6, 40 + s * 5], fist: true, far: true };
+    }
+    return p;
+  }
+  if (f.anim === 'climb') {
+    // Wall crawl: arms and legs spread, alternating which side reaches; drawn low and wide.
+    const alt = k % 2 === 0 ? 1 : -1;
+    const p = { ...base, mood: 'calm', by: 4, spread: 4, s: alt * 0.6, crawl: alt };
+    if (!side) {
+      p.L = { via: [7, 36 - alt * 4], h: [5, 26 - alt * 6], open: true };
+      p.R = { via: [41, 36 + alt * 4], h: [43, 26 + alt * 6], open: true };
+    } else {
+      p.near = { via: [14, 34 - alt * 3], h: [8, 24 - alt * 6], open: true };
+      p.far = { via: [30, 34 + alt * 3], h: [34, 26 + alt * 5], open: true, far: true };
+      p.lean = -2;
+    }
+    return p;
+  }
   if (f.anim === 'attack') {
     const p = { ...base, mood: ['focus', 'wide', 'calm'][k], by: [0, 1, 0][k], spread: [1, 2, 1][k] };
     if (f.dir === 'down') {
@@ -621,8 +650,12 @@ export default {
   walkFrameRate: 9,
   attackFrameRate: 12,
   portrait: { assetId: 'ast_web_spidey_portrait', file: 'spidey_portrait.png', size: 256 },
-  /** Directional set: web_down / web_left / web_right / web_up, played by the runtime when the web ability fires. */
-  sets: [{ name: 'web', frames: 3, frameRate: 14, loop: false }],
+  /** Directional sets: web_* plays when the web ability fires, run_* while sprinting, climb_* on walls and ledges. */
+  sets: [
+    { name: 'web', frames: 3, frameRate: 14, loop: false },
+    { name: 'run', frames: 4, frameRate: 12, loop: true },
+    { name: 'climb', frames: 2, frameRate: 6, loop: true },
+  ],
   emotes: [
     { name: 'celebrate', frames: 3, frameRate: 6, loop: false },
     { name: 'point', frames: 1 },

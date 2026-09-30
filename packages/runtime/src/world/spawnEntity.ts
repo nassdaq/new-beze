@@ -37,6 +37,8 @@ export interface SpawnedEntity {
     telegraph: Phaser.Tweens.Tween | null;
     /** True once the player's danger sense has flashed for the current wind-up. */
     sensed: boolean;
+    /** A tough enemy at half health: faster, angrier (see combat.ts). */
+    enraged: boolean;
   } | null;
   wander: { radius: number; speed: number; originX: number; originY: number; dirX: number; dirY: number; until: number } | null;
   /** v3 city components. Each is data straight from the document plus the runtime objects it needs. */
@@ -147,7 +149,7 @@ export function spawnEntity(scene: Phaser.Scene, project: Project, entity: Entit
       case 'enemy': {
         const enemy: SpawnedEntity['enemy'] = {
           speed: c.speed, aggroRadius: c.aggroRadius, damage: c.damage, attackCooldownMs: c.attackCooldownMs,
-          nextAttackAt: 0, phase: 'chase', phaseUntil: 0, struck: false, telegraph: null, sensed: false,
+          nextAttackAt: 0, phase: 'chase', phaseUntil: 0, struck: false, telegraph: null, sensed: false, enraged: false,
         };
         if (c.onDefeat) enemy.onDefeat = c.onDefeat;
         out.enemy = enemy;

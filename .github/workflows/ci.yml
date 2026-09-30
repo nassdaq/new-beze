@@ -20,8 +20,12 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: pnpm install --frozen-lockfile
       - run: cd apps/api && uv sync --frozen
-      - name: Starter assets are up to date
-        run: pnpm starter && git diff --exit-code -- apps/editor/public/starter
+      - name: Starter assets are up to date (declarations and sizes; PNG bytes vary by Chromium build)
+        run: |
+          cp apps/editor/public/starter/manifest.json /tmp/manifest.before.json
+          pnpm starter
+          node scripts/art/compare_manifest.mjs /tmp/manifest.before.json apps/editor/public/starter/manifest.json
+          git checkout -- apps/editor/public/starter
       - name: JSON Schema artifacts are up to date
         run: pnpm schemas && git diff --exit-code -- schemas
       - run: pnpm typecheck

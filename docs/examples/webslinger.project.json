@@ -73,8 +73,8 @@
       "name": "Spidey sheet",
       "mime": "image/png",
       "width": 192,
-      "height": 960,
-      "hash": "47e8b28969671a4eadf4d7fde478942110f169d1d77f8095e4b88c2c064b09db",
+      "height": 1472,
+      "hash": "d363a4256bf8e437d8a8e17dafbcfc47f2782b25a7a59924a5f69dd333d82da6",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -1271,18 +1271,58 @@
           "frameRate": 14,
           "loop": false
         },
+        "run_down": {
+          "frames": [48, 49, 50, 51],
+          "frameRate": 12,
+          "loop": true
+        },
+        "run_left": {
+          "frames": [52, 53, 54, 55],
+          "frameRate": 12,
+          "loop": true
+        },
+        "run_right": {
+          "frames": [56, 57, 58, 59],
+          "frameRate": 12,
+          "loop": true
+        },
+        "run_up": {
+          "frames": [60, 61, 62, 63],
+          "frameRate": 12,
+          "loop": true
+        },
+        "climb_down": {
+          "frames": [64, 65],
+          "frameRate": 6,
+          "loop": true
+        },
+        "climb_left": {
+          "frames": [68, 69],
+          "frameRate": 6,
+          "loop": true
+        },
+        "climb_right": {
+          "frames": [72, 73],
+          "frameRate": 6,
+          "loop": true
+        },
+        "climb_up": {
+          "frames": [76, 77],
+          "frameRate": 6,
+          "loop": true
+        },
         "celebrate": {
-          "frames": [48, 49, 50],
+          "frames": [80, 81, 82],
           "frameRate": 6,
           "loop": false
         },
         "point": {
-          "frames": [52],
+          "frames": [84],
           "frameRate": 6,
           "loop": false
         },
         "crouch": {
-          "frames": [56],
+          "frames": [88],
           "frameRate": 6,
           "loop": false
         }

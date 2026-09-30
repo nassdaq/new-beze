@@ -10,28 +10,6 @@
   },
   "assets": [
     {
-      "id": "ast_web_spidey",
-      "kind": "image",
-      "name": "Spidey sheet",
-      "mime": "image/png",
-      "width": 192,
-      "height": 960,
-      "hash": "47e8b28969671a4eadf4d7fde478942110f169d1d77f8095e4b88c2c064b09db",
-      "origin": "starter",
-      "license": "CC0-1.0"
-    },
-    {
-      "id": "ast_web_spidey_portrait",
-      "kind": "image",
-      "name": "Spidey portrait",
-      "mime": "image/png",
-      "width": 256,
-      "height": 256,
-      "hash": "a8426c2b1e4ca0466a7151daf743a2e40902bc40d5be0b58f53e19ca79c34257",
-      "origin": "starter",
-      "license": "CC0-1.0"
-    },
-    {
       "id": "ast_web_thug",
       "kind": "image",
       "name": "Thug sheet",
@@ -83,6 +61,28 @@
       "width": 256,
       "height": 192,
       "hash": "d2b862d53d8a0771bf75be5e514eaaf9cc0983afe529904eef9ee8023a7d73a4",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ast_web_spidey",
+      "kind": "image",
+      "name": "Spidey sheet",
+      "mime": "image/png",
+      "width": 192,
+      "height": 1472,
+      "hash": "d363a4256bf8e437d8a8e17dafbcfc47f2782b25a7a59924a5f69dd333d82da6",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    {
+      "id": "ast_web_spidey_portrait",
+      "kind": "image",
+      "name": "Spidey portrait",
+      "mime": "image/png",
+      "width": 256,
+      "height": 256,
+      "hash": "a8426c2b1e4ca0466a7151daf743a2e40902bc40d5be0b58f53e19ca79c34257",
       "origin": "starter",
       "license": "CC0-1.0"
     }
@@ -316,185 +316,6 @@
     }
   ],
   "characters": [
-    {
-      "id": "chr_spidey",
-      "name": "Spidey",
-      "spriteSheetAssetId": "ast_web_spidey",
-      "frameWidth": 48,
-      "frameHeight": 64,
-      "animations": {
-        "idle_down": {
-          "frames": [
-            0
-          ],
-          "frameRate": 1,
-          "loop": false
-        },
-        "walk_down": {
-          "frames": [
-            0,
-            1,
-            2,
-            3
-          ],
-          "frameRate": 9,
-          "loop": true
-        },
-        "attack_down": {
-          "frames": [
-            16,
-            17,
-            18
-          ],
-          "frameRate": 12,
-          "loop": false
-        },
-        "idle_left": {
-          "frames": [
-            4
-          ],
-          "frameRate": 1,
-          "loop": false
-        },
-        "walk_left": {
-          "frames": [
-            4,
-            5,
-            6,
-            7
-          ],
-          "frameRate": 9,
-          "loop": true
-        },
-        "attack_left": {
-          "frames": [
-            20,
-            21,
-            22
-          ],
-          "frameRate": 12,
-          "loop": false
-        },
-        "idle_right": {
-          "frames": [
-            8
-          ],
-          "frameRate": 1,
-          "loop": false
-        },
-        "walk_right": {
-          "frames": [
-            8,
-            9,
-            10,
-            11
-          ],
-          "frameRate": 9,
-          "loop": true
-        },
-        "attack_right": {
-          "frames": [
-            24,
-            25,
-            26
-          ],
-          "frameRate": 12,
-          "loop": false
-        },
-        "idle_up": {
-          "frames": [
-            12
-          ],
-          "frameRate": 1,
-          "loop": false
-        },
-        "walk_up": {
-          "frames": [
-            12,
-            13,
-            14,
-            15
-          ],
-          "frameRate": 9,
-          "loop": true
-        },
-        "attack_up": {
-          "frames": [
-            28,
-            29,
-            30
-          ],
-          "frameRate": 12,
-          "loop": false
-        },
-        "web_down": {
-          "frames": [
-            32,
-            33,
-            34
-          ],
-          "frameRate": 14,
-          "loop": false
-        },
-        "web_left": {
-          "frames": [
-            36,
-            37,
-            38
-          ],
-          "frameRate": 14,
-          "loop": false
-        },
-        "web_right": {
-          "frames": [
-            40,
-            41,
-            42
-          ],
-          "frameRate": 14,
-          "loop": false
-        },
-        "web_up": {
-          "frames": [
-            44,
-            45,
-            46
-          ],
-          "frameRate": 14,
-          "loop": false
-        },
-        "celebrate": {
-          "frames": [
-            48,
-            49,
-            50
-          ],
-          "frameRate": 6,
-          "loop": false
-        },
-        "point": {
-          "frames": [
-            52
-          ],
-          "frameRate": 6,
-          "loop": false
-        },
-        "crouch": {
-          "frames": [
-            56
-          ],
-          "frameRate": 6,
-          "loop": false
-        }
-      },
-      "collider": {
-        "width": 24,
-        "height": 16,
-        "offsetX": 12,
-        "offsetY": 48
-      },
-      "portraitAssetId": "ast_web_spidey_portrait"
-    },
     {
       "id": "chr_thug",
       "name": "Thug",
@@ -734,6 +555,257 @@
         "offsetY": 48
       },
       "portraitAssetId": "ast_web_enforcer_portrait"
+    },
+    {
+      "id": "chr_spidey",
+      "name": "Spidey",
+      "spriteSheetAssetId": "ast_web_spidey",
+      "frameWidth": 48,
+      "frameHeight": 64,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 9,
+          "loop": true
+        },
+        "attack_down": {
+          "frames": [
+            16,
+            17,
+            18
+          ],
+          "frameRate": 12,
+          "loop": false
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 9,
+          "loop": true
+        },
+        "attack_left": {
+          "frames": [
+            20,
+            21,
+            22
+          ],
+          "frameRate": 12,
+          "loop": false
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 9,
+          "loop": true
+        },
+        "attack_right": {
+          "frames": [
+            24,
+            25,
+            26
+          ],
+          "frameRate": 12,
+          "loop": false
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 9,
+          "loop": true
+        },
+        "attack_up": {
+          "frames": [
+            28,
+            29,
+            30
+          ],
+          "frameRate": 12,
+          "loop": false
+        },
+        "web_down": {
+          "frames": [
+            32,
+            33,
+            34
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "web_left": {
+          "frames": [
+            36,
+            37,
+            38
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "web_right": {
+          "frames": [
+            40,
+            41,
+            42
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "web_up": {
+          "frames": [
+            44,
+            45,
+            46
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "run_down": {
+          "frames": [
+            48,
+            49,
+            50,
+            51
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "run_left": {
+          "frames": [
+            52,
+            53,
+            54,
+            55
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "run_right": {
+          "frames": [
+            56,
+            57,
+            58,
+            59
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "run_up": {
+          "frames": [
+            60,
+            61,
+            62,
+            63
+          ],
+          "frameRate": 12,
+          "loop": true
+        },
+        "climb_down": {
+          "frames": [
+            64,
+            65
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "climb_left": {
+          "frames": [
+            68,
+            69
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "climb_right": {
+          "frames": [
+            72,
+            73
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "climb_up": {
+          "frames": [
+            76,
+            77
+          ],
+          "frameRate": 6,
+          "loop": true
+        },
+        "celebrate": {
+          "frames": [
+            80,
+            81,
+            82
+          ],
+          "frameRate": 6,
+          "loop": false
+        },
+        "point": {
+          "frames": [
+            84
+          ],
+          "frameRate": 6,
+          "loop": false
+        },
+        "crouch": {
+          "frames": [
+            88
+          ],
+          "frameRate": 6,
+          "loop": false
+        }
+      },
+      "collider": {
+        "width": 24,
+        "height": 16,
+        "offsetX": 12,
+        "offsetY": 48
+      },
+      "portraitAssetId": "ast_web_spidey_portrait"
     }
   ],
   "groundGid": 1,

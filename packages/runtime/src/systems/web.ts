@@ -176,7 +176,13 @@ export class WebSystem {
       }
       this.effects.dust(b.center.x, b.bottom - 2, player.facing);
       this.hooks.sound?.('land');
-      playIdle(player);
+      // A landing crouch when the character has one, then back to idle.
+      const crouch = player.character?.animations['crouch'] ? KEYS.animation(player.character.id, 'crouch') : null;
+      if (crouch && player.facing === 'down') {
+        player.attackUntil = Math.max(player.attackUntil, this.scene.time.now + 160);
+        player.sprite.play(crouch);
+        this.scene.time.delayedCall(160, () => { if (!player.defeated && player.sprite) playIdle(player); });
+      } else playIdle(player);
     });
   }
 }

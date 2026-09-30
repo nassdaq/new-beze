@@ -164,6 +164,23 @@ export class Effects {
     });
   }
 
+  /**
+   * Slow motion for a beat (finishers): physics steps at `factor` speed and animations follow. Starts after any
+   * hit-stop in flight so the two do not fight over the time scales.
+   */
+  slowMo(ms: number, factor = 0.35): void {
+    const begin = () => {
+      this.scene.physics.world.timeScale = 1 / factor;
+      this.scene.anims.globalTimeScale = factor;
+      this.scene.time.delayedCall(ms, () => {
+        if (this.scene.physics.world.timeScale === 1 / factor) this.scene.physics.world.timeScale = 1;
+        if (this.scene.anims.globalTimeScale === factor) this.scene.anims.globalTimeScale = 1;
+      });
+    };
+    const wait = Math.max(0, this.hitStopUntil - this.scene.time.now);
+    if (wait > 0) this.scene.time.delayedCall(wait + 5, begin); else begin();
+  }
+
   /** A quick camera zoom in and back out. */
   zoomPulse(amount = 0.06, duration = 90): void {
     const cam = this.scene.cameras.main;

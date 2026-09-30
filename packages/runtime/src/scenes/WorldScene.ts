@@ -14,6 +14,7 @@ import { WebSystem } from '../systems/web.js';
 import { Lighting } from '../systems/lighting.js';
 import { Ambient } from '../systems/ambient.js';
 import { buildTagIndex } from '../world/tags.js';
+import { drawBuildingShadows } from '../world/shadows.js';
 import { clockHour } from '../systems/atmosphere.js';
 import { Effects } from '../systems/effects.js';
 import { drawPanel, keycap, TEXT, UI, UI_SCALE } from '../ui/theme.js';
@@ -152,7 +153,12 @@ export class WorldScene extends Phaser.Scene {
       this.lighting.attachMap(this.built);
     }
     const tagIndex = map ? buildTagIndex(project, map) : null;
-    if (map && tagIndex) this.lighting.addLampsFromMap(map, tagIndex);
+    if (map && tagIndex) {
+      this.lighting.addLampsFromMap(map, tagIndex);
+      // Drop shadows under walls and roofs: above every ground layer (depth < 10), below the entities (depth = y).
+      const shadows = this.add.graphics().setDepth(9);
+      drawBuildingShadows(shadows, map, tagIndex);
+    }
 
     for (const id of scene.entityOrder) {
       const entity = scene.entities[id];
@@ -170,6 +176,8 @@ export class WorldScene extends Phaser.Scene {
     this.healthBars = new HealthBars(this);
     this.combat = new CombatSystem(this, this.effects, {
       sound: (name) => this.audio?.sfx(name),
+      onFinisher: (defeated) => { this.cameras.main.shake(90, 0.003); if (defeated) this.effects.slowMo(340, 0.3); },
+      onEnrage: (e) => { this.notify(`${e.entity.name} is furious!`, 'warning'); this.cameras.main.shake(160, 0.003); },
       onPlayerHurt: () => {
         this.cameras.main.shake(120, 0.004);
         this.effects.hurtFlash();
@@ -288,7 +296,7 @@ export class WorldScene extends Phaser.Scene {
     }
     if (this.player) {
       const runMultiplier = ctx.project.settings.runSpeedMultiplier ?? DEFAULT_RUN_MULTIPLIER;
-      const running = updatePlayer(this.player, readMove(this.keys, this.virtual), this.dialogueActive || this.gameOver, now, runMultiplier);
+      const running = updatePlayer(this.player, readMove(this.keys, this.virtual), this.dialogueActive || this.gameOver, now, runMultiplier, this.player.climb && this.cellUnderPlayer() === 2);
       const zipping = now < this.player.zipUntil;
       if ((running || zipping) && now >= this.nextDustAt && this.player.sprite?.body) {
         const body = this.player.sprite.body as Phaser.Physics.Arcade.Body;
@@ -329,6 +337,17 @@ export class WorldScene extends Phaser.Scene {
     } else {
       this.prompt.setVisible(false);
     }
+  }
+
+  /** Collision value of the cell under the player's body centre (0 walkable, 1 solid, 2 climbable), or 0 without a map. */
+  cellUnderPlayer(): number {
+    const map = this.currentMap();
+    const body = this.player?.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    if (!map || !body) return 0;
+    const x = Math.floor(body.center.x / map.tileWidth);
+    const y = Math.floor(body.center.y / map.tileHeight);
+    if (x < 0 || y < 0 || x >= map.width || y >= map.height) return 0;
+    return map.collision[y * map.width + x] ?? 0;
   }
 
   /** The player's hearts for the HUD, or null when the player has no health. */

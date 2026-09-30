@@ -8,6 +8,13 @@ const DIR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] } as const
 const LUNGE_MS = 150;
 const LUNGE_PX = 5;
 const ATTACK_COOLDOWN_MS = 320;
+/** Swings this close together chain into a combo; the third lands as a finisher. */
+const COMBO_WINDOW_MS = 750;
+const FINISHER_DAMAGE = 2;
+const FINISHER_KNOCKBACK = 340;
+const FINISHER_HIT_STOP_MS = 110;
+/** An enemy this tough turns furious at half health. */
+const RAGE_MIN_HEALTH = 8;
 const KNOCKBACK_MS = 140;
 const KNOCKBACK_SPEED = 220;
 const PLAYER_INVULNERABLE_MS = 700;
@@ -21,7 +28,11 @@ export interface CombatHooks {
   onDefeated(e: SpawnedEntity): void;
   onPlayerDefeated(player: SpawnedEntity): void;
   /** Sound cues: 'swing' (a miss), 'punch' (a landed melee), 'hit' (any damage to an enemy), 'hurt' (the player). */
-  sound?(name: 'swing' | 'punch' | 'hit' | 'hurt' | 'enemy_down'): void;
+  sound?(name: 'swing' | 'punch' | 'hit' | 'hurt' | 'enemy_down' | 'finisher' | 'roar'): void;
+  /** The third hit of a combo landed (and whether it defeated something). */
+  onFinisher?(defeated: boolean): void;
+  /** A tough enemy dropped to half health and turned furious. */
+  onEnrage?(e: SpawnedEntity): void;
 }
 
 /**
@@ -30,6 +41,8 @@ export interface CombatHooks {
  */
 export class CombatSystem {
   private nextSwingAt = 0;
+  private comboStep = 0;
+  private comboExpireAt = 0;
 
   constructor(private scene: Phaser.Scene, private effects: Effects, private hooks: CombatHooks) {}
 
@@ -43,6 +56,11 @@ export class CombatSystem {
     const body = sprite?.body as Phaser.Physics.Arcade.Body | undefined;
     if (!sprite || !body || now < this.nextSwingAt || now < player.attackUntil || player.defeated) return false;
     this.nextSwingAt = now + ATTACK_COOLDOWN_MS;
+    if (now > this.comboExpireAt) this.comboStep = 0;
+    this.comboStep++;
+    this.comboExpireAt = now + COMBO_WINDOW_MS;
+    const finisher = this.comboStep >= 3;
+    if (finisher) this.comboStep = 0;
     const facing = player.facing;
     const [dx, dy] = DIR[facing];
 
@@ -67,18 +85,26 @@ export class CombatSystem {
         const contact = Phaser.Geom.Rectangle.Intersection(hitbox, rect);
         const px = contact.width > 0 ? contact.centerX : eb.center.x;
         const py = contact.height > 0 ? contact.centerY : eb.center.y;
-        // A webbed enemy cannot guard: the blow lands harder.
+        // A webbed enemy cannot guard: the blow lands harder. The combo's third hit is a finisher.
         const webbed = this.scene.time.now < e.stunnedUntil;
-        this.hurt(e, webbed ? player.attackDamage * WEBBED_DAMAGE_MULTIPLIER : player.attackDamage, dx, dy, now, px, py);
+        const damage = player.attackDamage * (webbed ? WEBBED_DAMAGE_MULTIPLIER : 1) * (finisher ? FINISHER_DAMAGE : 1);
+        this.hurt(e, damage, dx, dy, now, px, py, finisher ? FINISHER_KNOCKBACK : KNOCKBACK_SPEED);
         landed = true;
+        if (finisher) defeatedByFinisher = defeatedByFinisher || e.defeated;
       }
       if (landed) {
-        this.effects.hitStop(HIT_STOP_MS);
+        const stop = finisher ? FINISHER_HIT_STOP_MS : HIT_STOP_MS;
+        this.effects.hitStop(stop);
         // The attack animation freezes with the world; keep the movement lock in step with it.
-        player.attackUntil += HIT_STOP_MS;
-        this.hooks.sound?.('punch');
+        player.attackUntil += stop;
+        this.hooks.sound?.(finisher ? 'finisher' : 'punch');
+        if (finisher) {
+          this.effects.zoomPulse(0.09, 140);
+          this.hooks.onFinisher?.(defeatedByFinisher);
+        }
       } else this.hooks.sound?.('swing');
     };
+    let defeatedByFinisher = false;
 
     const anim = attackAnimation(player, facing);
     if (anim) {
@@ -141,13 +167,18 @@ export class CombatSystem {
   }
 
   /** Deals `damage` to `target` from direction (dx, dy) with contact at (contactX, contactY): knockback, flash, numbers, defeat. */
-  hurt(target: SpawnedEntity, damage: number, dx: number, dy: number, now: number, contactX: number, contactY: number): void {
+  hurt(target: SpawnedEntity, damage: number, dx: number, dy: number, now: number, contactX: number, contactY: number, knockback = KNOCKBACK_SPEED): void {
     const sprite = target.sprite;
     if (!target.health || !sprite) return;
     target.health.current = Math.max(0, target.health.current - damage);
     target.knockbackUntil = now + KNOCKBACK_MS;
     const len = Math.hypot(dx, dy) || 1;
-    sprite.setVelocity((dx / len) * KNOCKBACK_SPEED, (dy / len) * KNOCKBACK_SPEED);
+    sprite.setVelocity((dx / len) * knockback, (dy / len) * knockback);
+    if (target.enemy && !target.enemy.enraged && target.health.max >= RAGE_MIN_HEALTH && target.health.current > 0 && target.health.current <= target.health.max / 2) {
+      target.enemy.enraged = true;
+      this.hooks.sound?.('roar');
+      this.hooks.onEnrage?.(target);
+    }
     sprite.setTintFill(0xffffff);
     this.scene.time.delayedCall(FLASH_MS, () => { if (this.scene.time.now < target.stunnedUntil && !target.defeated) sprite.setTint(0xdfe9ff); else sprite.clearTint(); });
     this.effects.sparks(contactX, contactY, dx, dy, target.isPlayer ? [0xffffff, 0xffb3b3, 0xff6b81] : undefined);
