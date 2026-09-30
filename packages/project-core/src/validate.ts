@@ -91,6 +91,7 @@ export function validateProject(p: Project): Diagnostic[] {
   if (abilityKey === p.settings.attackKey) error('keyClash', 'settings.abilityKey', `ability key and attack key are both ${abilityKey}`);
   if ((abilityKey as string) === p.settings.interactKey) error('keyClash', 'settings.abilityKey', `ability key and interact key are both ${abilityKey}`);
   asset(p.settings.presentation?.titleBackgroundAssetId, 'settings.presentation.titleBackgroundAssetId');
+  asset(p.settings.audio?.musicAssetId, 'settings.audio.musicAssetId', 'audio');
   if (p.settings.economy) {
     const eco = p.settings.economy;
     const numberVar = (id: string | undefined, at: string) => {
@@ -142,7 +143,7 @@ export function validateProject(p: Project): Diagnostic[] {
     }
   }
 
-  for (const [id, s] of Object.entries(p.scenes)) validateScene(p, s, `scenes.${id}`, { error, warn, asset, action, condition });
+  for (const [id, s] of Object.entries(p.scenes)) validateScene(p, s, `scenes.${id}`, { error, warn, asset, audio: (id2, at) => asset(id2, at, 'audio'), action, condition });
 
   for (const [id, d] of Object.entries(p.dialogues)) {
     const path = `dialogues.${id}`;
@@ -241,6 +242,7 @@ interface SceneHelpers {
   error: (c: string, p: string, m: string) => void;
   warn: (c: string, p: string, m: string) => void;
   asset: (id: string | undefined, path: string) => void;
+  audio: (id: string | undefined, path: string) => void;
   action: (a: Action, path: string) => void;
   condition: (c: Condition, path: string) => void;
 }
@@ -248,6 +250,7 @@ interface SceneHelpers {
 function validateScene(p: Project, s: Scene, path: string, h: SceneHelpers) {
   if (s.mapId !== null && !p.maps[s.mapId]) h.error('missingMap', `${path}.mapId`, `map "${s.mapId}" does not exist`);
   h.asset(s.backgroundAssetId, `${path}.backgroundAssetId`);
+  h.audio(s.musicAssetId, `${path}.musicAssetId`);
 
   const ids = Object.keys(s.entities);
   const orderSet = new Set(s.entityOrder);

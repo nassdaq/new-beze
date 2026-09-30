@@ -5,6 +5,7 @@ import { buyItem, formatMoney, sellItem, variableLabel } from '../systems/econom
 import { DEPTH, TEXT, UI } from '../ui/theme.js';
 import type { SpawnedEntity } from '../world/spawnEntity.js';
 import { OverlayScene, type OverlayButton } from './OverlayScene.js';
+import { AudioSystem } from '../audio/AudioSystem.js';
 
 export interface ShopInit {
   shop: NonNullable<SpawnedEntity['shop']>;
@@ -120,6 +121,7 @@ export class ShopScene extends OverlayScene {
   }
 
   private setStatus(text: string, ok: boolean): void {
+    AudioSystem.of(this)?.sfx(ok ? 'buy' : 'deny');
     this.status.setText(text).setColor(ok ? UI.good : UI.bad).setAlpha(1);
     this.tweens.killTweensOf(this.status);
     this.tweens.add({ targets: this.status, alpha: 0.4, duration: 600, delay: 1400 });

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ctxOf, KEYS, SCENE_KEYS } from '../context.js';
 import { hasTouch } from '../systems/input.js';
 import { ensureFonts } from '../ui/fonts.js';
+import { AudioSystem } from '../audio/AudioSystem.js';
 
 /** Loads every asset the project references, builds animations, then starts the world. */
 export class BootScene extends Phaser.Scene {
@@ -28,6 +29,15 @@ export class BootScene extends Phaser.Scene {
       for (const n of Object.values(d.nodes)) if (n.type === 'line' && n.portraitAssetId) this.loadImageOnce(n.portraitAssetId);
     }
     for (const s of Object.values(project.scenes)) if (s.backgroundAssetId) this.loadImageOnce(s.backgroundAssetId);
+    if (project.settings.presentation?.titleBackgroundAssetId) this.loadImageOnce(project.settings.presentation.titleBackgroundAssetId);
+    // Uploaded music: the project-wide track and any per-scene tracks.
+    const music = new Set<string>();
+    if (project.settings.audio?.musicAssetId) music.add(project.settings.audio.musicAssetId);
+    for (const s of Object.values(project.scenes)) if (s.musicAssetId) music.add(s.musicAssetId);
+    for (const id of music) {
+      const u = url(id);
+      if (u) this.load.audio(KEYS.audio(id), u);
+    }
 
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
       ctxOf(this).emit({ type: 'error', message: `failed to load asset for ${file.key}` });
@@ -45,6 +55,7 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     const ctx = ctxOf(this);
     if (ctx.quality === 'auto') ctx.quality = softwareRenderer(this.sys.game) ? 'low' : 'high';
+    if (!this.registry.has('audio')) this.registry.set('audio', new AudioSystem(this.sys.game, ctx.project));
     for (const c of Object.values(ctx.project.characters)) {
       for (const [name, def] of Object.entries(c.animations)) {
         if (!def) continue;

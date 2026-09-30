@@ -19,6 +19,7 @@ export interface WebHooks {
   /** A zip started; `ms` is how long it lasts. */
   onZip(ms: number): void;
   onFizzle(): void;
+  sound?(name: 'web' | 'web_hit' | 'zip' | 'land'): void;
 }
 
 /**
@@ -73,6 +74,7 @@ export class WebSystem {
       targets.push({ item: e, x: eb.x, y: eb.y, width: eb.width, height: eb.height });
     }
     const hit = castWeb(grid, origin, facing, ability.rangeTiles * T, targets, player.climb);
+    this.hooks.sound?.('web');
     // The line leaves the hand at chest height.
     const handX = body.center.x + dx * body.width * 0.4;
     const handY = body.center.y - body.height * 0.6 + (dy > 0 ? body.height * 0.4 : 0);
@@ -80,6 +82,7 @@ export class WebSystem {
     if (hit.kind === 'enemy') {
       const e = hit.target;
       this.effects.webLine(handX, handY, hit.x, hit.y, true);
+      this.hooks.sound?.('web_hit');
       this.web(e, now + ability.stunMs);
       if (ability.damage > 0) this.combat.hurt(e, ability.damage, dx, dy, now, hit.x, hit.y);
       this.effects.hitStop(HIT_STOP_MS);
@@ -157,6 +160,7 @@ export class WebSystem {
     const along = vx !== 0;
     sprite.setScale(along ? 1.18 : 0.9, along ? 0.86 : 1.18);
     this.effects.dust(body.center.x, body.bottom - 2, player.facing);
+    this.hooks.sound?.('zip');
     this.hooks.onZip(ms);
     this.zipTimer?.remove(false);
     this.zipTimer = this.scene.time.delayedCall(ms, () => {
@@ -171,6 +175,7 @@ export class WebSystem {
         player.sprite.setPosition(player.sprite.x + (land.x - b.center.x), player.sprite.y + (land.y - b.center.y));
       }
       this.effects.dust(b.center.x, b.bottom - 2, player.facing);
+      this.hooks.sound?.('land');
       playIdle(player);
     });
   }

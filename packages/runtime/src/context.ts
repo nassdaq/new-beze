@@ -25,6 +25,7 @@ export const KEYS = {
   tileset: (id: string) => `tls:${id}`,
   image: (id: string) => `ast:${id}`,
   animation: (characterId: string, name: string) => `chr:${characterId}:${name}`,
+  audio: (assetId: string) => `aud:${assetId}`,
 } as const;
 
 export const SCENE_KEYS = {

@@ -15,6 +15,9 @@ import { Lighting } from '../systems/lighting.js';
 import { clockHour } from '../systems/atmosphere.js';
 import { Effects } from '../systems/effects.js';
 import { drawPanel, keycap, TEXT, UI, UI_SCALE } from '../ui/theme.js';
+import { AudioSystem, audioKey } from '../audio/AudioSystem.js';
+import type { Mood } from '../audio/music.js';
+import { atmosphereAt } from '../systems/atmosphere.js';
 import { HealthBars } from '../systems/healthBar.js';
 import { updateBreathing } from '../systems/idle.js';
 import { playIdle } from '../systems/animation.js';
@@ -39,6 +42,8 @@ const ABILITY_CODES = {
 } as const;
 /** Dust puffs this often while zipping along a web line. */
 const ZIP_DUST_MS = 60;
+/** Combat intensity for the music is re-evaluated this often. */
+const INTENSITY_MS = 400;
 const DIR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] } as const;
 /** Interval between dust puffs while running. */
 const DUST_MS = 250;
@@ -71,6 +76,8 @@ export class WorldScene extends Phaser.Scene {
   private promptText = '';
   /** True while the camera fades out towards another scene; input is ignored. */
   private leaving = false;
+  private audio: AudioSystem | null = null;
+  private nextIntensityAt = 0;
   private combat!: CombatSystem;
   private web!: WebSystem;
   private lighting!: Lighting;
@@ -117,6 +124,9 @@ export class WorldScene extends Phaser.Scene {
     const { project, state } = ctx;
     const scene = this.sceneData;
     const cam = this.cameras.main;
+    this.audio = AudioSystem.of(this);
+    this.nextIntensityAt = 0;
+    this.startMusic();
     cam.setBackgroundColor(project.settings.backgroundColor);
     // The canvas is UI_SCALE× the viewport; the world zooms to match, so a tile still covers the same screen area.
     cam.setZoom(UI_SCALE);
@@ -155,6 +165,7 @@ export class WorldScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.effects.dispose());
     this.healthBars = new HealthBars(this);
     this.combat = new CombatSystem(this, this.effects, {
+      sound: (name) => this.audio?.sfx(name),
       onPlayerHurt: () => {
         this.cameras.main.shake(120, 0.004);
         this.effects.hurtFlash();
@@ -167,6 +178,7 @@ export class WorldScene extends Phaser.Scene {
       onPlayerDefeated: () => this.showGameOver(),
     });
     this.web = new WebSystem(this, this.effects, this.combat, {
+      sound: (name) => this.audio?.sfx(name),
       onZip: () => this.effects.zoomPulse(0.03, 110),
       onFizzle: () => { /* the line itself shows the miss */ },
     });
@@ -340,6 +352,52 @@ export class WorldScene extends Phaser.Scene {
       this.checkConditions();
     }
     this.checkDiscovery();
+    if (now >= this.nextIntensityAt) {
+      this.nextIntensityAt = now + INTENSITY_MS;
+      this.updateMusicMood();
+    }
+  }
+
+  /** The scene's music: its own setting, else the project's, `auto` meaning city by day and night music after dark. */
+  private startMusic(): void {
+    const audio = this.audio;
+    if (!audio) return;
+    const { project } = ctxOf(this);
+    const scene = this.sceneData;
+    const trackId = scene.musicAssetId ?? (scene.music ? undefined : project.settings.audio?.musicAssetId);
+    if (trackId) { audio.playTrack(audioKey(trackId)); return; }
+    const mood = this.currentMood();
+    if (mood === 'none') audio.stopMusic();
+    else audio.playMood(mood);
+  }
+
+  private currentMood(): Mood | 'none' {
+    const { project, state } = ctxOf(this);
+    const own = this.sceneData.music ?? project.settings.audio?.music ?? 'auto';
+    if (own !== 'auto') return own;
+    const hour = clockHour(project, state.clock.elapsedMs);
+    const night = hour !== null && atmosphereAt(hour).night > 0.6;
+    return project.settings.economy ? (night ? 'night' : 'city') : 'calm';
+  }
+
+  /** Combat brings the music's intense layers in: enemies awake and near the player. */
+  private updateMusicMood(): void {
+    const audio = this.audio;
+    if (!audio) return;
+    if (!this.sceneData.musicAssetId && !(this.sceneData.music === undefined && ctxOf(this).project.settings.audio?.musicAssetId)) {
+      const mood = this.currentMood();
+      if (mood !== 'none') audio.playMood(mood);
+    }
+    const body = this.player?.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    let near = 0;
+    if (body) {
+      for (const e of this.entities) {
+        if (!e.enemy || e.defeated || !e.sprite?.body || this.time.now < e.stunnedUntil) continue;
+        const eb = e.sprite.body as Phaser.Physics.Arcade.Body;
+        if (Math.hypot(eb.center.x - body.center.x, eb.center.y - body.center.y) <= e.enemy.aggroRadius * 1.1) near++;
+      }
+    }
+    audio.setIntensity(this.gameOver ? 0 : Math.min(1, near * 0.5));
   }
 
   /** Runs after any variable change and on the 250 ms cadence: quest steps, timers and locks. */
@@ -436,6 +494,7 @@ export class WorldScene extends Phaser.Scene {
       const eb = e.sprite.body as Phaser.Physics.Arcade.Body;
       if (Math.hypot(eb.center.x - body.center.x, eb.center.y - body.center.y) > player.senseRadius) continue;
       en.sensed = true;
+      this.audio?.sfx('sense');
       this.effects.sense(body.center.x, spriteTop(player) - 4);
     }
   }
@@ -462,6 +521,7 @@ export class WorldScene extends Phaser.Scene {
     const money = (n: number) => formatMoney(n, economy.currencyPrefix);
     const r = buyProperty(state, economy, property);
     if (r.ok) {
+      this.audio?.sfx('buy');
       this.notify(`Bought ${property.name}! ${formatDelta(property.incomePerDay, economy.currencyPrefix)}/day`, 'reward');
       const c = this.centerOf(e, project.settings.tileSize);
       this.effects.sparks(c.x, c.y - 8, 0, 0, GOLD_TINTS);
@@ -471,6 +531,7 @@ export class WorldScene extends Phaser.Scene {
     } else if (r.reason === 'owned') {
       this.notify(`${property.name} is yours · +${money(property.incomePerDay)}/day`, 'info');
     } else {
+      this.audio?.sfx('deny');
       this.notify(`Need ${money(r.short)} more for ${property.name}`, 'warning');
     }
   }
@@ -487,6 +548,7 @@ export class WorldScene extends Phaser.Scene {
     const isMoney = economy && pickup.variableId === economy.moneyVariableId;
     const c = this.centerOf(e, project.settings.tileSize);
     this.effects.sparks(c.x, c.y - 6, 0, 0, isMoney ? GOLD_TINTS : [0xffffff, 0xcfe3ff, 0xf6d365]);
+    this.audio?.sfx(isMoney ? 'coin' : 'pickup');
     if (isMoney) this.notify(formatDelta(pickup.amount, economy.currencyPrefix), 'reward');
     else this.notify(`${pickup.amount >= 0 ? '+' : ''}${pickup.amount} ${variableLabel(project, pickup.variableId)}`, 'reward');
     this.despawn(e);
@@ -501,6 +563,7 @@ export class WorldScene extends Phaser.Scene {
     const flash = this.add.rectangle(c.x, c.y, T, T, 0xffffff, 0.9).setDepth(15_000);
     this.tweens.add({ targets: flash, alpha: 0, scaleX: 1.6, scaleY: 1.6, duration: 320, ease: 'Cubic.easeOut', onComplete: () => flash.destroy() });
     this.notify(`Unlocked: ${e.entity.name}`, 'reward');
+    this.audio?.sfx('unlock');
     this.despawn(e);
   }
 
@@ -570,6 +633,7 @@ export class WorldScene extends Phaser.Scene {
         this.leaving = true;
         this.scene.stop(SCENE_KEYS.dialogue);
         this.player?.sprite?.setVelocity(0, 0);
+        this.audio?.sfx('door');
         const cam = this.cameras.main;
         cam.fadeOut(240, 5, 6, 12);
         cam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
@@ -693,6 +757,9 @@ export class WorldScene extends Phaser.Scene {
     this.gameOver = true;
     const { width, height } = this.scale;
     const cam = this.cameras.main;
+    this.audio?.sfx('game_over');
+    this.audio?.setIntensity(0);
+    this.audio?.duck(0.7);
     this.physics.world.timeScale = 2.6;
     this.anims.globalTimeScale = 0.4;
     if (this.sys.game.renderer.type === Phaser.WEBGL && ctxOf(this).quality !== 'low') {
@@ -713,6 +780,7 @@ export class WorldScene extends Phaser.Scene {
 
   private retry(): void {
     // Enemies already defeated stay defeated; the player respawns at the scene's own spawn.
+    this.audio?.duck(0);
     this.physics.world.timeScale = 1;
     this.anims.globalTimeScale = 1;
     this.scene.restart({ sceneId: this.sceneData.id } satisfies WorldInit);

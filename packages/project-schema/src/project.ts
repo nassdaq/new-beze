@@ -60,6 +60,16 @@ export const ProjectSettingsSchema = z.object({
     vignette: z.boolean().optional(),
     lampTags: z.array(z.string().max(60)).max(20).optional(),
   }).optional(),
+  /**
+   * v4: sound. Music is generated in-engine by mood (`auto` picks city with an economy, calm without) unless an
+   * uploaded track (`musicAssetId`) replaces it; scenes can override both. Sound effects are always synthesized.
+   */
+  audio: z.object({
+    music: z.enum(['auto', 'city', 'calm', 'tense', 'title', 'night', 'none']).optional(),
+    musicAssetId: IdSchema.optional(),
+    musicVolume: z.number().min(0).max(1).optional(),
+    sfxVolume: z.number().min(0).max(1).optional(),
+  }).optional(),
   backgroundColor: Color,
   /** v3: turns on money, XP/level, the day clock and the HUD. Absent = plain adventure. */
   economy: z.object({
@@ -311,6 +321,9 @@ export const SceneSchema = z.object({
   name: Name,
   mapId: IdSchema.nullable(),
   backgroundAssetId: IdSchema.optional(),
+  /** v4: this scene's music: a generated mood, `none`, or (with musicAssetId) an uploaded track. */
+  music: z.enum(['city', 'calm', 'tense', 'title', 'night', 'none']).optional(),
+  musicAssetId: IdSchema.optional(),
   entities: z.record(IdSchema, EntitySchema),
   entityOrder: z.array(IdSchema),
 });

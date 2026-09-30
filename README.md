@@ -134,6 +134,16 @@ below is on by default and can be turned off per project under **Project → Pre
 | HUD | Portrait, hearts, money, level and XP bar, reputation, a day clock with sun/moon, the active mission with its timer, an ability cooldown chip, key-cap prompts. |
 | Quality | `auto` turns the lights and post-effects off on software renderers (headless test browsers, VMs) so the frame rate, and with it the physics, stays at speed. Hosts can force it with `window.__BEZE_QUALITY` or the runtime's `quality` option. |
 
+### Sound
+
+Sound effects are synthesized in the runtime from a table of parameters (`packages/runtime/src/audio/synth.ts`, in
+the spirit of sfxr): web shots, punches, hits, coins, discoveries, mission fanfares, menu blips, the typewriter. No
+files, deterministic, works offline. Music is generated too (`audio/music.ts`): a mood sets tempo, key and chord
+progression, bars are composed on the fly, and the drums, arpeggio and lead join when enemies are close. Moods:
+`city`, `night`, `calm`, `tense`, `title`; `auto` plays city by day and night after dark (calm without an economy).
+**Project → Sound** picks the mood and volumes or uploads an OGG/MP3 track instead; a scene can override both
+(`scene.music`, `scene.musicAssetId`). Menus and dialogue duck the music.
+
 ## Layout
 
 | Path | What |

@@ -51,7 +51,7 @@ export const OperationSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('deleteLayer'), mapId: IdSchema, layerId: IdSchema }),
   // scenes and entities
   z.object({ op: z.literal('createScene'), scene: SceneSchema }),
-  z.object({ op: z.literal('updateScene'), id: IdSchema, patch: SceneSchema.pick({ name: true, mapId: true, backgroundAssetId: true }).partial() }),
+  z.object({ op: z.literal('updateScene'), id: IdSchema, patch: SceneSchema.pick({ name: true, mapId: true, backgroundAssetId: true, music: true, musicAssetId: true }).partial() }),
   z.object({ op: z.literal('deleteScene'), id: IdSchema }),
   z.object({ op: z.literal('setStartScene'), sceneId: IdSchema }),
   z.object({ op: z.literal('createEntity'), sceneId: IdSchema, entity: EntitySchema, index: Int.min(0).optional() }),

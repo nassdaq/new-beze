@@ -4,6 +4,7 @@ import { hasTouch } from '../systems/input.js';
 import { atmosphereAt } from '../systems/atmosphere.js';
 import { keycap, TEXT, UI } from '../ui/theme.js';
 import { RUNTIME_VERSION } from '../version.js';
+import { AudioSystem } from '../audio/AudioSystem.js';
 
 /**
  * The opening screen: a night skyline (or the project's own backdrop image) under the game's title in the display
@@ -63,6 +64,7 @@ export class TitleScene extends Phaser.Scene {
     this.add.text(width - 12, height - 10, `Made with Beze · runtime ${RUNTIME_VERSION}`, { ...TEXT.hint, fontSize: '13px' }).setOrigin(1, 1).setAlpha(0.7);
 
     this.cameras.main.fadeIn(600, 5, 6, 12);
+    AudioSystem.of(this)?.playMood('title');
     this.input.keyboard!.on('keydown', () => this.start());
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => this.start());
   }
@@ -133,6 +135,7 @@ export class TitleScene extends Phaser.Scene {
     if (this.started) return;
     this.started = true;
     const ctx = ctxOf(this);
+    AudioSystem.of(this)?.sfx('title_start');
     this.cameras.main.fadeOut(420, 5, 6, 12);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.scene.launch(SCENE_KEYS.hud);

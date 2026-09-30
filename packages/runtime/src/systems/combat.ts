@@ -20,6 +20,8 @@ export interface CombatHooks {
   onPlayerHurt(player: SpawnedEntity): void;
   onDefeated(e: SpawnedEntity): void;
   onPlayerDefeated(player: SpawnedEntity): void;
+  /** Sound cues: 'swing' (a miss), 'punch' (a landed melee), 'hit' (any damage to an enemy), 'hurt' (the player). */
+  sound?(name: 'swing' | 'punch' | 'hit' | 'hurt' | 'enemy_down'): void;
 }
 
 /**
@@ -74,7 +76,8 @@ export class CombatSystem {
         this.effects.hitStop(HIT_STOP_MS);
         // The attack animation freezes with the world; keep the movement lock in step with it.
         player.attackUntil += HIT_STOP_MS;
-      }
+        this.hooks.sound?.('punch');
+      } else this.hooks.sound?.('swing');
     };
 
     const anim = attackAnimation(player, facing);
@@ -149,6 +152,7 @@ export class CombatSystem {
     this.scene.time.delayedCall(FLASH_MS, () => { if (this.scene.time.now < target.stunnedUntil && !target.defeated) sprite.setTint(0xdfe9ff); else sprite.clearTint(); });
     this.effects.sparks(contactX, contactY, dx, dy, target.isPlayer ? [0xffffff, 0xffb3b3, 0xff6b81] : undefined);
     this.effects.damageNumber(contactX, contactY - 6, damage, target.isPlayer ? '#ff6b81' : '#ffffff');
+    this.hooks.sound?.(target.isPlayer ? 'hurt' : 'hit');
     if (target.enemy && now >= target.stunnedUntil) {
       this.interruptEnemy(target);
       // Scale punch: squashed flat by the blow, springing back.
@@ -168,7 +172,7 @@ export class CombatSystem {
       sprite.setVelocity(0, 0);
       this.scene.tweens.killTweensOf(sprite);
       sprite.setAlpha(1).setScale(1);
-      if (!target.isPlayer) this.effects.burst(target);
+      if (!target.isPlayer) { this.effects.burst(target); this.hooks.sound?.('enemy_down'); }
       this.scene.tweens.add({ targets: sprite, alpha: 0, scaleX: 1.3, scaleY: 0.2, duration: 220, onComplete: () => { if (!target.isPlayer) sprite.setVisible(false); } });
       if (target.isPlayer) this.hooks.onPlayerDefeated(target);
       else this.hooks.onDefeated(target);

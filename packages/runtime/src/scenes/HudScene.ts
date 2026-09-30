@@ -6,6 +6,7 @@ import { dayClock, formatDelta, formatMoney, levelFromXp } from '../systems/econ
 import { formatCountdown, questProgress, questTimeLeft } from '../systems/quests.js';
 import { drawPanel, keycap, TEXT, UI } from '../ui/theme.js';
 import type { WorldScene } from './WorldScene.js';
+import { AudioSystem } from '../audio/AudioSystem.js';
 
 export type NotifyKind = 'info' | 'reward' | 'warning';
 export type CardKind = 'mission' | 'complete' | 'failed' | 'location' | 'level';
@@ -446,6 +447,7 @@ export class HudScene extends Phaser.Scene {
     if (this.cardBusy || this.cards.length === 0) return;
     const next = this.cards.shift()!;
     this.cardBusy = true;
+    AudioSystem.of(this)?.sfx(next.kind === 'mission' ? 'quest_start' : next.kind === 'complete' ? 'quest_done' : next.kind === 'failed' ? 'quest_fail' : next.kind === 'level' ? 'level_up' : 'discover');
     const { width, height } = this.scale;
     const c = CARD[next.kind];
     const big = next.kind !== 'location';

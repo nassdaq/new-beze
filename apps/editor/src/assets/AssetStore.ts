@@ -12,6 +12,9 @@ export const UPLOAD_LIMITS = {
   maxBytes: 5 * 1024 * 1024,
   maxSide: 4096,
   mimes: ['image/png', 'image/webp'] as const,
+  /** Music tracks: OGG or MP3, up to 12 MB. */
+  audioMimes: ['audio/ogg', 'audio/mpeg'] as const,
+  audioMaxBytes: 12 * 1024 * 1024,
 };
 
 /** Binary side of assets. The document only holds ids and metadata. */
@@ -30,6 +33,8 @@ export interface AssetStore {
    * `image()`, `bytes()` and `dataUrls()` all serve the new asset.
    */
   put(data: Blob, meta: PutAssetMeta): Promise<Asset>;
+  /** Stores an uploaded music track (OGG or MP3, up to 12 MB) and returns its Asset record. */
+  putAudio(data: Blob, meta: PutAssetMeta): Promise<Asset>;
   /**
    * Loads a template's image pack (`pack.json`, see pack.ts) so a project created from the
    * template can render, play and export. Files already held with the same hash are skipped;

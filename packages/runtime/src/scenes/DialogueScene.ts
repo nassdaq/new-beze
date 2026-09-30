@@ -5,6 +5,7 @@ import { start, advance, type Step } from '../dialogue/interpreter.js';
 import { inputOf } from '../systems/input.js';
 import { drawPanel, TEXT, UI } from '../ui/theme.js';
 import type { WorldScene } from './WorldScene.js';
+import { AudioSystem } from '../audio/AudioSystem.js';
 
 const INTERACT_CODES = { E: Phaser.Input.Keyboard.KeyCodes.E, SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE, ENTER: Phaser.Input.Keyboard.KeyCodes.ENTER } as const;
 /** Characters revealed per second by the typewriter. */
@@ -91,6 +92,9 @@ export class DialogueScene extends Phaser.Scene {
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => this.next());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.unsubscribe?.(); this.unsubscribe = null; this.typeTimer?.remove(false); });
 
+    const audio = AudioSystem.of(this);
+    audio?.sfx('ui_open');
+    audio?.duck(0.5);
     ctx.emit({ type: 'dialogueStarted', dialogueId: this.dialogue.id });
     this.show(start(this.dialogue, ctx.state.variables));
   }
@@ -169,6 +173,7 @@ export class DialogueScene extends Phaser.Scene {
       if (!this.typing) return;
       this.typed = Math.min(this.fullText.length, this.typed + 1);
       this.body.setText(this.fullText.slice(0, this.typed));
+      if (this.typed % 3 === 0 && this.fullText[this.typed - 1] !== ' ') AudioSystem.of(this)?.sfx('type', { rate: 0.9 + ((this.typed * 7) % 5) * 0.05 });
       if (this.typed >= this.fullText.length) this.finishTyping();
     };
     this.typeTimer = this.time.addEvent({ delay: 1000 / TYPE_CPS, loop: true, callback: tick });
@@ -200,12 +205,14 @@ export class DialogueScene extends Phaser.Scene {
   private move(delta: number): void {
     if (this.step.kind !== 'choice' || this.optionTexts.length === 0) return;
     this.selected = (this.selected + delta + this.optionTexts.length) % this.optionTexts.length;
+    AudioSystem.of(this)?.sfx('ui_move');
     this.highlight();
   }
 
   private next(): void {
     if (!this.step || this.step.kind === 'end') return;
     if (this.typing) { this.finishTyping(); return; }
+    AudioSystem.of(this)?.sfx('ui_confirm', { volume: 0.7 });
     const vars = ctxOf(this).state.variables;
     const choice = this.step.kind === 'choice' ? this.step.options[this.selected]?.index : undefined;
     this.show(advance(this.dialogue, this.step, vars, choice));
@@ -217,6 +224,7 @@ export class DialogueScene extends Phaser.Scene {
     const followUps = this.pendingActions;
     this.pendingActions = [];
     ctx.emit({ type: 'dialogueEnded', dialogueId: this.dialogue.id });
+    AudioSystem.of(this)?.duck(0);
     this.scene.stop();
     world.endDialogue(followUps);
   }

@@ -65,7 +65,7 @@ export function mountGame(opts: RuntimeOptions): MountedGame {
     physics: { default: 'arcade', arcade: { debug: false } },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     render: { maxLights: 24, antialias: !project.settings.pixelArt },
-    audio: { noAudio: true },
+    audio: { disableWebAudio: false },
     input: { keyboard: true, mouse: true, touch: true, activePointers: 4 },
     banner: false,
   });

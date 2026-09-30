@@ -7,6 +7,7 @@ import { CharacterInspector } from './inspectors/CharacterInspector.js';
 import { QuestInspector } from './inspectors/QuestInspector.js';
 import { EconomySettings } from './inspectors/EconomySettings.js';
 import { PresentationSettings } from './inspectors/PresentationSettings.js';
+import { AudioSettings } from './inspectors/AudioSettings.js';
 import { Field, Section } from '../ui/Field.js';
 import { AskPanel } from './AskPanel.js';
 
@@ -48,6 +49,7 @@ export function InspectorPanel() {
           </Field>
           <EconomySettings />
           <PresentationSettings />
+          <AudioSettings />
         </Section>
       );
   }

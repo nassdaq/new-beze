@@ -1,6 +1,7 @@
 import { useEditor, useProject } from '../../store/editorStore.js';
 import { Field, Section } from '../../ui/Field.js';
 import { toast } from '../../ui/Toast.js';
+import { MOOD_OPTIONS } from './AudioSettings.js';
 
 export function SceneInspector({ sceneId }: { sceneId: string }) {
   const project = useProject();
@@ -22,6 +23,25 @@ export function SceneInspector({ sceneId }: { sceneId: string }) {
     <Section title="Scene" actions={<button className="danger small" onClick={remove}>Delete</button>}>
       <Field label="Name"><input value={scene.name} onChange={(e) => dispatch('Rename scene', [{ op: 'updateScene', id: scene.id, patch: { name: e.target.value || scene.name } }])} /></Field>
       <label className="check"><input type="checkbox" checked={isStart} disabled={isStart} onChange={() => dispatch('Start scene', [{ op: 'setStartScene', sceneId: scene.id }])} /> Start scene</label>
+      <Field label="Music in this scene">
+        <select value={scene.musicAssetId ? 'track' : (scene.music ?? '')} onChange={(e) => {
+          const v = e.target.value;
+          if (v === 'track') return;
+          dispatch('Scene music', [{ op: 'updateScene', id: scene.id, patch: { music: v === '' ? undefined : (v as NonNullable<typeof scene.music>), musicAssetId: undefined } }]);
+        }}>
+          <option value="">(project setting)</option>
+          {MOOD_OPTIONS.filter((o) => o.value !== 'auto').map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {Object.values(project.assets).some((a) => a.kind === 'audio') && <option value="track">Uploaded track</option>}
+        </select>
+      </Field>
+      {Object.values(project.assets).some((a) => a.kind === 'audio') && (
+        <Field label="Track for this scene">
+          <select value={scene.musicAssetId ?? ''} onChange={(e) => dispatch('Scene track', [{ op: 'updateScene', id: scene.id, patch: { musicAssetId: e.target.value || undefined } }])}>
+            <option value="">(none)</option>
+            {Object.values(project.assets).filter((a) => a.kind === 'audio').map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </Field>
+      )}
       {map && <p className="muted small">Map "{map.name}": {map.width}×{map.height} tiles of {map.tileWidth}px · {map.layers.length} layers</p>}
       <p className="muted small">{scene.entityOrder.length} entities</p>
     </Section>

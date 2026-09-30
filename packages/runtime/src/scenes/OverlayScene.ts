@@ -3,6 +3,7 @@ import { SCENE_KEYS } from '../context.js';
 import { inputOf, type Button } from '../systems/input.js';
 import { DEPTH, drawPanel, TEXT, UI } from '../ui/theme.js';
 import type { WorldScene } from './WorldScene.js';
+import { AudioSystem } from '../audio/AudioSystem.js';
 
 /** What an overlay reacts to: the shared buttons plus confirm (E / Enter / Space) and cancel (Escape / Q). */
 export type OverlayButton = Button | 'confirm' | 'cancel';
@@ -28,6 +29,10 @@ export abstract class OverlayScene extends Phaser.Scene {
   protected setupOverlay(panelW: number, panelH: number): Phaser.Geom.Rectangle {
     const { width, height } = this.scale;
     this.openedAt = this.time.now;
+    const audio = AudioSystem.of(this);
+    audio?.sfx('ui_open');
+    audio?.duck(1);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => audio?.duck(0));
     const dim = this.add.rectangle(0, 0, width, height, UI.dim, UI.dimAlpha).setOrigin(0, 0).setDepth(DEPTH.dim).setAlpha(0);
     this.tweens.add({ targets: dim, alpha: 1, duration: 160 });
     const x = Math.round((width - panelW) / 2);
@@ -60,6 +65,10 @@ export abstract class OverlayScene extends Phaser.Scene {
 
   private press(b: OverlayButton): void {
     if (this.time.now - this.openedAt < OPEN_GUARD_MS) return;
+    const audio = AudioSystem.of(this);
+    if (b === 'up' || b === 'down' || b === 'left' || b === 'right') audio?.sfx('ui_move');
+    else if (b === 'confirm') audio?.sfx('ui_confirm');
+    else if (b === 'cancel') audio?.sfx('ui_cancel');
     this.onButton(b);
   }
 
