@@ -7,7 +7,7 @@ describe('templates registry', () => {
     expect(new Set(ids).size).toBe(ids.length);
     for (const t of TEMPLATES) {
       expect(t.project.startsWith('/')).toBe(true);
-      expect(t.pack.startsWith('/')).toBe(true);
+      if (t.pack) expect(t.pack.startsWith('/')).toBe(true);
       expect(t.name.length).toBeGreaterThan(0);
     }
   });

@@ -30,6 +30,10 @@ node scripts/art/render.mjs --preview DIR   # also write 4x upscaled previews to
 
 - Frame index = row × 4 + column. `render.mjs` derives the `animations` table from this, so a
   module never writes frame numbers.
+- **Emote rows (optional).** A module may export `emotes: [{ name: 'celebrate', frames: 3, frameRate: 6,
+  loop: false }, ...]`. Each emote gets one extra row after row 7 (up to 4 frames, drawn with
+  `f.anim === name`, `f.dir === 'down'`), and the manifest gains an animation with that name, playable
+  through the `playAnimation` action. Typical names: `celebrate`, `map`, `point`, `phone`, `interact`.
 - Feet must touch the bottom of the frame; the collider describes the feet footprint.
 - Everything must be deterministic: no `Math.random()` (use the provided `rand(seed)`), so a
   re-render produces identical hashes.

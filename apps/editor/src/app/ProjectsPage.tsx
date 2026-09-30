@@ -41,7 +41,7 @@ export function ProjectsPage() {
         toast.error(`The ${t.name} template is not a valid project`, parsed.issues.slice(0, 5).map((i) => `${i.path}: ${i.message}`));
         return;
       }
-      await assets.loadPack(t.pack);
+      if (t.pack) await assets.loadPack(t.pack);
       const now = new Date().toISOString();
       const project: Project = { ...parsed.value, id: newId('prj'), name: name.trim() || parsed.value.name || t.name, meta: { ...parsed.value.meta, createdAt: now, updatedAt: now } };
       await repository.save(project, null);

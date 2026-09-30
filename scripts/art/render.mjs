@@ -53,11 +53,15 @@ async function renderCharacter(page, src, file) {
   return page.evaluate(async ({ src, DIRS, COLS, ROWS, WALK_FRAMES, ATTACK_FRAMES }) => {
     const def = await window.__beze.load(src);
     const w = def.frameWidth, h = def.frameHeight;
-    const [sheet, ctx] = window.__beze.canvas(w * COLS, h * ROWS);
-    for (let row = 0; row < ROWS; row++) {
-      const anim = row < 4 ? 'walk' : 'attack';
-      const dir = DIRS[row % 4];
-      const count = anim === 'walk' ? WALK_FRAMES : ATTACK_FRAMES;
+    // Optional emote rows follow the 8 standard rows: one row per emote, up to COLS frames each.
+    const emotes = (def.emotes ?? []).map((e) => ({ name: e.name, frames: Math.min(COLS, e.frames ?? 1), frameRate: e.frameRate ?? 6, loop: !!e.loop }));
+    const totalRows = ROWS + emotes.length;
+    const [sheet, ctx] = window.__beze.canvas(w * COLS, h * totalRows);
+    for (let row = 0; row < totalRows; row++) {
+      const emote = row >= ROWS ? emotes[row - ROWS] : null;
+      const anim = emote ? emote.name : row < 4 ? 'walk' : 'attack';
+      const dir = emote ? 'down' : DIRS[row % 4];
+      const count = emote ? emote.frames : anim === 'walk' ? WALK_FRAMES : ATTACK_FRAMES;
       for (let index = 0; index < count; index++) {
         ctx.save();
         ctx.translate(index * w, row * h);
@@ -75,7 +79,8 @@ async function renderCharacter(page, src, file) {
       portrait = pc.toDataURL('image/png');
     }
     const { draw, drawPortrait, ...meta } = def;
-    return { meta, sheet: sheet.toDataURL('image/png'), portrait, sheetWidth: w * COLS, sheetHeight: h * ROWS };
+    meta.emotes = emotes;
+    return { meta, sheet: sheet.toDataURL('image/png'), portrait, sheetWidth: w * COLS, sheetHeight: h * totalRows };
   }, { src, DIRS, COLS, ROWS, WALK_FRAMES, ATTACK_FRAMES });
 }
 
@@ -147,6 +152,10 @@ function animations(def) {
     out[`walk_${dir}`] = { frames: Array.from({ length: WALK_FRAMES }, (_, i) => base + i), frameRate: def.walkFrameRate ?? 8, loop: true };
     const abase = (row + 4) * COLS;
     out[`attack_${dir}`] = { frames: Array.from({ length: ATTACK_FRAMES }, (_, i) => abase + i), frameRate: def.attackFrameRate ?? 14, loop: false };
+  });
+  (def.emotes ?? []).forEach((e, i) => {
+    const base = (ROWS + i) * COLS;
+    out[e.name] = { frames: Array.from({ length: e.frames }, (_, k) => base + k), frameRate: e.frameRate, loop: e.loop };
   });
   return out;
 }
