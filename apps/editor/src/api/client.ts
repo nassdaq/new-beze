@@ -1,4 +1,5 @@
 import type { Operation, Project } from '@beze/project-schema';
+import { withBase } from '../base.js';
 
 /** Typed fetch client for the Beze API. Base path is proxied by Vite in development. */
 
@@ -29,7 +30,7 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`/api/v1${path}`, { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) } });
+    res = await fetch(withBase(`/api/v1${path}`), { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) } });
   } catch {
     throw new ApiError(0, 'The Beze API is not reachable. Start it with `pnpm dev:api`.');
   }

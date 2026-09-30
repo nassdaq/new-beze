@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * Rasterises scripts/art/characters/*.mjs and scripts/art/tilesets/*.mjs into the starter pack.
+ * Rasterises scripts/art/characters/*.mjs and scripts/art/tilesets/*.mjs into the starter pack, or, with
+ * `--pack <name>`, scripts/art/packs/<name>/{characters,tilesets}/*.mjs into a template pack under
+ * apps/editor/public/templates/<name>/ (pack.json + PNGs; the starter manifest is untouched).
  * See scripts/art/README.md for the module contracts and the sheet layout.
  */
 import { createHash } from 'node:crypto';
@@ -10,10 +12,14 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../..');
-const OUT = resolve(root, 'apps/editor/public/starter');
 const args = process.argv.slice(2);
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
 const previewDir = args.includes('--preview') ? resolve(args[args.indexOf('--preview') + 1]) : null;
+/** Template pack mode: modules under scripts/art/packs/<name>, output under the template's folder. */
+const pack = args.includes('--pack') ? args[args.indexOf('--pack') + 1] : null;
+const MODULES = pack ? resolve(here, 'packs', pack) : here;
+const OUT = pack ? resolve(root, 'apps/editor/public/templates', pack) : resolve(root, 'apps/editor/public/starter');
+const MANIFEST_FILE = pack ? 'pack.json' : 'manifest.json';
 
 const DIRS = ['down', 'left', 'right', 'up'];
 const COLS = 4;
@@ -31,7 +37,7 @@ async function launch() {
 /** Tileset order fixes firstGid and groundGid in the manifest: the Outdoor tileset (grass = gid 1) always comes first. */
 const FIRST = ['outdoor'];
 const rank = (f) => { const i = FIRST.indexOf(f.replace(/\.mjs$/, '')); return i < 0 ? FIRST.length : i; };
-const listModules = (dir) => readdirSync(dir).filter((f) => f.endsWith('.mjs')).filter((f) => !only || f.replace(/\.mjs$/, '') === only).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map((f) => join(dir, f));
+const listModules = (dir) => (existsSync(dir) ? readdirSync(dir) : []).filter((f) => f.endsWith('.mjs')).filter((f) => !only || f.replace(/\.mjs$/, '') === only).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map((f) => join(dir, f));
 
 /** The in-page harness: loads a module from source via a blob URL and rasterises frames. */
 const HARNESS = `
@@ -49,19 +55,25 @@ const HARNESS = `
   };
 `;
 
-async function renderCharacter(page, src, file) {
+async function renderCharacters(page, src) {
   return page.evaluate(async ({ src, DIRS, COLS, ROWS, WALK_FRAMES, ATTACK_FRAMES }) => {
-    const def = await window.__beze.load(src);
+    const loaded = await window.__beze.load(src);
+    const defs = Array.isArray(loaded) ? loaded : [loaded];
+    return defs.map((def) => {
     const w = def.frameWidth, h = def.frameHeight;
-    // Optional emote rows follow the 8 standard rows: one row per emote, up to COLS frames each.
+    // Optional directional sets (4 rows each, e.g. "web") follow the 8 standard rows; optional emote rows
+    // (one row per emote, facing down) come after them. Up to COLS frames per row.
+    const sets = (def.sets ?? []).map((s) => ({ name: s.name, frames: Math.min(COLS, s.frames ?? 1), frameRate: s.frameRate ?? 10, loop: !!s.loop }));
     const emotes = (def.emotes ?? []).map((e) => ({ name: e.name, frames: Math.min(COLS, e.frames ?? 1), frameRate: e.frameRate ?? 6, loop: !!e.loop }));
-    const totalRows = ROWS + emotes.length;
+    const setRows = sets.length * DIRS.length;
+    const totalRows = ROWS + setRows + emotes.length;
     const [sheet, ctx] = window.__beze.canvas(w * COLS, h * totalRows);
     for (let row = 0; row < totalRows; row++) {
-      const emote = row >= ROWS ? emotes[row - ROWS] : null;
-      const anim = emote ? emote.name : row < 4 ? 'walk' : 'attack';
+      const set = row >= ROWS && row < ROWS + setRows ? sets[Math.floor((row - ROWS) / DIRS.length)] : null;
+      const emote = row >= ROWS + setRows ? emotes[row - ROWS - setRows] : null;
+      const anim = emote ? emote.name : set ? set.name : row < 4 ? 'walk' : 'attack';
       const dir = emote ? 'down' : DIRS[row % 4];
-      const count = emote ? emote.frames : anim === 'walk' ? WALK_FRAMES : ATTACK_FRAMES;
+      const count = emote ? emote.frames : set ? set.frames : anim === 'walk' ? WALK_FRAMES : ATTACK_FRAMES;
       for (let index = 0; index < count; index++) {
         ctx.save();
         ctx.translate(index * w, row * h);
@@ -79,8 +91,10 @@ async function renderCharacter(page, src, file) {
       portrait = pc.toDataURL('image/png');
     }
     const { draw, drawPortrait, ...meta } = def;
+    meta.sets = sets;
     meta.emotes = emotes;
     return { meta, sheet: sheet.toDataURL('image/png'), portrait, sheetWidth: w * COLS, sheetHeight: h * totalRows };
+    });
   }, { src, DIRS, COLS, ROWS, WALK_FRAMES, ATTACK_FRAMES });
 }
 
@@ -98,7 +112,7 @@ async function renderTileset(page, src) {
       ctx.restore();
     });
     const { tiles, stamps, ...meta } = def;
-    return { meta, tiles: tiles.map(({ tag, solid }) => ({ tag, solid: !!solid })), stamps: stamps ?? [], sheet: sheet.toDataURL('image/png'), width: s * cols, height: s * rows };
+    return { meta, tiles: tiles.map(({ tag, solid, climbable }) => ({ tag, solid: !!solid, climbable: !!climbable })), stamps: stamps ?? [], sheet: sheet.toDataURL('image/png'), width: s * cols, height: s * rows };
   }, { src });
 }
 
@@ -153,8 +167,15 @@ function animations(def) {
     const abase = (row + 4) * COLS;
     out[`attack_${dir}`] = { frames: Array.from({ length: ATTACK_FRAMES }, (_, i) => abase + i), frameRate: def.attackFrameRate ?? 14, loop: false };
   });
+  const sets = def.sets ?? [];
+  sets.forEach((s, i) => {
+    DIRS.forEach((dir, d) => {
+      const base = (ROWS + i * DIRS.length + d) * COLS;
+      out[`${s.name}_${dir}`] = { frames: Array.from({ length: s.frames }, (_, k) => base + k), frameRate: s.frameRate, loop: s.loop };
+    });
+  });
   (def.emotes ?? []).forEach((e, i) => {
-    const base = (ROWS + i) * COLS;
+    const base = (ROWS + sets.length * DIRS.length + i) * COLS;
     out[e.name] = { frames: Array.from({ length: e.frames }, (_, k) => base + k), frameRate: e.frameRate, loop: e.loop };
   });
   return out;
@@ -167,16 +188,16 @@ await page.addScriptTag({ content: HARNESS });
 mkdirSync(OUT, { recursive: true });
 if (previewDir) mkdirSync(previewDir, { recursive: true });
 
-const existing = existsSync(join(OUT, 'manifest.json')) ? JSON.parse(readFileSync(join(OUT, 'manifest.json'), 'utf8')) : null;
+const existing = existsSync(join(OUT, MANIFEST_FILE)) ? JSON.parse(readFileSync(join(OUT, MANIFEST_FILE), 'utf8')) : null;
 const manifest = { files: {}, assets: [], tilesets: [], characters: [], groundGid: 1, playerCharacterId: null };
 const asset = (id, name, file, buf, w, h) => {
   manifest.files[id] = file;
   manifest.assets.push({ id, kind: 'image', name, mime: 'image/png', width: w, height: h, hash: sha(buf), origin: 'starter', license: 'CC0-1.0' });
 };
 
-for (const path of listModules(join(here, 'characters'))) {
+for (const path of listModules(join(MODULES, 'characters'))) {
   const src = readFileSync(path, 'utf8');
-  const r = await renderCharacter(page, src, path);
+  for (const r of await renderCharacters(page, src)) {
   const d = r.meta;
   const sheet = decode(r.sheet);
   writeAtomic(join(OUT, d.file), sheet);
@@ -198,10 +219,11 @@ for (const path of listModules(join(here, 'characters'))) {
     if (r.portrait) writeFileSync(join(previewDir, d.portrait.file), decode(r.portrait));
   }
   console.log(`character ${d.id}: ${d.file} ${r.sheetWidth}x${r.sheetHeight}${r.portrait ? ' + portrait' : ''}`);
+  }
 }
 
 let firstGid = 1;
-for (const path of listModules(join(here, 'tilesets'))) {
+for (const path of listModules(join(MODULES, 'tilesets'))) {
   const src = readFileSync(path, 'utf8');
   const r = await renderTileset(page, src);
   const d = r.meta;
@@ -209,7 +231,7 @@ for (const path of listModules(join(here, 'tilesets'))) {
   writeAtomic(join(OUT, d.file), buf);
   asset(d.assetId, `${d.name} tileset`, d.file, buf, r.width, r.height);
   const tileProperties = {};
-  r.tiles.forEach((t, i) => { if (t.solid || t.tag) tileProperties[String(i)] = { ...(t.solid ? { solid: true } : {}), ...(t.tag ? { tag: t.tag } : {}) }; });
+  r.tiles.forEach((t, i) => { if (t.solid || t.tag) tileProperties[String(i)] = { ...(t.solid ? { solid: true } : {}), ...(t.tag ? { tag: t.tag } : {}), ...(t.solid && t.climbable ? { climbable: true } : {}) }; });
   const stamps = resolveStamps({ ...d, stamps: r.stamps }, r.tiles);
   manifest.tilesets.push({ id: d.id, name: d.name, imageAssetId: d.assetId, tileWidth: d.tileSize, tileHeight: d.tileSize, columns: d.columns, tileCount: r.tiles.length, margin: 0, spacing: 0, tileProperties, ...(stamps.length ? { stamps } : {}) });
   const groundIndex = r.tiles.findIndex((t) => t.tag === d.groundTag);
@@ -232,10 +254,10 @@ if (only && existing) {
   if (manifest.playerCharacterId) merged.playerCharacterId = manifest.playerCharacterId;
   // groundGid belongs to the first tileset; a partial render of another tileset must not touch it.
   if (manifest.tilesets.length && merged.tilesets[0] && manifest.tilesets.some((t) => t.id === merged.tilesets[0].id)) merged.groundGid = manifest.groundGid;
-  writeAtomic(join(OUT, 'manifest.json'), JSON.stringify(merged, null, 2) + '\n');
+  writeAtomic(join(OUT, MANIFEST_FILE), JSON.stringify(merged, null, 2) + '\n');
 } else {
-  if (!manifest.playerCharacterId) throw new Error('no character module has role "player"');
-  writeAtomic(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  if (!manifest.playerCharacterId && !pack) throw new Error('no character module has role "player"');
+  writeAtomic(join(OUT, MANIFEST_FILE), JSON.stringify(manifest, null, 2) + '\n');
 }
-writeAtomic(join(OUT, 'LICENSES.md'), '# Starter pack licences\n\nEvery file in this folder is rendered from the modules in `scripts/art/` and released under CC0 1.0 (public domain). Regenerate with `pnpm starter`.\n');
-console.log('wrote manifest.json');
+if (!pack) writeAtomic(join(OUT, 'LICENSES.md'), '# Starter pack licences\n\nEvery file in this folder is rendered from the modules in `scripts/art/` and released under CC0 1.0 (public domain). Regenerate with `pnpm starter`.\n');
+console.log(`wrote ${MANIFEST_FILE}`);

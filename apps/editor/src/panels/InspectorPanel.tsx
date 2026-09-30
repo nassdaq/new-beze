@@ -40,6 +40,11 @@ export function InspectorPanel() {
               <option value="SPACE">Space</option><option value="X">X</option><option value="J">J</option><option value="K">K</option>
             </select>
           </Field>
+          <Field label="Ability key (web shooter)">
+            <select value={project.settings.abilityKey ?? 'X'} onChange={(e) => dispatch('Ability key', [{ op: 'updateSettings', patch: { abilityKey: e.target.value as 'X' | 'C' | 'F' | 'Q' | 'Z' | 'J' | 'K' } }])}>
+              {(['X', 'C', 'F', 'Q', 'Z', 'J', 'K'] as const).map((k) => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </Field>
           <EconomySettings />
         </Section>
       );

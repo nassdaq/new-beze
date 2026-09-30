@@ -38,7 +38,8 @@ export interface EditorState {
     /** Also mark cells solid when the painted tile's properties say so (never clears collision). */
     autoCollision: boolean;
   };
-  collisionMode: 'solid' | 'clear';
+  /** What the collision tool paints: solid (1), climbable-solid (2, v4) or walkable (0). */
+  collisionMode: 'solid' | 'climb' | 'clear';
   placeCharacterId: string | null;
   history: { undo: Transaction[]; redo: Transaction[] };
   play: { status: PlayStatus; error: string | null };
@@ -53,7 +54,7 @@ export interface EditorState {
   setActiveScene(sceneId: string): void;
   setTool(tool: Tool): void;
   setTileBrush(patch: Partial<EditorState['tileBrush']>): void;
-  setCollisionMode(mode: 'solid' | 'clear'): void;
+  setCollisionMode(mode: 'solid' | 'climb' | 'clear'): void;
   setPlaceCharacter(characterId: string | null): void;
   setSaveState(state: SaveState): void;
   setPlay(play: Partial<EditorState['play']>): void;

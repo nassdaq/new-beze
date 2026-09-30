@@ -3,6 +3,7 @@ import { newId, type StarterPack } from '@beze/project-core';
 import { idb, STORES } from '../repository/idb.js';
 import { UPLOAD_LIMITS, type AssetStore, type PutAssetMeta } from './AssetStore.js';
 import { assertPackManifest, planPackLoad } from './pack.js';
+import { withBase } from '../base.js';
 
 interface StarterManifest extends StarterPack {
   files: Record<string, string>;
@@ -39,14 +40,14 @@ export class LocalAssetStore implements AssetStore {
   }
 
   private async load(): Promise<void> {
-    const res = await fetch('/starter/manifest.json');
+    const res = await fetch(withBase('/starter/manifest.json'));
     if (!res.ok) throw new Error('starter pack manifest is missing');
     const manifest = (await res.json()) as StarterManifest;
     this.manifest = manifest;
     for (const a of manifest.assets) this.hashes.set(a.id, a.hash);
     await Promise.all([
       ...Object.entries(manifest.files).map(async ([id, file]) => {
-        const blob = await fetch(`/starter/${file}`).then((r) => r.blob());
+        const blob = await fetch(withBase(`/starter/${file}`)).then((r) => r.blob());
         this.blobs.set(id, blob);
         this.images.set(id, await decode(blob));
       }),

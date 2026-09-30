@@ -19,6 +19,31 @@ describe('applyOperations', () => {
     expect(validateProject(fixture).filter((d) => d.severity === 'error')).toEqual([]);
   });
 
+  it('paints climbable collision (2) and undoes it exactly', () => {
+    const map = fixture.maps[MAP]!;
+    const i = 3 * map.width + 2;
+    const r = applyOperations(fixture, [{ op: 'setCollision', mapId: MAP, cells: [{ x: 2, y: 3, solid: true, climbable: true }, { x: 3, y: 3, solid: true }] }]);
+    if (!r.ok) throw new Error(JSON.stringify(r.errors));
+    expect(r.value.project.maps[MAP]!.collision[i]).toBe(2);
+    expect(r.value.project.maps[MAP]!.collision[i + 1]).toBe(1);
+    const back = applyOperations(r.value.project, r.value.inverse);
+    if (!back.ok) throw new Error(JSON.stringify(back.errors));
+    expect(back.value.project.maps[MAP]!.collision).toEqual(map.collision);
+    const rect = applyOperations(r.value.project, [{ op: 'setCollisionRect', mapId: MAP, x: 0, y: 0, width: 2, height: 1, solid: true, climbable: true }]);
+    if (!rect.ok) throw new Error(JSON.stringify(rect.errors));
+    expect(rect.value.project.maps[MAP]!.collision.slice(0, 2)).toEqual([2, 2]);
+    expect(rect.value.inverse[0]).toMatchObject({ op: 'setCollision', cells: [{ x: 0, y: 0, solid: false }, { x: 1, y: 0, solid: false }] });
+  });
+
+  it('rejects an ability key that clashes with the attack key', () => {
+    const r = applyOperations(fixture, [{ op: 'updateSettings', patch: { attackKey: 'X', abilityKey: 'X' } }]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors[0]).toMatchObject({ code: 'keyClash', path: 'settings.abilityKey' });
+    const fine = applyOperations(fixture, [{ op: 'updateSettings', patch: { attackKey: 'X', abilityKey: 'C' } }]);
+    expect(fine.ok).toBe(true);
+    expect(validateProject(fixture).some((d) => d.code === 'keyClash')).toBe(false);
+  });
+
   it('is atomic: a failing op leaves the document untouched', () => {
     const r = applyOperations(fixture, [
       { op: 'renameProject', name: 'changed' },

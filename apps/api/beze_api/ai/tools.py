@@ -37,7 +37,7 @@ DESCRIPTIONS: dict[str, str] = {
     "createEntity": "Place a new entity (player, NPC, enemy, object) in a scene with its components. x/y are world pixels: x = tileX*tileSize, y = tileY*tileSize + tileSize - feetOffset (feetOffset per character is in the context).",
     "placeEntity": "Move an entity to new world-pixel coordinates.",
     "modifyEntity": "Rename an entity or change its facing.",
-    "setComponent": "Add or replace one component on an entity: sprite, body, playerControl, interactable (talk -> startDialogue), trigger, wander, health, enemy.",
+    "setComponent": "Add or replace one component on an entity: sprite, body, playerControl (optionally with ability {type: web}, climb, senseRadius), interactable (talk -> startDialogue), trigger, wander, health, enemy.",
     "removeComponent": "Remove a component from an entity.",
     "deleteEntity": "Remove an entity from a scene.",
     "createDialogue": "Create a dialogue graph: nodes keyed by id with line, choice, set, branch, action and end nodes. Every next/ifTrue/ifFalse/option.next must be a node id in the same dialogue or null.",

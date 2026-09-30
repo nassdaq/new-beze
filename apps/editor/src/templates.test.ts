@@ -16,4 +16,8 @@ describe('templates registry', () => {
     expect(findTemplate('hacho')?.project).toBe('/templates/hacho/project.json');
     expect(findTemplate('nope')).toBeUndefined();
   });
+
+  it('lists the Webslinger template with its art pack', () => {
+    expect(findTemplate('webslinger')).toMatchObject({ project: '/templates/webslinger/project.json', pack: '/templates/webslinger/pack.json' });
+  });
 });

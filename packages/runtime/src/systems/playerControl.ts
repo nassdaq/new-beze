@@ -22,6 +22,8 @@ export function updatePlayer(player: SpawnedEntity, input: MoveInput, locked: bo
   if (!sprite || !character || player.defeated) return false;
   sprite.setDepth(sprite.y);
   if (now < player.knockbackUntil) return false;
+  // Mid-zip the web system owns the velocity.
+  if (now < player.zipUntil) return false;
   if (now < player.attackUntil) {
     sprite.setVelocity(0, 0);
     return false;

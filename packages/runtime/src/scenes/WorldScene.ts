@@ -10,6 +10,7 @@ import { SmoothCamera } from '../systems/camera.js';
 import { updateEnemy } from '../systems/enemy.js';
 import { updateWander } from '../systems/wander.js';
 import { CombatSystem } from '../systems/combat.js';
+import { WebSystem } from '../systems/web.js';
 import { Hud } from '../systems/hud.js';
 import { Effects } from '../systems/effects.js';
 import { HealthBars } from '../systems/healthBar.js';
@@ -30,6 +31,12 @@ export interface WorldInit {
 
 const INTERACT_CODES = { E: Phaser.Input.Keyboard.KeyCodes.E, SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE, ENTER: Phaser.Input.Keyboard.KeyCodes.ENTER } as const;
 const ATTACK_CODES = { SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE, X: Phaser.Input.Keyboard.KeyCodes.X, J: Phaser.Input.Keyboard.KeyCodes.J, K: Phaser.Input.Keyboard.KeyCodes.K } as const;
+const ABILITY_CODES = {
+  X: Phaser.Input.Keyboard.KeyCodes.X, C: Phaser.Input.Keyboard.KeyCodes.C, F: Phaser.Input.Keyboard.KeyCodes.F, Q: Phaser.Input.Keyboard.KeyCodes.Q,
+  Z: Phaser.Input.Keyboard.KeyCodes.Z, J: Phaser.Input.Keyboard.KeyCodes.J, K: Phaser.Input.Keyboard.KeyCodes.K,
+} as const;
+/** Dust puffs this often while zipping along a web line. */
+const ZIP_DUST_MS = 60;
 const DIR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] } as const;
 /** Interval between dust puffs while running. */
 const DUST_MS = 250;
@@ -57,6 +64,7 @@ export class WorldScene extends Phaser.Scene {
   private interactKey!: Phaser.Input.Keyboard.Key;
   private prompt!: Phaser.GameObjects.Text;
   private combat!: CombatSystem;
+  private web!: WebSystem;
   private hearts!: Hud;
   private effects!: Effects;
   private healthBars!: HealthBars;
@@ -137,6 +145,11 @@ export class WorldScene extends Phaser.Scene {
       },
       onPlayerDefeated: () => this.showGameOver(),
     });
+    this.web = new WebSystem(this, this.effects, this.combat, {
+      onZip: () => this.effects.zoomPulse(0.03, 110),
+      onFizzle: () => { /* the line itself shows the miss */ },
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.web.dispose());
     this.hearts = new Hud(this, project.settings.economy ? 24 : 4);
 
     const spawn = this.registry.get('spawn') as WorldInit['spawn'] | null;
@@ -151,7 +164,9 @@ export class WorldScene extends Phaser.Scene {
         const e = this.bySprite.get(other as Phaser.GameObjects.GameObject);
         if (e?.enemy && this.player) this.combat.enemyTouch(e, this.player, this.time.now);
       });
-      if (this.built?.collision) this.physics.add.collider(this.player.sprite, this.built.collision);
+      // A climbing player walks over climbable cells (roofs, walls); everyone else treats them as solid.
+      const playerCollision = this.player.climb && this.built?.climberCollision ? this.built.climberCollision : this.built?.collision;
+      if (playerCollision) this.physics.add.collider(this.player.sprite, playerCollision);
       for (const e of this.entities) {
         if (e.trigger) {
           const key = `${scene.id}:${e.entity.id}`;
@@ -176,6 +191,10 @@ export class WorldScene extends Phaser.Scene {
     this.interactKey.on('down', (_key: Phaser.Input.Keyboard.Key, event: KeyboardEvent) => { if (!event.repeat) this.interact(); });
     const attackKey = keyboard.addKey(ATTACK_CODES[project.settings.attackKey]);
     attackKey.on('down', (_key: Phaser.Input.Keyboard.Key, event: KeyboardEvent) => { if (!event.repeat) this.attack(); });
+    if (this.player?.ability) {
+      const abilityKey = keyboard.addKey(ABILITY_CODES[project.settings.abilityKey ?? 'X']);
+      abilityKey.on('down', (_key: Phaser.Input.Keyboard.Key, event: KeyboardEvent) => { if (!event.repeat) this.useAbility(); });
+    }
     const K = Phaser.Input.Keyboard.KeyCodes;
     keyboard.on('keydown-M', (event: KeyboardEvent) => { if (!event.repeat) this.openOverlay(SCENE_KEYS.map); });
     keyboard.on('keydown-I', (event: KeyboardEvent) => { if (!event.repeat) this.openOverlay(SCENE_KEYS.inventory); });
@@ -217,13 +236,16 @@ export class WorldScene extends Phaser.Scene {
     if (this.player) {
       const runMultiplier = ctx.project.settings.runSpeedMultiplier ?? DEFAULT_RUN_MULTIPLIER;
       const running = updatePlayer(this.player, readMove(this.keys, this.virtual), this.dialogueActive || this.gameOver, now, runMultiplier);
-      if (running && now >= this.nextDustAt && this.player.sprite?.body) {
+      const zipping = now < this.player.zipUntil;
+      if ((running || zipping) && now >= this.nextDustAt && this.player.sprite?.body) {
         const body = this.player.sprite.body as Phaser.Physics.Arcade.Body;
         const [dx, dy] = DIR[this.player.facing];
         this.effects.dust(body.center.x - dx * body.width * 0.5, body.bottom - 2 - dy * body.height * 0.5, this.player.facing);
-        this.nextDustAt = now + DUST_MS;
+        this.nextDustAt = now + (zipping ? ZIP_DUST_MS : DUST_MS);
       }
+      if (this.player.senseRadius > 0) this.checkSense(now);
     }
+    this.web.update(now);
     for (const e of this.entities) updateBreathing(e, now);
     this.healthBars.update(this.entities);
     if (!this.gameOver) this.tickWorld(delta, now);
@@ -338,11 +360,33 @@ export class WorldScene extends Phaser.Scene {
     this.combat.swing(this.player, this.entities, this.time.now, ctxOf(this).project.settings.tileSize);
   }
 
+  /** The ability key: the player's special move (the web line). */
+  private useAbility(): void {
+    if (this.dialogueActive || this.overlay || this.gameOver || !this.player?.ability) return;
+    this.web.fire(this.player, this.player.ability, this.entities, this.currentMap(), this.time.now);
+  }
+
+  /** Danger sense: the first frame an enemy within range winds up an attack, arcs flash over the player's head. */
+  private checkSense(now: number): void {
+    const player = this.player;
+    const body = player?.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    if (!player || !body) return;
+    for (const e of this.entities) {
+      const en = e.enemy;
+      if (!en || e.defeated || en.phase !== 'windup' || en.sensed || !e.sprite?.body || now < e.stunnedUntil) continue;
+      const eb = e.sprite.body as Phaser.Physics.Arcade.Body;
+      if (Math.hypot(eb.center.x - body.center.x, eb.center.y - body.center.y) > player.senseRadius) continue;
+      en.sensed = true;
+      this.effects.sense(body.center.x, spriteTop(player) - 4);
+    }
+  }
+
   private onVirtualPress(b: Button): void {
     if (this.overlay || this.scene.isPaused()) return;
     switch (b) {
       case 'interact': this.interact(); break;
       case 'attack': this.attack(); break;
+      case 'ability': this.useAbility(); break;
       case 'map': this.openOverlay(SCENE_KEYS.map); break;
       case 'inventory': this.openOverlay(SCENE_KEYS.inventory); break;
       case 'pause': this.openOverlay(SCENE_KEYS.pause); break;
@@ -507,6 +551,7 @@ export class WorldScene extends Phaser.Scene {
   private despawn(e: SpawnedEntity): void {
     this.entities = this.entities.filter((x) => x !== e);
     this.healthBars.remove(e);
+    this.web.release(e);
     if (e.sprite) {
       this.bySprite.delete(e.sprite);
       this.solids = this.solids.filter((s) => s !== e.sprite);

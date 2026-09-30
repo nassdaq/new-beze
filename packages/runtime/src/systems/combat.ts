@@ -13,6 +13,8 @@ const KNOCKBACK_SPEED = 220;
 const PLAYER_INVULNERABLE_MS = 700;
 const HIT_STOP_MS = 60;
 const FLASH_MS = 80;
+/** Melee hits on a webbed (stunned) enemy deal this many times the damage. */
+export const WEBBED_DAMAGE_MULTIPLIER = 2;
 
 export interface CombatHooks {
   onPlayerHurt(player: SpawnedEntity): void;
@@ -63,7 +65,9 @@ export class CombatSystem {
         const contact = Phaser.Geom.Rectangle.Intersection(hitbox, rect);
         const px = contact.width > 0 ? contact.centerX : eb.center.x;
         const py = contact.height > 0 ? contact.centerY : eb.center.y;
-        this.hurt(e, player.attackDamage, dx, dy, now, px, py);
+        // A webbed enemy cannot guard: the blow lands harder.
+        const webbed = this.scene.time.now < e.stunnedUntil;
+        this.hurt(e, webbed ? player.attackDamage * WEBBED_DAMAGE_MULTIPLIER : player.attackDamage, dx, dy, now, px, py);
         landed = true;
       }
       if (landed) {
@@ -102,7 +106,7 @@ export class CombatSystem {
    */
   enemyTouch(enemy: SpawnedEntity, player: SpawnedEntity, now: number): void {
     const en = enemy.enemy;
-    if (!en || enemy.defeated || player.defeated || en.phase !== 'lunge' || en.struck || now < player.invulnerableUntil) return;
+    if (!en || enemy.defeated || player.defeated || en.phase !== 'lunge' || en.struck || now < player.invulnerableUntil || now < enemy.stunnedUntil) return;
     en.struck = true;
     const pb = player.sprite!.body as Phaser.Physics.Arcade.Body;
     const eb = enemy.sprite!.body as Phaser.Physics.Arcade.Body;
@@ -114,7 +118,27 @@ export class CombatSystem {
     this.hurt(player, en.damage, dx, dy, now, cx, cy);
   }
 
-  private hurt(target: SpawnedEntity, damage: number, dx: number, dy: number, now: number, contactX: number, contactY: number): void {
+  /** Webs an enemy until `until`: cancels its attack, freezes it and its animation. */
+  stun(e: SpawnedEntity, until: number): void {
+    if (!e.enemy || !e.sprite) return;
+    this.interruptEnemy(e);
+    e.stunnedUntil = until;
+    e.sprite.setVelocity(0, 0);
+    e.sprite.anims.pause();
+    e.sprite.setTint(0xdfe9ff);
+  }
+
+  /** The stun ran out (or the web was torn): the enemy moves again. */
+  unstun(e: SpawnedEntity): void {
+    e.stunnedUntil = 0;
+    if (!e.sprite || e.defeated) return;
+    e.sprite.clearTint();
+    e.sprite.anims.resume();
+    playIdle(e);
+  }
+
+  /** Deals `damage` to `target` from direction (dx, dy) with contact at (contactX, contactY): knockback, flash, numbers, defeat. */
+  hurt(target: SpawnedEntity, damage: number, dx: number, dy: number, now: number, contactX: number, contactY: number): void {
     const sprite = target.sprite;
     if (!target.health || !sprite) return;
     target.health.current = Math.max(0, target.health.current - damage);
@@ -122,10 +146,10 @@ export class CombatSystem {
     const len = Math.hypot(dx, dy) || 1;
     sprite.setVelocity((dx / len) * KNOCKBACK_SPEED, (dy / len) * KNOCKBACK_SPEED);
     sprite.setTintFill(0xffffff);
-    this.scene.time.delayedCall(FLASH_MS, () => sprite.clearTint());
+    this.scene.time.delayedCall(FLASH_MS, () => { if (this.scene.time.now < target.stunnedUntil && !target.defeated) sprite.setTint(0xdfe9ff); else sprite.clearTint(); });
     this.effects.sparks(contactX, contactY, dx, dy, target.isPlayer ? [0xffffff, 0xffb3b3, 0xff6b81] : undefined);
     this.effects.damageNumber(contactX, contactY - 6, damage, target.isPlayer ? '#ff6b81' : '#ffffff');
-    if (target.enemy) {
+    if (target.enemy && now >= target.stunnedUntil) {
       this.interruptEnemy(target);
       // Scale punch: squashed flat by the blow, springing back.
       sprite.setScale(1.25, 0.8);

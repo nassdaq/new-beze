@@ -8,7 +8,7 @@ export { directionFromVector } from './joystick.js';
  * controls both feed it: held flags for movement and sprint, and edge-triggered `press` events for buttons, so the
  * world and the overlays read one path whatever the device.
  */
-export type Button = 'interact' | 'attack' | 'map' | 'inventory' | 'pause' | 'up' | 'down' | 'left' | 'right';
+export type Button = 'interact' | 'attack' | 'ability' | 'map' | 'inventory' | 'pause' | 'up' | 'down' | 'left' | 'right';
 
 export interface MoveInput {
   up: boolean;

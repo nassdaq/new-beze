@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCENE_KEYS } from '../context.js';
+import { ctxOf, SCENE_KEYS } from '../context.js';
 import { directionFromVector, inputOf, type Button, type VirtualInput } from '../systems/input.js';
 import { UI } from '../ui/theme.js';
 
@@ -61,6 +61,10 @@ export class MobileControlsScene extends Phaser.Scene {
     this.button(width - 30, height - 44, 20, 'E', UI.accentInt, { press: 'interact' });
     this.button(width - 74, height - 26, 15, 'RUN', 0x6fc3ff, { hold: 'run' });
     this.button(width - 68, height - 70, 15, 'ATK', 0xff6b6b, { press: 'attack', hold: 'attack' });
+    // The ability button only when some player in the project has an ability (a game without one keeps the old layout).
+    const { project } = ctxOf(this);
+    const hasAbility = Object.values(project.scenes).some((s) => Object.values(s.entities).some((e) => e.components.some((c) => c.type === 'playerControl' && c.ability)));
+    if (hasAbility) this.button(width - 26, height - 104, 15, 'WEB', 0xffffff, { press: 'ability' });
     // Menu buttons, top-right, under the HUD bar.
     this.button(width - 12, 32, 8, 'II', 0xffffff, { press: 'pause' });
     this.button(width - 32, 32, 8, 'I', 0xffffff, { press: 'inventory' });

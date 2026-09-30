@@ -87,6 +87,9 @@ export function validateProject(p: Project): Diagnostic[] {
 
   if (!p.scenes[p.startSceneId]) error('missingScene', 'startSceneId', `start scene "${p.startSceneId}" does not exist`);
   if (p.settings.attackKey === p.settings.interactKey) error('keyClash', 'settings.attackKey', `attack key and interact key are both ${p.settings.attackKey}`);
+  const abilityKey = p.settings.abilityKey ?? 'X';
+  if (abilityKey === p.settings.attackKey) error('keyClash', 'settings.abilityKey', `ability key and attack key are both ${abilityKey}`);
+  if ((abilityKey as string) === p.settings.interactKey) error('keyClash', 'settings.abilityKey', `ability key and interact key are both ${abilityKey}`);
   if (p.settings.economy) {
     const eco = p.settings.economy;
     const numberVar = (id: string | undefined, at: string) => {
