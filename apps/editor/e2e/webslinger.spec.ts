@@ -36,7 +36,6 @@ test('create Webslinger from the template, zip onto a wall and web a thug', asyn
   await page.keyboard.down('ArrowUp');
   await expect.poll(async () => (await cellUnderPlayer(game)) === 0 && (await playerCenter(game))!.y < onWall!.y - 96, { timeout: 25_000 }).toBe(true);
   await page.keyboard.up('ArrowUp');
-  await page.screenshot({ path: 'test-results/webslinger-roof.png' });
   await expect.poll(() => game.evaluate(() => (window as unknown as { __beze: Beze }).__beze.state.variables['var_discovered_roof']), { timeout: 5_000 }).toBe(true);
 
   // Webbing: move a thug in front of Spidey and fire. The web stuns it.
@@ -48,6 +47,7 @@ test('create Webslinger from the template, zip onto a wall and web a thug', asyn
     thug.sprite!.y = player.sprite!.y - 64;
   });
   await page.waitForTimeout(150);
+  await page.mouse.click(700, 450); // keep the keyboard focus on the game frame
   await tap(page, 'KeyX');
   await expect.poll(() => game.evaluate(() => {
     const world = (window as unknown as { __beze: Beze }).__beze.game.scene.getScene('world') as unknown as { entities: Array<{ entity: { id: string }; stunnedUntil: number }> };

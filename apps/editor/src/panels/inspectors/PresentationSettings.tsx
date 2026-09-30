@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import type { Operation, ProjectSettings } from '@beze/project-schema';
 import { useEditor, useProject } from '../../store/editorStore.js';
 import { Field } from '../../ui/Field.js';
 import { toast } from '../../ui/Toast.js';
+import { FindArtDialog } from '../FindArtDialog.js';
 
 type Presentation = NonNullable<ProjectSettings['presentation']>;
 type Ambient = NonNullable<ProjectSettings['ambient']>;
@@ -10,6 +12,7 @@ type Ambient = NonNullable<ProjectSettings['ambient']>;
 export function PresentationSettings() {
   const project = useProject();
   const dispatch = useEditor((s) => s.dispatch);
+  const [finding, setFinding] = useState(false);
   if (!project) return null;
   const p: Presentation = project.settings.presentation ?? {};
 
@@ -46,11 +49,18 @@ export function PresentationSettings() {
         <input value={p.tagline ?? ''} maxLength={120} placeholder="A line about the game" onChange={(e) => patch('Tagline', { tagline: e.target.value || undefined })} />
       </Field>
       <Field label="Title backdrop image (optional)">
-        <select value={p.titleBackgroundAssetId ?? ''} onChange={(e) => patch('Title backdrop', { titleBackgroundAssetId: e.target.value || undefined })}>
-          <option value="">(night skyline)</option>
-          {images.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
+        <div className="field-row">
+          <select value={p.titleBackgroundAssetId ?? ''} onChange={(e) => patch('Title backdrop', { titleBackgroundAssetId: e.target.value || undefined })}>
+            <option value="">(night skyline)</option>
+            {images.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          <button type="button" className="small" onClick={() => setFinding(true)} title="Search Pixabay for a photo or illustration">Find art…</button>
+        </div>
       </Field>
+      {finding && (
+        <FindArtDialog title="Find a title backdrop" initialQuery={`${project.settings.title} city skyline night`} onClose={() => setFinding(false)}
+          onPicked={(asset) => run('Title backdrop', [{ op: 'registerAsset', asset }, { op: 'updateSettings', patch: { presentation: { ...p, titleBackgroundAssetId: asset.id } } }])} />
+      )}
       {toggle('lighting', 'Lighting (lamps and signs glow at night)')}
       {toggle('dayNight', 'Day / night cycle')}
       <div className="field-row">

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useEditor, useProject } from '../../store/editorStore.js';
+import { FindArtDialog } from '../FindArtDialog.js';
 import { Field, Section } from '../../ui/Field.js';
 import { toast } from '../../ui/Toast.js';
 import { MOOD_OPTIONS } from './AudioSettings.js';
@@ -8,6 +10,7 @@ export function SceneInspector({ sceneId }: { sceneId: string }) {
   const dispatch = useEditor((s) => s.dispatch);
   const setActiveScene = useEditor((s) => s.setActiveScene);
   const scene = project?.scenes[sceneId];
+  const [finding, setFinding] = useState(false);
   if (!project || !scene) return null;
   const map = scene.mapId ? project.maps[scene.mapId] : undefined;
   const isStart = project.startSceneId === scene.id;
@@ -23,6 +26,19 @@ export function SceneInspector({ sceneId }: { sceneId: string }) {
     <Section title="Scene" actions={<button className="danger small" onClick={remove}>Delete</button>}>
       <Field label="Name"><input value={scene.name} onChange={(e) => dispatch('Rename scene', [{ op: 'updateScene', id: scene.id, patch: { name: e.target.value || scene.name } }])} /></Field>
       <label className="check"><input type="checkbox" checked={isStart} disabled={isStart} onChange={() => dispatch('Start scene', [{ op: 'setStartScene', sceneId: scene.id }])} /> Start scene</label>
+      <Field label="Background image (behind the map)">
+        <div className="field-row">
+          <select value={scene.backgroundAssetId ?? ''} onChange={(e) => dispatch('Scene background', [{ op: 'updateScene', id: scene.id, patch: { backgroundAssetId: e.target.value || undefined } }])}>
+            <option value="">(none)</option>
+            {Object.values(project.assets).filter((a) => a.kind === 'image').map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          <button type="button" className="small" onClick={() => setFinding(true)}>Find art…</button>
+        </div>
+      </Field>
+      {finding && (
+        <FindArtDialog title={`Find a background for ${scene.name}`} initialQuery={scene.name} onClose={() => setFinding(false)}
+          onPicked={(asset) => dispatch('Scene background', [{ op: 'registerAsset', asset }, { op: 'updateScene', id: scene.id, patch: { backgroundAssetId: asset.id } }])} />
+      )}
       <Field label="Music in this scene">
         <select value={scene.musicAssetId ? 'track' : (scene.music ?? '')} onChange={(e) => {
           const v = e.target.value;

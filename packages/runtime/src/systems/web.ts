@@ -91,7 +91,7 @@ export class WebSystem {
     }
     if (hit.kind === 'wall') {
       this.effects.webLine(handX, handY, hit.x, hit.y, true);
-      if (ability.zip && hit.land) this.zip(player, hit.land, now, T);
+      if (ability.zip && hit.land) this.zip(player, hit.land, now, T, { x: hit.x, y: hit.y });
       return true;
     }
     this.effects.webLine(handX, handY, hit.x, hit.y, false);
@@ -144,36 +144,62 @@ export class WebSystem {
     this.zipTimer = null;
   }
 
-  /** Flies the player to `land` (a body-centre target) at ZIP_SPEED, invulnerable and locked out of input on the way. */
-  private zip(player: SpawnedEntity, land: { x: number; y: number }, now: number, tileSize: number): void {
+  /**
+   * Swings the player to `land` (a body-centre target): a web line stays hooked to `anchor` while the sprite flies
+   * along an arc (horizontal zips bow upward like a swing; vertical ones climb straight), tile collisions off for
+   * the flight, invulnerable and locked out of input on the way.
+   */
+  private zip(player: SpawnedEntity, land: { x: number; y: number }, now: number, tileSize: number, anchor: { x: number; y: number }): void {
     const sprite = player.sprite!;
     const body = sprite.body as Phaser.Physics.Arcade.Body;
     const vx = land.x - body.center.x;
     const vy = land.y - body.center.y;
     const dist = Math.hypot(vx, vy);
     if (dist < 2) return;
-    const ms = Math.min(ZIP_MAX_MS, (dist / ZIP_SPEED) * 1000);
+    const ms = Math.min(ZIP_MAX_MS, (dist / ZIP_SPEED) * 1000 + 60);
     player.zipUntil = now + ms;
     player.attackUntil = Math.min(player.attackUntil, now);
     player.invulnerableUntil = Math.max(player.invulnerableUntil, now + ms + 60);
-    sprite.setVelocity((vx / dist) * ZIP_SPEED, (vy / dist) * ZIP_SPEED);
-    const along = vx !== 0;
+    sprite.setVelocity(0, 0);
+    body.checkCollision.none = true;
+    const along = Math.abs(vx) > Math.abs(vy);
     sprite.setScale(along ? 1.18 : 0.9, along ? 0.86 : 1.18);
     this.effects.dust(body.center.x, body.bottom - 2, player.facing);
     this.hooks.sound?.('zip');
     this.hooks.onZip(ms);
+    // The arc: bow upward for sideways swings (higher the longer the swing), a slight lean for vertical climbs.
+    const start = new Phaser.Math.Vector2(sprite.x, sprite.y);
+    const end = new Phaser.Math.Vector2(sprite.x + vx, sprite.y + vy);
+    const sag = along ? -Math.min(tileSize * 2.2, dist * 0.45) : (vx >= 0 ? 1 : -1) * tileSize * 0.3;
+    const control = new Phaser.Math.Vector2((start.x + end.x) / 2 + (along ? 0 : sag), (start.y + end.y) / 2 + (along ? sag : 0));
+    const curve = new Phaser.Curves.QuadraticBezier(start, control, end);
+    const line = this.scene.add.graphics().setDepth(15_000);
+    const state = { t: 0 };
+    const tween = this.scene.tweens.add({
+      targets: state, t: 1, duration: ms, ease: along ? 'Sine.easeInOut' : 'Quad.easeOut',
+      onUpdate: () => {
+        if (player.defeated || !player.sprite) { tween.stop(); return; }
+        const p = curve.getPoint(state.t);
+        player.sprite.setPosition(p.x, p.y);
+        player.sprite.setAngle(along ? Math.sin(state.t * Math.PI) * (vx > 0 ? 10 : -10) : 0);
+        const b = player.sprite.body as Phaser.Physics.Arcade.Body;
+        line.clear();
+        line.lineStyle(4, 0x9fd7ff, 0.25); line.lineBetween(b.center.x, b.center.y - b.height * 0.6, anchor.x, anchor.y);
+        line.lineStyle(2, 0xffffff, 0.95); line.lineBetween(b.center.x, b.center.y - b.height * 0.6, anchor.x, anchor.y);
+      },
+    });
     this.zipTimer?.remove(false);
     this.zipTimer = this.scene.time.delayedCall(ms, () => {
       this.zipTimer = null;
+      line.destroy();
       if (player.defeated || !player.sprite) return;
-      player.sprite.setVelocity(0, 0);
-      player.sprite.setScale(1);
-      player.zipUntil = 0;
-      // Settle onto the target when the flight was not interrupted (an NPC in the way stops it short).
       const b = player.sprite.body as Phaser.Physics.Arcade.Body;
-      if (Math.hypot(b.center.x - land.x, b.center.y - land.y) <= tileSize * 0.6) {
-        player.sprite.setPosition(player.sprite.x + (land.x - b.center.x), player.sprite.y + (land.y - b.center.y));
-      }
+      b.checkCollision.none = false;
+      player.sprite.setVelocity(0, 0);
+      player.sprite.setScale(1).setAngle(0);
+      player.zipUntil = 0;
+      // Settle exactly on the target cell.
+      player.sprite.setPosition(player.sprite.x + (land.x - b.center.x), player.sprite.y + (land.y - b.center.y));
       this.effects.dust(b.center.x, b.bottom - 2, player.facing);
       this.hooks.sound?.('land');
       // A landing crouch when the character has one, then back to idle.

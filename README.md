@@ -118,6 +118,14 @@ walks or zips up to them. Missions: *With Great Power* (tutorial), *Purse Snatch
 *Pizza Time* (a 60 s rooftop delivery, repeatable), *Front Page* (three photos from the high roofs), *Rooftop
 Rescue* (a guarded hostage) and *Warehouse Showdown* (3 reputation opens the door to the Enforcer).
 
+### Find art (Pixabay)
+
+**Project → Presentation → Find art…** and **Scene → Background image → Find art…** search Pixabay for photos and
+illustrations and import the pick as a WebP asset (a title backdrop, a scene background). The API service holds
+the key: set `BEZE_PIXABAY_API_KEY` in `apps/api/.env` (free at https://pixabay.com/api/docs/). Pixabay content is
+free to use without attribution; the asset's licence field records the author anyway. Without the key the button
+explains what to set.
+
 ### How a game looks (presentation)
 
 The runtime renders at twice the document's viewport (a 480×270 game draws on a 960×540 canvas; the world camera

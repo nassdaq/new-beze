@@ -207,3 +207,13 @@ textarea { resize: vertical; }
 .shop-line { display: flex; align-items: center; gap: 6px; }
 .shop-line select { flex: 1; width: auto; min-width: 0; }
 .economy { margin: 0 0 8px 22px; padding-left: 8px; border-left: 2px solid var(--border); }
+
+/* Find art (Pixabay) */
+.modal-wide .modal-frame { width: min(880px, 94vw); }
+.find-art-search { display: flex; gap: 8px; margin-bottom: 8px; }
+.find-art-search input { flex: 1; }
+.find-art-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 60vh; overflow: auto; }
+.find-art-hit { position: relative; padding: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #000; aspect-ratio: 4 / 3; cursor: pointer; }
+.find-art-hit img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.find-art-hit:hover { border-color: var(--accent); }
+.find-art-caption { position: absolute; left: 0; right: 0; bottom: 0; font-size: 11px; padding: 2px 6px; background: rgba(0,0,0,0.55); color: #fff; text-align: right; }

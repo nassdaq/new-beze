@@ -55,6 +55,34 @@ export function getGeneration(jobId: string): Promise<GenerationStatus> {
   return request<GenerationStatus>(`/generations/${jobId}`);
 }
 
+export interface ArtHit {
+  id: number;
+  preview: string;
+  image: string;
+  width: number;
+  height: number;
+  tags: string;
+  author: string;
+  page: string;
+}
+
+/** Searches Pixabay through the API service (which holds the key). */
+export function searchArt(q: string, kind: 'photo' | 'illustration' | 'vector' | 'all' = 'all', page = 1): Promise<{ total: number; hits: ArtHit[] }> {
+  const params = new URLSearchParams({ q, kind, page: String(page) });
+  return request<{ total: number; hits: ArtHit[] }>(`/art/search?${params.toString()}`);
+}
+
+/** Downloads a picked image through the API service's proxy, as a Blob. */
+export async function fetchArt(url: string): Promise<Blob> {
+  const res = await fetch(withBase(`/api/v1/art/fetch?url=${encodeURIComponent(url)}`));
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { detail = ((await res.json()) as { detail?: string }).detail ?? detail; } catch { /* keep */ }
+    throw new ApiError(res.status, detail);
+  }
+  return res.blob();
+}
+
 export async function waitForGeneration(jobId: string, signal?: AbortSignal, intervalMs = 700): Promise<GenerationStatus> {
   for (;;) {
     const s = await getGeneration(jobId);
