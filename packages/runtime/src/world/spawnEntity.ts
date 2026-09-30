@@ -47,6 +47,8 @@ export interface SpawnedEntity {
   /** `blocker` is the static body of a sprite-less lock (a barrier); a lock with a sprite blocks through its sprite. */
   lock: { condition: Condition; lockedText: string; blocker: Phaser.GameObjects.Image | null } | null;
   marker: { label: string; icon?: string; discoverXp?: number } | null;
+  /** v4: a point light carried by the entity (created by the world's lighting system). */
+  light: { color: number; radius: number; intensity: number; night: boolean; flicker: boolean } | null;
   /** Code-drawn stand-in (sign, coin, parcel, barrier) for an entity without a sprite; destroyed with the entity. */
   visual: Phaser.GameObjects.Image | null;
   /** Timestamps (ms) until which the entity is knocked back, cannot be hurt, or is committed to a swing. */
@@ -108,7 +110,7 @@ export function spawnEntity(scene: Phaser.Scene, project: Project, entity: Entit
     attackDamage: 1, ability: null, climb: false, senseRadius: 0,
     health: null, enemy: null, wander: null, knockbackUntil: 0, invulnerableUntil: 0, attackUntil: 0, zipUntil: 0, stunnedUntil: 0,
     breathPhase: Math.random() * Math.PI * 2, breathing: false, defeated: false,
-    property: null, shop: null, pickup: null, lock: null, marker: null, visual: null,
+    property: null, shop: null, pickup: null, lock: null, marker: null, visual: null, light: null,
   };
   let solid = false;
   const T = project.settings.tileSize;
@@ -179,6 +181,9 @@ export function spawnEntity(scene: Phaser.Scene, project: Project, entity: Entit
       }
       case 'lock':
         out.lock = { condition: c.condition, lockedText: c.lockedText, blocker: null };
+        break;
+      case 'light':
+        out.light = { color: parseInt(c.color.slice(1), 16), radius: c.radius, intensity: c.intensity, night: c.night ?? false, flicker: c.flicker ?? false };
         break;
       case 'mapMarker': {
         const marker: SpawnedEntity['marker'] = { label: c.label };

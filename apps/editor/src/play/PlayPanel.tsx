@@ -28,7 +28,8 @@ export function PlayPanel() {
           const project = useEditor.getState().project;
           if (!project) return;
           const assetUrls = await assets.dataUrls(Object.keys(project.assets));
-          send({ type: 'beze:load', project, assetUrls, options: { debug: true } });
+          // The editor's preview skips the title screen for quick iteration; exports show it.
+          send({ type: 'beze:load', project, assetUrls, options: { debug: true, title: false } });
           break;
         }
         case 'beze:loaded':

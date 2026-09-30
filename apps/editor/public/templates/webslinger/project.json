@@ -16,6 +16,10 @@
     "abilityKey": "X",
     "runSpeedMultiplier": 1.7,
     "backgroundColor": "#141626",
+    "presentation": {
+      "tagline": "Web the thugs. Zip the rooftops. Save downtown.",
+      "startHour": 8
+    },
     "economy": {
       "moneyVariableId": "var_money",
       "xpVariableId": "var_xp",

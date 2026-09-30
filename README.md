@@ -118,6 +118,22 @@ walks or zips up to them. Missions: *With Great Power* (tutorial), *Purse Snatch
 *Pizza Time* (a 60 s rooftop delivery, repeatable), *Front Page* (three photos from the high roofs), *Rooftop
 Rescue* (a guarded hostage) and *Warehouse Showdown* (3 reputation opens the door to the Enforcer).
 
+### How a game looks (presentation)
+
+The runtime renders at twice the document's viewport (a 480×270 game draws on a 960×540 canvas; the world camera
+zooms 2× so tiles keep their size while text, panels and effects get the extra pixels). Interface text uses two
+bundled OFL typefaces (Nunito for text, Bangers for titles and damage numbers) so exports work offline. Everything
+below is on by default and can be turned off per project under **Project → Presentation** (`settings.presentation`):
+
+| Feature | What it does |
+|---------|--------------|
+| Title screen | A night skyline (or `titleBackgroundAssetId`) under the game's title and `tagline`; any key starts. The editor's Play skips it; exports and "Quit to title" show it. |
+| Lighting + day/night | Phaser Light2D on tiles and sprites. The ambient colour follows the world clock (the economy's day, or `dayLengthMs`, opening at `startHour`). Tiles tagged `lamp`, `sign_*` and friends (`lampTags`) become lights at night; a `light` component puts one on any entity. |
+| Bloom and vignette | Post-effects on the world camera. |
+| Cards and transitions | Letterboxed cards for new/completed missions, discovered places and level-ups; camera fades between scenes; defeat drains the colour and slows time. |
+| HUD | Portrait, hearts, money, level and XP bar, reputation, a day clock with sun/moon, the active mission with its timer, an ability cooldown chip, key-cap prompts. |
+| Quality | `auto` turns the lights and post-effects off on software renderers (headless test browsers, VMs) so the frame rate, and with it the physics, stays at speed. Hosts can force it with `window.__BEZE_QUALITY` or the runtime's `quality` option. |
+
 ## Layout
 
 | Path | What |

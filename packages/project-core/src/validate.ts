@@ -90,6 +90,7 @@ export function validateProject(p: Project): Diagnostic[] {
   const abilityKey = p.settings.abilityKey ?? 'X';
   if (abilityKey === p.settings.attackKey) error('keyClash', 'settings.abilityKey', `ability key and attack key are both ${abilityKey}`);
   if ((abilityKey as string) === p.settings.interactKey) error('keyClash', 'settings.abilityKey', `ability key and interact key are both ${abilityKey}`);
+  asset(p.settings.presentation?.titleBackgroundAssetId, 'settings.presentation.titleBackgroundAssetId');
   if (p.settings.economy) {
     const eco = p.settings.economy;
     const numberVar = (id: string | undefined, at: string) => {
@@ -304,6 +305,7 @@ function validateScene(p: Project, s: Scene, path: string, h: SceneHelpers) {
           h.condition(c.condition, `${cp}.condition`);
           break;
         case 'mapMarker':
+        case 'light':
           break;
         case 'body':
         case 'wander':

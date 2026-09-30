@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { Direction } from '@beze/project-schema';
 import { KEYS } from '../context.js';
 import type { SpawnedEntity } from '../world/spawnEntity.js';
+import { UI, UI_SCALE } from '../ui/theme.js';
 
 const SPARK_TEXTURE = 'fx:spark';
 const SPARK_SIZE = 4;
@@ -135,7 +136,7 @@ export class Effects {
   /** A number that pops above the target, rises and fades. */
   damageNumber(x: number, y: number, amount: number, color = '#ffffff'): void {
     const text = this.scene.add.text(x + (Math.random() - 0.5) * 8, y, String(amount), {
-      fontFamily: 'sans-serif', fontSize: '12px', fontStyle: 'bold', color, stroke: '#000000', strokeThickness: 3,
+      fontFamily: UI.display, fontSize: '14px', color, stroke: '#000000', strokeThickness: 3, resolution: UI_SCALE,
     }).setOrigin(0.5, 1).setDepth(DEPTH.numbers).setScale(0.5);
     this.scene.tweens.add({ targets: text, scale: 1, duration: 110, ease: 'Back.easeOut' });
     this.scene.tweens.add({ targets: text, y: y - 22, duration: 650, ease: 'Cubic.easeOut' });

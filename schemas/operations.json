@@ -90,6 +90,53 @@
                 "K"
               ]
             },
+            "presentation": {
+              "type": "object",
+              "properties": {
+                "titleScreen": {
+                  "type": "boolean"
+                },
+                "titleBackgroundAssetId": {
+                  "type": "string",
+                  "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                },
+                "tagline": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "lighting": {
+                  "type": "boolean"
+                },
+                "dayNight": {
+                  "type": "boolean"
+                },
+                "dayLengthMs": {
+                  "type": "integer",
+                  "minimum": 5000,
+                  "maximum": 3600000
+                },
+                "startHour": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 23
+                },
+                "bloom": {
+                  "type": "boolean"
+                },
+                "vignette": {
+                  "type": "boolean"
+                },
+                "lampTags": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 60
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
             "backgroundColor": {
               "type": "string",
               "pattern": "^#[0-9a-fA-F]{6}$"
@@ -2428,6 +2475,42 @@
                           "properties": {
                             "type": {
                               "type": "string",
+                              "const": "light"
+                            },
+                            "color": {
+                              "type": "string",
+                              "pattern": "^#[0-9a-fA-F]{6}$"
+                            },
+                            "radius": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 2000
+                            },
+                            "intensity": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 10
+                            },
+                            "night": {
+                              "type": "boolean"
+                            },
+                            "flicker": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "color",
+                            "radius",
+                            "intensity"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
                               "const": "enemy"
                             },
                             "speed": {
@@ -3074,6 +3157,42 @@
                     "properties": {
                       "type": {
                         "type": "string",
+                        "const": "light"
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9a-fA-F]{6}$"
+                      },
+                      "radius": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2000
+                      },
+                      "intensity": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10
+                      },
+                      "night": {
+                        "type": "boolean"
+                      },
+                      "flicker": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "color",
+                      "radius",
+                      "intensity"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
                         "const": "enemy"
                       },
                       "speed": {
@@ -3685,6 +3804,42 @@
               "properties": {
                 "type": {
                   "type": "string",
+                  "const": "light"
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$"
+                },
+                "radius": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 2000
+                },
+                "intensity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "night": {
+                  "type": "boolean"
+                },
+                "flicker": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "type",
+                "color",
+                "radius",
+                "intensity"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
                   "const": "enemy"
                 },
                 "speed": {
@@ -3761,7 +3916,8 @@
             "shop",
             "pickup",
             "lock",
-            "mapMarker"
+            "mapMarker",
+            "light"
           ]
         }
       },

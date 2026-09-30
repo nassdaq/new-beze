@@ -1,13 +1,17 @@
-import { SCENE_KEYS } from '../context.js';
+import { ctxOf, SCENE_KEYS } from '../context.js';
+import { initGameState } from '../state/GameState.js';
 import { DEPTH, TEXT, UI } from '../ui/theme.js';
 import { OverlayScene, type OverlayButton } from './OverlayScene.js';
 
 const OPTIONS = ['Resume', 'Restart scene', 'Quit to title'] as const;
+const ROW_H = 36;
 
 /** Escape: dims the world and offers Resume / Restart scene / Quit to title. Arrow keys or the joystick move, E confirms. */
 export class PauseScene extends OverlayScene {
   private selected = 0;
   private rows: Phaser.GameObjects.Text[] = [];
+  private bar!: Phaser.GameObjects.Graphics;
+  private panel!: Phaser.Geom.Rectangle;
 
   constructor() {
     super(SCENE_KEYS.pause);
@@ -16,18 +20,24 @@ export class PauseScene extends OverlayScene {
   create(): void {
     this.selected = 0;
     this.rows = [];
-    const panel = this.setupOverlay(196, 118);
-    this.title(panel, 'Paused');
+    this.panel = this.setupOverlay(360, 76 + OPTIONS.length * ROW_H + 40);
+    this.title(this.panel, 'Paused');
+    this.bar = this.add.graphics().setDepth(DEPTH.content);
     OPTIONS.forEach((label, i) => {
-      const t = this.add.text(panel.x + 22, panel.y + 40 + i * 18, label, TEXT.body).setDepth(DEPTH.content);
+      const t = this.add.text(this.panel.x + 40, this.panel.y + 70 + i * ROW_H, label, { ...TEXT.body, fontSize: '20px' }).setOrigin(0, 0.5).setDepth(DEPTH.top);
       this.rows.push(t);
     });
-    this.hint(panel, 'Up/Down choose · E confirm · Esc resume');
+    this.hint(this.panel, 'Up / Down choose  ·  E confirm  ·  Esc resume');
     this.highlight();
   }
 
   private highlight(): void {
-    this.rows.forEach((t, i) => t.setText((i === this.selected ? '> ' : '  ') + OPTIONS[i]).setColor(i === this.selected ? UI.accent : UI.text));
+    this.bar.clear();
+    this.rows.forEach((t, i) => {
+      const active = i === this.selected;
+      t.setColor(active ? UI.accent : UI.text).setFontStyle(active ? '800' : '600');
+      if (active) this.rowBar(this.bar, this.panel.x + 20, t.y - ROW_H / 2 + 2, this.panel.width - 40, ROW_H - 4);
+    });
   }
 
   protected onButton(b: OverlayButton): void {
@@ -50,7 +60,13 @@ export class PauseScene extends OverlayScene {
       world.restartScene();
       return;
     }
-    // Quit to title: the host page owns the title screen, so a reload is the way back to it.
-    window.location.reload();
+    // Quit to title: a fresh game state, the HUD and world stopped, the title screen back up.
+    const ctx = ctxOf(this);
+    Object.assign(ctx.state, initGameState(ctx.project));
+    this.scene.stop(SCENE_KEYS.hud);
+    this.scene.stop(SCENE_KEYS.mobile);
+    this.scene.stop(SCENE_KEYS.world);
+    this.scene.stop();
+    this.scene.start(SCENE_KEYS.title);
   }
 }

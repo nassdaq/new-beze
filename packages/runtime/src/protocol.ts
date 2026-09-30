@@ -2,7 +2,7 @@ import type { Project } from '@beze/project-schema';
 
 /** Messages exchanged between the editor and the runtime iframe. Nothing else crosses the boundary. */
 export type EditorToRuntime =
-  | { type: 'beze:load'; project: unknown; assetUrls: Record<string, string>; options?: { startSceneId?: string; debug?: boolean } }
+  | { type: 'beze:load'; project: unknown; assetUrls: Record<string, string>; options?: { startSceneId?: string; debug?: boolean; title?: boolean; quality?: 'high' | 'low' | 'auto' } }
   | { type: 'beze:stop' };
 
 export type RuntimeToEditor =
@@ -26,5 +26,10 @@ export interface RuntimeOptions {
   assetUrls: Record<string, string>;
   startSceneId?: string;
   debug?: boolean;
+  /** Show the title screen before the world. Default: `settings.presentation.titleScreen` (true). */
+  title?: boolean;
+  /** Rendering quality: `high` = lights, bloom, vignette; `low` = none of them. `auto` (default) picks `low` on
+   *  software renderers (SwiftShader, llvmpipe), where the effects would drop the frame rate and slow the game. */
+  quality?: 'high' | 'low' | 'auto';
   onEvent?: (e: RuntimeEvent) => void;
 }

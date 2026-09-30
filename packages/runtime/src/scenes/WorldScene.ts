@@ -11,8 +11,10 @@ import { updateEnemy } from '../systems/enemy.js';
 import { updateWander } from '../systems/wander.js';
 import { CombatSystem } from '../systems/combat.js';
 import { WebSystem } from '../systems/web.js';
-import { Hud } from '../systems/hud.js';
+import { Lighting } from '../systems/lighting.js';
+import { clockHour } from '../systems/atmosphere.js';
 import { Effects } from '../systems/effects.js';
+import { drawPanel, keycap, TEXT, UI, UI_SCALE } from '../ui/theme.js';
 import { HealthBars } from '../systems/healthBar.js';
 import { updateBreathing } from '../systems/idle.js';
 import { playIdle } from '../systems/animation.js';
@@ -20,7 +22,7 @@ import { evaluateCondition } from '../dialogue/interpreter.js';
 import { setVariable } from '../state/GameState.js';
 import { advanceClock, buyProperty, formatDelta, formatMoney, variableLabel } from '../systems/economy.js';
 import { completeQuestStep, startQuest, tickQuests, type QuestEvent } from '../systems/quests.js';
-import type { HudScene, NotifyKind } from './HudScene.js';
+import type { CardKind, HudScene, NotifyKind } from './HudScene.js';
 import type { MarkerEntry } from './MapScene.js';
 import type { ShopInit } from './ShopScene.js';
 
@@ -62,10 +64,16 @@ export class WorldScene extends Phaser.Scene {
   private virtual!: VirtualInput;
   private unsubscribePress: (() => void) | null = null;
   private interactKey!: Phaser.Input.Keyboard.Key;
-  private prompt!: Phaser.GameObjects.Text;
+  /** Interaction prompt: a keycap and a label, drawn in screen space over the target. */
+  private prompt!: Phaser.GameObjects.Container;
+  private promptLabel!: Phaser.GameObjects.Text;
+  private promptCap!: Phaser.GameObjects.Container;
+  private promptText = '';
+  /** True while the camera fades out towards another scene; input is ignored. */
+  private leaving = false;
   private combat!: CombatSystem;
   private web!: WebSystem;
-  private hearts!: Hud;
+  private lighting!: Lighting;
   private effects!: Effects;
   private healthBars!: HealthBars;
   private camera: SmoothCamera | null = null;
@@ -99,6 +107,7 @@ export class WorldScene extends Phaser.Scene {
     this.nextConditionCheckAt = 0;
     this.overlay = null;
     this.camera = null;
+    this.leaving = false;
     this.bySprite = new Map();
     this.registry.set('spawn', data.spawn ?? null);
   }
@@ -107,7 +116,17 @@ export class WorldScene extends Phaser.Scene {
     const ctx = ctxOf(this);
     const { project, state } = ctx;
     const scene = this.sceneData;
-    this.cameras.main.setBackgroundColor(project.settings.backgroundColor);
+    const cam = this.cameras.main;
+    cam.setBackgroundColor(project.settings.backgroundColor);
+    // The canvas is UI_SCALE× the viewport; the world zooms to match, so a tile still covers the same screen area.
+    cam.setZoom(UI_SCALE);
+    this.anims.globalTimeScale = 1;
+    const presentation = project.settings.presentation;
+    if (this.sys.game.renderer.type === Phaser.WEBGL && ctx.quality !== 'low') {
+      if (presentation?.vignette !== false) cam.postFX.addVignette(0.5, 0.5, 0.92, 0.32);
+      if (presentation?.bloom !== false) cam.postFX.addBloom(0xffffff, 1, 1, 1, 0.3, 3);
+    }
+    this.lighting = new Lighting(this, project, ctx.quality);
 
     if (scene.backgroundAssetId && this.textures.exists(KEYS.image(scene.backgroundAssetId))) {
       this.add.image(0, 0, KEYS.image(scene.backgroundAssetId)).setOrigin(0, 0).setDepth(-1);
@@ -117,6 +136,8 @@ export class WorldScene extends Phaser.Scene {
     if (map) {
       this.built = buildTilemap(this, project, map);
       this.physics.world.setBounds(0, 0, this.built.widthPx, this.built.heightPx);
+      this.lighting.attachMap(this.built);
+      this.lighting.addLampsFromMap(project, map);
     }
 
     for (const id of scene.entityOrder) {
@@ -150,7 +171,14 @@ export class WorldScene extends Phaser.Scene {
       onFizzle: () => { /* the line itself shows the miss */ },
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.web.dispose());
-    this.hearts = new Hud(this, project.settings.economy ? 24 : 4);
+    for (const e of this.entities) {
+      this.lighting.attach(e.sprite);
+      this.lighting.attach(e.visual);
+      if (e.light) {
+        const c = this.centerOf(e, project.settings.tileSize);
+        this.lighting.add(c.x, c.y - (e.character ? e.character.frameHeight * 0.4 : 0), e.light.radius, e.light.color, e.light.intensity, e.light.night, e.light.flicker);
+      }
+    }
 
     const spawn = this.registry.get('spawn') as WorldInit['spawn'] | null;
     if (this.player?.sprite && spawn) {
@@ -207,9 +235,14 @@ export class WorldScene extends Phaser.Scene {
     const height = this.built?.heightPx ?? project.settings.viewport.height;
     this.camera = new SmoothCamera(this, this.cameras.main, this.player, width, height);
 
-    this.prompt = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '10px', color: '#ffffff', backgroundColor: '#000000aa', padding: { x: 3, y: 1 } })
-      .setDepth(20_000).setVisible(false);
+    // Screen-space prompt (keycap + label), repositioned over the target each frame.
+    const promptBack = this.add.graphics();
+    this.promptCap = keycap(this, 0, 0, project.settings.interactKey === 'SPACE' ? 'SPACE' : project.settings.interactKey, 22);
+    this.promptLabel = this.add.text(0, 0, '', { ...TEXT.bold, fontSize: '15px' }).setOrigin(0, 0.5);
+    this.prompt = this.add.container(0, 0, [promptBack, this.promptCap, this.promptLabel]).setScrollFactor(0).setDepth(20_000).setVisible(false);
+    this.prompt.setData('back', promptBack);
 
+    cam.fadeIn(380, 5, 6, 12);
     ctx.emit({ type: 'sceneChanged', sceneId: scene.id });
   }
 
@@ -217,6 +250,7 @@ export class WorldScene extends Phaser.Scene {
   private register(spawned: SpawnedEntity): SpawnedEntity {
     this.entities.push(spawned);
     if (spawned.sprite) this.bySprite.set(spawned.sprite, spawned);
+    if (this.lighting) { this.lighting.attach(spawned.sprite); this.lighting.attach(spawned.visual); }
     if (!spawned.isPlayer && spawned.sprite) {
       if (spawned.sprite.body?.enable) this.solids.push(spawned.sprite);
       if (spawned.wander || spawned.enemy) this.movers.push(spawned.sprite);
@@ -248,23 +282,48 @@ export class WorldScene extends Phaser.Scene {
     this.web.update(now);
     for (const e of this.entities) updateBreathing(e, now);
     this.healthBars.update(this.entities);
+    this.lighting.update(now, clockHour(ctx.project, ctx.state.clock.elapsedMs));
     if (!this.gameOver) this.tickWorld(delta, now);
     if (!this.player) return;
-    this.hearts.update(this.player);
-    if (this.dialogueActive || this.gameOver) {
+    if (this.dialogueActive || this.gameOver || this.leaving) {
       this.prompt.setVisible(false);
       return;
     }
     const target = findInteractable(this.player, this.entities, ctx.project.settings.tileSize);
     if (target) {
-      this.prompt.setText(this.promptFor(target));
+      const text = this.promptFor(target);
+      if (text !== this.promptText) {
+        this.promptText = text;
+        this.promptLabel.setText(text).setPosition(18, 0);
+        const back = this.prompt.getData('back') as Phaser.GameObjects.Graphics;
+        const w = this.promptLabel.width + 52;
+        back.clear();
+        drawPanel(back, -22, -17, w, 34, { radius: 17, alpha: 0.86 });
+        this.prompt.setSize(w, 34);
+      }
       const anchorX = target.sprite ? target.sprite.x + (target.character?.frameWidth ?? 32) / 2 : target.entity.x + ctx.project.settings.tileSize / 2;
-      const anchorY = target.sprite ? spriteTop(target) - 12 : target.entity.y - 12;
-      this.prompt.setPosition(Math.round(anchorX - this.prompt.width / 2), Math.round(anchorY));
+      const anchorY = target.sprite ? spriteTop(target) - 10 : target.entity.y - 10;
+      const cam = this.cameras.main;
+      const sx = (anchorX - cam.worldView.x) * cam.zoom;
+      const sy = (anchorY - cam.worldView.y) * cam.zoom;
+      this.prompt.setPosition(Math.round(sx - this.prompt.width / 2 + 22), Math.round(sy - 20));
       this.prompt.setVisible(true);
     } else {
       this.prompt.setVisible(false);
     }
+  }
+
+  /** The player's hearts for the HUD, or null when the player has no health. */
+  playerHealth(): { current: number; max: number } | null {
+    const h = this.player?.health;
+    return h ? { current: h.current, max: h.max } : null;
+  }
+
+  /** Ability cooldown for the HUD chip, or null when the player has no ability. */
+  abilityStatus(): { left: number; total: number } | null {
+    const ability = this.player?.ability;
+    if (!ability || !this.web) return null;
+    return { left: this.web.cooldownLeft(this.time.now), total: ability.cooldownMs };
   }
 
   /** The day clock, property income, quest conditions and timers, locks and marker discovery. */
@@ -313,7 +372,7 @@ export class WorldScene extends Phaser.Scene {
       const xp = e.marker.discoverXp;
       const xpVar = project.settings.economy?.xpVariableId;
       if (xp > 0 && xpVar) setVariable(state, xpVar, 'add', xp);
-      this.notify(`Discovered: ${e.marker.label}${xp > 0 && xpVar ? `  +${xp} XP` : ''}`, xp > 0 ? 'reward' : 'info');
+      this.card('location', e.marker.label, xp > 0 && xpVar ? `+${xp} XP` : '');
       this.effects.sparks(c.x, c.y - T / 2, 0, 0, [0xcfe3ff, 0xffffff, 0x6fc3ff]);
       this.onVariablesChanged();
     }
@@ -341,7 +400,7 @@ export class WorldScene extends Phaser.Scene {
 
   /** The interact key: the thing in front of the player, or dismounting when there is nothing. */
   private interact(): void {
-    if (this.dialogueActive || this.overlay || this.gameOver || !this.player) return;
+    if (this.dialogueActive || this.overlay || this.gameOver || this.leaving || !this.player) return;
     const ctx = ctxOf(this);
     const target = findInteractable(this.player, this.entities, ctx.project.settings.tileSize);
     if (!target) {
@@ -355,14 +414,14 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private attack(): void {
-    if (this.dialogueActive || this.overlay || !this.player) return;
+    if (this.dialogueActive || this.overlay || this.leaving || !this.player) return;
     if (this.gameOver) { this.retry(); return; }
     this.combat.swing(this.player, this.entities, this.time.now, ctxOf(this).project.settings.tileSize);
   }
 
   /** The ability key: the player's special move (the web line). */
   private useAbility(): void {
-    if (this.dialogueActive || this.overlay || this.gameOver || !this.player?.ability) return;
+    if (this.dialogueActive || this.overlay || this.gameOver || this.leaving || !this.player?.ability) return;
     this.web.fire(this.player, this.player.ability, this.entities, this.currentMap(), this.time.now);
   }
 
@@ -472,17 +531,24 @@ export class WorldScene extends Phaser.Scene {
     hud?.notify(text, kind);
   }
 
+  /** A centred letterboxed card on the HUD (missions, discoveries, level-ups). */
+  card(kind: CardKind, title: string, subtitle = ''): void {
+    const hud = this.scene.get(SCENE_KEYS.hud) as HudScene | null;
+    hud?.card(kind, title, subtitle);
+  }
+
   private handleQuestEvents(events: QuestEvent[]): void {
     for (const ev of events) {
       switch (ev.type) {
-        case 'started': this.notify(`New mission: ${ev.quest.name}`, 'info'); break;
+        case 'started': this.card('mission', ev.quest.name, ev.quest.steps[0]?.text ?? ''); break;
         case 'advanced': this.notify(`${ev.quest.name}: ${ev.quest.steps[ev.stepIndex]?.text ?? ''}`, 'info'); break;
         case 'completed':
-          this.notify(`Mission complete: ${ev.quest.name}`, 'reward');
+          this.card('complete', ev.quest.name);
+          this.effects.zoomPulse(0.03, 160);
           for (const a of ev.actions) this.runAction(a);
           break;
         case 'failed':
-          this.notify(`Mission failed: ${ev.quest.name}`, 'warning');
+          this.card('failed', ev.quest.name);
           for (const a of ev.actions) this.runAction(a);
           break;
       }
@@ -499,11 +565,18 @@ export class WorldScene extends Phaser.Scene {
         this.scene.launch(SCENE_KEYS.dialogue, { dialogueId: action.dialogueId });
         break;
       }
-      case 'changeScene':
-        if (!ctx.project.scenes[action.sceneId]) return;
+      case 'changeScene': {
+        if (!ctx.project.scenes[action.sceneId] || this.leaving) return;
+        this.leaving = true;
         this.scene.stop(SCENE_KEYS.dialogue);
-        this.scene.restart({ sceneId: action.sceneId, spawn: action.spawn } satisfies WorldInit);
+        this.player?.sprite?.setVelocity(0, 0);
+        const cam = this.cameras.main;
+        cam.fadeOut(240, 5, 6, 12);
+        cam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+          this.scene.restart({ sceneId: action.sceneId, spawn: action.spawn } satisfies WorldInit);
+        });
         break;
+      }
       case 'setVariable':
         setVariable(ctx.state, action.variableId, action.op, action.value);
         this.onVariablesChanged();
@@ -615,18 +688,33 @@ export class WorldScene extends Phaser.Scene {
     this.register(mount);
   }
 
+  /** Defeat: the world slows and drains of colour, then a card with the retry key. */
   private showGameOver(): void {
     this.gameOver = true;
     const { width, height } = this.scale;
-    const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setScrollFactor(0).setDepth(25_000).setAlpha(0);
-    const text = this.add.text(width / 2, height / 2 + 6, 'You were defeated.\nPress the attack key to try again.', { fontFamily: 'sans-serif', fontSize: '14px', color: '#ffffff', align: 'center' })
-      .setOrigin(0.5).setScrollFactor(0).setDepth(25_001).setAlpha(0);
-    this.tweens.add({ targets: shade, alpha: 1, duration: 500, ease: 'Quad.easeOut' });
-    this.tweens.add({ targets: text, alpha: 1, y: height / 2, duration: 500, delay: 250, ease: 'Quad.easeOut' });
+    const cam = this.cameras.main;
+    this.physics.world.timeScale = 2.6;
+    this.anims.globalTimeScale = 0.4;
+    if (this.sys.game.renderer.type === Phaser.WEBGL && ctxOf(this).quality !== 'low') {
+      const matrix = cam.postFX.addColorMatrix();
+      const fade = { k: 0 };
+      this.tweens.add({ targets: fade, k: 1, duration: 900, onUpdate: () => { matrix.saturate(-fade.k); matrix.brightness(1 - fade.k * 0.35, true); } });
+    }
+    const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x05060c, 0.55).setScrollFactor(0).setDepth(25_000).setAlpha(0);
+    const title = this.add.text(width / 2, height / 2 - 10, 'DOWN FOR THE COUNT', { ...TEXT.display(58, UI.bad), stroke: '#0a0a14', strokeThickness: 8 })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(25_001).setAlpha(0).setScale(1.3);
+    const key = ctxOf(this).project.settings.attackKey;
+    const cap = keycap(this, width / 2 - 60, height / 2 + 44, key, 24).setScrollFactor(0).setDepth(25_001).setAlpha(0);
+    const hint = this.add.text(width / 2 - 36, height / 2 + 44, 'to get back up', { ...TEXT.body, fontSize: '18px', color: UI.muted }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(25_001).setAlpha(0);
+    this.tweens.add({ targets: shade, alpha: 1, duration: 600, delay: 300, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: title, alpha: 1, scale: 1, duration: 420, delay: 700, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: [cap, hint], alpha: 1, duration: 300, delay: 1100 });
   }
 
   private retry(): void {
     // Enemies already defeated stay defeated; the player respawns at the scene's own spawn.
+    this.physics.world.timeScale = 1;
+    this.anims.globalTimeScale = 1;
     this.scene.restart({ sceneId: this.sceneData.id } satisfies WorldInit);
   }
 

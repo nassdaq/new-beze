@@ -3,17 +3,24 @@ import type { SpawnedEntity } from '../world/spawnEntity.js';
 
 /** Fraction of the remaining distance closed per 60 Hz frame. */
 export const CAMERA_LERP = 0.12;
+/** How far ahead of the player (in world px, at full speed) the camera looks in the facing direction. */
+export const LOOKAHEAD_PX = 28;
+export const LOOKAHEAD_LERP = 0.04;
+
+const DIR: Record<SpawnedEntity['facing'], readonly [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
 /**
- * Smooth follow without jitter. Phaser's own follower floors the scroll it stores, so a low lerp gets stuck below
- * one pixel and stutters; this keeps the scroll as floats, moves them with a frame-rate-independent lerp, clamps
- * them to the map, and only rounds the value handed to the camera. Sprites render on whole pixels (`roundPixels`)
- * against a whole-pixel scroll, so diagonal or fractional speeds never shimmer. No dead zone: the player stays
- * centred. Runs on POST_UPDATE so it sees the position physics just committed.
+ * Smooth follow without jitter, aware of the camera's zoom. Phaser's own follower floors the scroll it stores, so a
+ * low lerp gets stuck below one pixel and stutters; this keeps the scroll as floats, moves them with a frame-rate
+ * independent lerp, clamps the *visible* area (width / zoom) to the map, and only rounds the value handed to the
+ * camera. A gentle look-ahead drifts the view toward where the player is heading. Runs on POST_UPDATE so it sees
+ * the position physics just committed.
  */
 export class SmoothCamera {
   private x = 0;
   private y = 0;
+  private aheadX = 0;
+  private aheadY = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -36,16 +43,22 @@ export class SmoothCamera {
     if (t?.sprite) {
       const w = t.character?.frameWidth ?? 0;
       const h = t.character?.frameHeight ?? 0;
-      return { x: t.sprite.x + w / 2, y: t.sprite.y - h / 2 };
+      return { x: t.sprite.x + w / 2 + this.aheadX, y: t.sprite.y - h / 2 + this.aheadY };
     }
     return { x: this.widthPx / 2, y: this.heightPx / 2 };
   }
 
+  /** The visible world size: the camera's size divided by its zoom. */
+  private view(): { w: number; h: number } {
+    const zoom = this.camera.zoom || 1;
+    return { w: this.camera.width / zoom, h: this.camera.height / zoom };
+  }
+
+  /** Top-left of the visible world area the camera should show. */
   private desired(): { x: number; y: number } {
     const f = this.focus();
-    const viewW = this.camera.width;
-    const viewH = this.camera.height;
-    return { x: this.clamp(f.x - viewW / 2, this.widthPx, viewW), y: this.clamp(f.y - viewH / 2, this.heightPx, viewH) };
+    const v = this.view();
+    return { x: this.clamp(f.x - v.w / 2, this.widthPx, v.w), y: this.clamp(f.y - v.h / 2, this.heightPx, v.h) };
   }
 
   /** Keeps the view inside the map; a map smaller than the view is centred. */
@@ -54,12 +67,20 @@ export class SmoothCamera {
     return Math.min(Math.max(0, scroll), mapPx - viewPx);
   }
 
+  /** Phaser zooms about the camera's centre, so the scroll that shows a visible top-left `(x, y)` is offset by the zoom. */
+  private apply(): void {
+    const zoom = this.camera.zoom || 1;
+    const ox = (this.camera.width - this.camera.width / zoom) / 2;
+    const oy = (this.camera.height - this.camera.height / zoom) / 2;
+    this.camera.setScroll(Math.round(this.x) - ox, Math.round(this.y) - oy);
+  }
+
   /** Jumps straight to the target (scene start, teleport). */
   snap(): void {
     const d = this.desired();
     this.x = d.x;
     this.y = d.y;
-    this.camera.setScroll(Math.round(this.x), Math.round(this.y));
+    this.apply();
   }
 
   setTarget(target: SpawnedEntity | null): void {
@@ -67,6 +88,13 @@ export class SmoothCamera {
   }
 
   update(_time: number, delta: number): void {
+    const t = this.target;
+    const body = t?.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    const moving = !!body && (Math.abs(body.velocity.x) > 1 || Math.abs(body.velocity.y) > 1);
+    const [fx, fy] = t ? DIR[t.facing] : [0, 0];
+    const ka = smoothingFactor(LOOKAHEAD_LERP, delta);
+    this.aheadX += ((moving ? fx * LOOKAHEAD_PX : 0) - this.aheadX) * ka;
+    this.aheadY += ((moving ? fy * LOOKAHEAD_PX : 0) - this.aheadY) * ka;
     const d = this.desired();
     const k = smoothingFactor(this.lerp, delta);
     this.x += (d.x - this.x) * k;
@@ -74,7 +102,7 @@ export class SmoothCamera {
     // Settle exactly so a resting camera never hovers on a half pixel.
     if (Math.abs(d.x - this.x) < 0.01) this.x = d.x;
     if (Math.abs(d.y - this.y) < 0.01) this.y = d.y;
-    this.camera.setScroll(Math.round(this.x), Math.round(this.y));
+    this.apply();
   }
 }
 

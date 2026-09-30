@@ -1,6 +1,6 @@
 /** Mirror of packages/runtime/src/protocol.ts. Kept as a copy so the editor never imports Phaser. */
 export type EditorToRuntime =
-  | { type: 'beze:load'; project: unknown; assetUrls: Record<string, string>; options?: { startSceneId?: string; debug?: boolean } }
+  | { type: 'beze:load'; project: unknown; assetUrls: Record<string, string>; options?: { startSceneId?: string; debug?: boolean; title?: boolean; quality?: 'high' | 'low' | 'auto' } }
   | { type: 'beze:stop' };
 
 export type RuntimeToEditor =

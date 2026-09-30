@@ -1098,6 +1098,7 @@ def main() -> int:
             'attackKey': 'SPACE',
             'runSpeedMultiplier': 1.8,
             'backgroundColor': '#1a1a2e',
+            'presentation': {'tagline': 'A town, a hustle, a fortune to build.', 'startHour': 8},
             'economy': {
                 'moneyVariableId': MONEY, 'xpVariableId': XP, 'reputationVariableId': REP,
                 'currencyPrefix': 'TSh ', 'dayLengthMs': 120_000,

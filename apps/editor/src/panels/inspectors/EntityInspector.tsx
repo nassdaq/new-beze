@@ -6,6 +6,7 @@ import { AssetImagePreview, SpritePreview } from '../../ui/SpritePreview.js';
 import { toast } from '../../ui/Toast.js';
 import { EntityActions } from './EntityActions.js';
 import { CityComponents } from './CityComponents.js';
+import { LightFields } from './LightFields.js';
 
 export function EntityInspector({ sceneId, entityId }: { sceneId: string; entityId: string }) {
   const project = useProject();
@@ -157,6 +158,7 @@ export function EntityInspector({ sceneId, entityId }: { sceneId: string; entity
           {portraitId && <AssetImagePreview assetId={portraitId} size={40} className="portrait-preview" title={`${character?.name ?? 'Character'} portrait, shown in dialogue`} />}
         </div>
       )}
+      <LightFields sceneId={sceneId} entityId={entityId} />
       {!isPlayer && (
         <>
           <EntityActions sceneId={sceneId} entityId={entityId} />

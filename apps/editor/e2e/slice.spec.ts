@@ -52,8 +52,11 @@ test('create a game, place an NPC, talk to it in Play', async ({ page }) => {
   const state = () => game.evaluate(() => (window as unknown as { __beze: { state: { variables: Record<string, unknown> } } }).__beze.state.variables);
   expect(Object.values(await state())).toEqual([false]);
 
-  // Walk up to Aiko (two tiles), then talk: line → choice → "Yes!" → set → end.
+  // Walk up to Aiko (two tiles), then talk: line (one press finishes the typewriter, the next advances) → choice →
+  // "Yes!" → set → end.
   await hold(game, page, 'ArrowUp', 900);
+  await tap(page, 'KeyE');
+  await page.waitForTimeout(200);
   await tap(page, 'KeyE');
   await page.waitForTimeout(200);
   await tap(page, 'KeyE');

@@ -41,6 +41,25 @@ export const ProjectSettingsSchema = z.object({
   runSpeedMultiplier: z.number().min(1).max(4).optional(),
   /** v4: the key for the player's special ability (`playerControl.ability`). Default X. Must differ from the other keys. */
   abilityKey: z.enum(['X', 'C', 'F', 'Q', 'Z', 'J', 'K']).optional(),
+  /**
+   * v4: how the game looks and opens. Every field is optional and defaults to the cinematic look: a title screen,
+   * 2D lighting with a day/night cycle driven by the world clock, bloom and a vignette. `lampTags` are tile tags
+   * (prefix match) that shine at night; `dayLengthMs` is used when there is no economy clock.
+   */
+  presentation: z.object({
+    titleScreen: z.boolean().optional(),
+    /** A backdrop image for the title screen (a scene background asset, a Pixabay skyline...). */
+    titleBackgroundAssetId: IdSchema.optional(),
+    tagline: z.string().max(120).optional(),
+    lighting: z.boolean().optional(),
+    dayNight: z.boolean().optional(),
+    dayLengthMs: PosInt.min(5000).max(3_600_000).optional(),
+    /** Hour of the day (0-23) the game opens at. Default 6 (dawn). */
+    startHour: Int.min(0).max(23).optional(),
+    bloom: z.boolean().optional(),
+    vignette: z.boolean().optional(),
+    lampTags: z.array(z.string().max(60)).max(20).optional(),
+  }).optional(),
   backgroundColor: Color,
   /** v3: turns on money, XP/level, the day clock and the HUD. Absent = plain adventure. */
   economy: z.object({
@@ -254,6 +273,15 @@ export const ComponentSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('lock'), condition: ConditionSchema, lockedText: z.string().max(200) }),
   /** v3: shows on the map screen and names the place for discovery. */
   z.object({ type: z.literal('mapMarker'), label: Name, icon: z.enum(['shop', 'bank', 'food', 'bus', 'home', 'park', 'mission', 'market', 'place']).optional(), discoverXp: NonNegInt.optional() }),
+  /** v4: a point light (a lamp, a fire, a neon sign). `night` lights only shine when the day/night cycle is dark. */
+  z.object({
+    type: z.literal('light'),
+    color: Color,
+    radius: PosInt.max(2000),
+    intensity: z.number().min(0).max(10),
+    night: z.boolean().optional(),
+    flicker: z.boolean().optional(),
+  }),
   /** Chases the player within `aggroRadius` px and hurts on contact. Needs sprite + health. */
   z.object({
     type: z.literal('enemy'),
@@ -265,7 +293,7 @@ export const ComponentSchema = z.discriminatedUnion('type', [
   }),
 ]);
 export type Component = z.infer<typeof ComponentSchema>;
-export const ComponentTypeSchema = z.enum(['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy', 'property', 'shop', 'pickup', 'lock', 'mapMarker']);
+export const ComponentTypeSchema = z.enum(['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy', 'property', 'shop', 'pickup', 'lock', 'mapMarker', 'light']);
 export type ComponentType = z.infer<typeof ComponentTypeSchema>;
 
 export const EntitySchema = z.object({
