@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Action, Direction, Scene } from '@beze/project-schema';
 import { ctxOf, KEYS, SCENE_KEYS } from '../context.js';
 import { buildTilemap, type BuiltMap } from '../world/buildTilemap.js';
-import { spawnEntity, type SpawnedEntity } from '../world/spawnEntity.js';
+import { placeSprite, spawnEntity, spriteTop, type SpawnedEntity } from '../world/spawnEntity.js';
 import { createMoveKeys, setFacing, updatePlayer, type MoveKeys } from '../systems/playerControl.js';
 import { findInteractable } from '../systems/interaction.js';
 import { setupCamera } from '../systems/camera.js';
@@ -10,6 +10,9 @@ import { updateEnemy } from '../systems/enemy.js';
 import { updateWander } from '../systems/wander.js';
 import { CombatSystem } from '../systems/combat.js';
 import { Hud } from '../systems/hud.js';
+import { Effects } from '../systems/effects.js';
+import { HealthBars } from '../systems/healthBar.js';
+import { updateBreathing } from '../systems/idle.js';
 import { setVariable } from '../state/GameState.js';
 
 export interface WorldInit {
@@ -31,6 +34,8 @@ export class WorldScene extends Phaser.Scene {
   private prompt!: Phaser.GameObjects.Text;
   private combat!: CombatSystem;
   private hud!: Hud;
+  private effects!: Effects;
+  private healthBars!: HealthBars;
   private bySprite = new Map<Phaser.GameObjects.GameObject, SpawnedEntity>();
   private gameOver = false;
   /** True while a dialogue overlay owns input. */
@@ -85,10 +90,17 @@ export class WorldScene extends Phaser.Scene {
       if (!spawned.isPlayer && spawned.sprite && (spawned.wander || spawned.enemy)) movers.push(spawned.sprite);
     }
 
-    this.combat = new CombatSystem(this, {
-      onPlayerHurt: () => this.cameras.main.shake(120, 0.004),
+    this.effects = new Effects(this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.effects.dispose());
+    this.healthBars = new HealthBars(this);
+    this.combat = new CombatSystem(this, this.effects, {
+      onPlayerHurt: () => {
+        this.cameras.main.shake(120, 0.004);
+        this.effects.hurtFlash();
+      },
       onDefeated: (e) => {
         ctx.state.defeated.push(`${scene.id}:${e.entity.id}`);
+        this.effects.zoomPulse();
         if (e.enemy?.onDefeat) this.runAction(e.enemy.onDefeat);
       },
       onPlayerDefeated: () => this.showGameOver(),
@@ -97,7 +109,7 @@ export class WorldScene extends Phaser.Scene {
 
     const spawn = this.registry.get('spawn') as WorldInit['spawn'] | null;
     if (this.player?.sprite && spawn) {
-      this.player.sprite.setPosition(spawn.x, spawn.y);
+      placeSprite(this.player, spawn.x, spawn.y);
       if (spawn.facing) setFacing(this.player, spawn.facing);
     }
 
@@ -144,7 +156,7 @@ export class WorldScene extends Phaser.Scene {
 
     const width = this.built?.widthPx ?? project.settings.viewport.width;
     const height = this.built?.heightPx ?? project.settings.viewport.height;
-    setupCamera(this.cameras.main, this.player?.sprite ?? null, width, height);
+    setupCamera(this.cameras.main, this.player, width, height);
 
     this.prompt = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '10px', color: '#ffffff', backgroundColor: '#000000aa', padding: { x: 3, y: 1 } })
       .setDepth(20_000).setVisible(false);
@@ -156,11 +168,13 @@ export class WorldScene extends Phaser.Scene {
     const now = this.time.now;
     for (const e of this.entities) {
       if (e.isPlayer || e.defeated) continue;
-      if (e.enemy) updateEnemy(e, this.dialogueActive ? null : this.player, now);
+      if (e.enemy) updateEnemy(this, e, this.dialogueActive ? null : this.player, now);
       else if (e.wander) updateWander(e, now);
     }
+    if (this.player) updatePlayer(this.player, this.keys, this.dialogueActive || this.gameOver, now);
+    for (const e of this.entities) updateBreathing(e, now);
+    this.healthBars.update(this.entities);
     if (!this.player) return;
-    updatePlayer(this.player, this.keys, this.dialogueActive || this.gameOver, now);
     this.hud.update(this.player);
     if (this.dialogueActive || this.gameOver) {
       this.prompt.setVisible(false);
@@ -169,7 +183,7 @@ export class WorldScene extends Phaser.Scene {
     const target = findInteractable(this.player, this.entities, ctxOf(this).project.settings.tileSize);
     if (target?.sprite) {
       this.prompt.setText(target.interact?.prompt ?? 'Talk');
-      this.prompt.setPosition(target.sprite.x + (target.character?.frameWidth ?? 32) / 2 - this.prompt.width / 2, target.sprite.y - 12);
+      this.prompt.setPosition(target.sprite.x + (target.character?.frameWidth ?? 32) / 2 - this.prompt.width / 2, spriteTop(target) - 12);
       this.prompt.setVisible(true);
     } else {
       this.prompt.setVisible(false);
@@ -203,9 +217,11 @@ export class WorldScene extends Phaser.Scene {
   private showGameOver(): void {
     this.gameOver = true;
     const { width, height } = this.scale;
-    this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setScrollFactor(0).setDepth(25_000);
-    this.add.text(width / 2, height / 2, 'You were defeated.\nPress the attack key to try again.', { fontFamily: 'sans-serif', fontSize: '14px', color: '#ffffff', align: 'center' })
-      .setOrigin(0.5).setScrollFactor(0).setDepth(25_001);
+    const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setScrollFactor(0).setDepth(25_000).setAlpha(0);
+    const text = this.add.text(width / 2, height / 2 + 6, 'You were defeated.\nPress the attack key to try again.', { fontFamily: 'sans-serif', fontSize: '14px', color: '#ffffff', align: 'center' })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(25_001).setAlpha(0);
+    this.tweens.add({ targets: shade, alpha: 1, duration: 500, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: text, alpha: 1, y: height / 2, duration: 500, delay: 250, ease: 'Quad.easeOut' });
   }
 
   private retry(): void {

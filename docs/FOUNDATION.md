@@ -647,7 +647,7 @@ Assets that the editor, runtime and AI all agree on. Everything else is converte
 
 | Format | Spec |
 |--------|------|
-| **Character sheet v1** | PNG, RGBA. Four rows in the order down, left, right, up. N columns of walk frames (starter pack: 4). Frame size declared in `Character` (starter: 32×48 for 32 px tiles). Idle is frame 0 of the row unless `animations` say otherwise. Transparent background. |
+| **Character sheet v2** | PNG, RGBA, 4 columns × 8 rows: walk down/left/right/up (4 frames each, frame 0 doubles as idle) then attack down/left/right/up (3 frames each). Frame size declared in `Character` (starter: 48×64 on 32 px tiles). Attack rows are optional in the schema. Transparent background. Spec and renderer: `scripts/art/README.md`. |
 | **Tileset v1** | PNG. Uniform grid, `tileWidth` × `tileHeight`, optional margin and spacing. Local tile index is row-major from 0. Solidity lives in `tileProperties` and is copied into the map collision grid when painting with "auto-collision" on. |
 | **Portrait** | PNG or WebP, up to 512×512, shown in dialogue boxes. |
 | **Background** | PNG or WebP, up to 2048×2048, for map-less scenes (later). |

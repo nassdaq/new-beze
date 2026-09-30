@@ -12,7 +12,7 @@
     "typecheck": "pnpm -r typecheck",
     "schemas": "pnpm --filter @beze/project-schema schemas",
     "e2e": "pnpm --filter @beze/editor e2e",
-    "starter": "python3 scripts/generate_starter_assets.py",
+    "starter": "node scripts/art/render.mjs",
     "dev:api": "cd apps/api && uv run uvicorn beze_api.main:app --reload --port 8000",
     "test:api": "cd apps/api && uv run pytest -q"
   },

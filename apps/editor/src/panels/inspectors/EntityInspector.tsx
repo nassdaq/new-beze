@@ -2,6 +2,7 @@ import type { Direction } from '@beze/project-schema';
 import { giveDialogue } from '@beze/project-core';
 import { useEditor, useProject } from '../../store/editorStore.js';
 import { Field, Section } from '../../ui/Field.js';
+import { AssetImagePreview, SpritePreview } from '../../ui/SpritePreview.js';
 import { toast } from '../../ui/Toast.js';
 
 export function EntityInspector({ sceneId, entityId }: { sceneId: string; entityId: string }) {
@@ -51,6 +52,9 @@ export function EntityInspector({ sceneId, entityId }: { sceneId: string; entity
     else toast.error('Could not create dialogue', r.errors.map((e) => e.message));
   };
   const spritePortrait = () => (sprite?.type === 'sprite' ? project.characters[sprite.characterId]?.portraitAssetId : undefined);
+  const characterId = sprite?.type === 'sprite' ? sprite.characterId : '';
+  const character = characterId ? project.characters[characterId] : undefined;
+  const portraitId = spritePortrait();
 
   return (
     <Section title="Entity" actions={<button className="danger small" onClick={() => { run('Delete entity', [{ op: 'deleteEntity', sceneId, entityId }]); select({ kind: 'scene', sceneId }); }}>Delete</button>}>
@@ -64,12 +68,19 @@ export function EntityInspector({ sceneId, entityId }: { sceneId: string; entity
           {(['down', 'left', 'right', 'up'] as const).map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
       </Field>
-      <Field label="Character">
-        <select value={sprite?.type === 'sprite' ? sprite.characterId : ''} onChange={(e) => e.target.value ? run('Character', [{ op: 'setComponent', sceneId, entityId, component: { type: 'sprite', characterId: e.target.value } }]) : run('Character', [{ op: 'removeComponent', sceneId, entityId, componentType: 'sprite' }])}>
-          <option value="">(none)</option>
-          {Object.values(project.characters).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-      </Field>
+      <div className="field-row field-row-preview">
+        <Field label="Character">
+          <select value={characterId} data-testid="entity-character" onChange={(e) => e.target.value ? run('Character', [{ op: 'setComponent', sceneId, entityId, component: { type: 'sprite', characterId: e.target.value } }]) : run('Character', [{ op: 'removeComponent', sceneId, entityId, componentType: 'sprite' }])}>
+            <option value="">(none)</option>
+            {Object.values(project.characters).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </Field>
+        {character && (
+          <button type="button" className="preview-button" onClick={() => select({ kind: 'character', characterId: character.id })} title={`${character.name}: hover to walk, click to open`} data-testid="entity-sprite-preview">
+            <SpritePreview characterId={character.id} size={48} facing={entity.facing} hoverAnimate />
+          </button>
+        )}
+      </div>
       <label className="check"><input type="checkbox" checked={isPlayer} onChange={(e) => setPlayer(e.target.checked)} /> Player (arrow keys move it)</label>
       <label className="check"><input type="checkbox" checked={body?.type === 'body' ? body.solid : false} onChange={(e) => run('Solid', [{ op: 'setComponent', sceneId, entityId, component: { type: 'body', solid: e.target.checked } }])} /> Solid (blocks movement)</label>
       {isPlayer && player?.type === 'playerControl' && (
@@ -110,16 +121,19 @@ export function EntityInspector({ sceneId, entityId }: { sceneId: string; entity
         </>
       )}
       {!isPlayer && (
-        <Field label="Talks (dialogue)">
-          <div className="field-row">
-            <select value={dialogueId} data-testid="entity-dialogue" onChange={(e) => setDialogue(e.target.value)}>
-              <option value="">(none)</option>
-              {Object.values(project.dialogues).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-            <button className="small" onClick={newDialogue} data-testid="new-dialogue">New</button>
-            {dialogueId && <button className="small" onClick={() => select({ kind: 'dialogue', dialogueId })}>Edit</button>}
-          </div>
-        </Field>
+        <div className="field-row field-row-preview">
+          <Field label="Talks (dialogue)">
+            <div className="field-row">
+              <select value={dialogueId} data-testid="entity-dialogue" onChange={(e) => setDialogue(e.target.value)}>
+                <option value="">(none)</option>
+                {Object.values(project.dialogues).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+              <button className="small" onClick={newDialogue} data-testid="new-dialogue">New</button>
+              {dialogueId && <button className="small" onClick={() => select({ kind: 'dialogue', dialogueId })}>Edit</button>}
+            </div>
+          </Field>
+          {portraitId && <AssetImagePreview assetId={portraitId} size={40} className="portrait-preview" title={`${character?.name ?? 'Character'} portrait, shown in dialogue`} />}
+        </div>
       )}
     </Section>
   );

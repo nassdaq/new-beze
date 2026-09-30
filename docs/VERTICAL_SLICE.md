@@ -171,3 +171,19 @@ Added after slice 1, still local-first:
 - Verified headlessly: the slime is defeated in two swings and increments a counter; the hero
   loses hearts on contact and reaches the retry overlay; a prompt produces an NPC the player
   can talk to; undo reverts the whole proposal.
+
+## 10. Art pass (implemented)
+
+The placeholder art was replaced by code-drawn characters and tiles, rendered by
+`scripts/art/render.mjs` in headless Chromium from Canvas 2D modules in `scripts/art/`. The
+sheet format moved to Character Sheet v2 (48×64 frames, walk plus attack rows; see
+FOUNDATION.md section 8.1). The starter pack now has a swordswoman (player), Aiko (villager),
+a slime and a bat, each with portraits where it makes sense, and a 48-tile outdoor set with
+path and water edges, trees, props and flowers. The golden fixture is generated from the pack
+by `scripts/generate_fixture.py`.
+
+Combat feel in the runtime: attack animations from the sheet with the hitbox on the strike
+frame, a crescent slash, hit-stop, spark particles, floating damage numbers, enemy health bars,
+enemy lunge telegraphs, defeat bursts, a hurt vignette, and idle breathing. The editor shows
+animated sprite previews in the character list, place palette, entity inspector and a new
+character detail view.

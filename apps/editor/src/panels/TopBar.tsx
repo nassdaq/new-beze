@@ -65,9 +65,19 @@ export function TopBar() {
       <button className="link" onClick={() => navigate('/projects')} title="All projects">← Projects</button>
       <button className="link topbar-name" onClick={rename} title="Rename" data-testid="project-name">{project.name}</button>
       <span className={`save-state save-${saveState}`} data-testid="save-state">{{ saved: 'Saved', unsaved: 'Unsaved', saving: 'Saving…', error: 'Save failed' }[saveState]}</span>
-      <div className="toolbar">
+      <div className="toolbar tools" role="toolbar" aria-label="Tools">
         {TOOL_LABELS.map((t) => (
-          <button key={t.tool} className={activeTool === t.tool ? 'active' : ''} onClick={() => setTool(t.tool)} title={`${t.label} (${t.key})`} data-testid={`tool-${t.tool}`}>{t.label}</button>
+          <button
+            key={t.tool}
+            className={`tool${activeTool === t.tool ? ' active' : ''}`}
+            onClick={() => setTool(t.tool)}
+            title={`${t.label} (${t.key})`}
+            aria-pressed={activeTool === t.tool}
+            aria-keyshortcuts={t.key}
+            data-testid={`tool-${t.tool}`}
+          >
+            {t.label}<kbd className="key-hint" aria-hidden="true">{t.key}</kbd>
+          </button>
         ))}
       </div>
       <div className="toolbar">

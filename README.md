@@ -17,7 +17,7 @@ CREATE PROJECT → SCENE → PLAYER → MOVE → NPC → DIALOGUE → ENEMIES �
 
 ## Run it locally
 
-Requirements: Node 22, pnpm 10, Python 3 (only for regenerating the starter art).
+Requirements: Node 22, pnpm 10, Python 3 (only for the Ask service and `scripts/generate_fixture.py`).
 
 ```sh
 pnpm install
@@ -51,7 +51,8 @@ pnpm typecheck
 pnpm build        # runtime bundle + editor to apps/editor/dist
 pnpm e2e          # Playwright: the slice and the Ask flow in a headless browser (needs pnpm build first)
 pnpm schemas      # regenerate schemas/*.json from the Zod source of truth
-pnpm starter      # regenerate the CC0 starter art from scripts/generate_starter_assets.py
+pnpm starter      # re-render the CC0 starter art from the code in scripts/art/ (see scripts/art/README.md)
+python3 scripts/generate_fixture.py   # rebuild docs/examples/hello-aiko.project.json from the starter manifest
 ```
 
 ## Layout
@@ -64,7 +65,7 @@ pnpm starter      # regenerate the CC0 starter art from scripts/generate_starter
 | `apps/editor` | React editor: Canvas 2D viewport, tools, inspectors, list-based dialogue editor, Ask panel, sandboxed Play, IndexedDB persistence, zip export |
 | `apps/api` | FastAPI generation service: prompt → operations, provider adapters (Claude, OpenAI-compatible for self-hosted GPUs, fake) |
 | `schemas/` | Generated JSON Schema for the document and the operation catalog (the AI tool definitions, later) |
-| `scripts/` | Starter art generator |
+| `scripts/` | Starter art pipeline (`art/`, code-drawn, rendered by `render.mjs`) and the golden-fixture generator |
 | `docs/` | Architecture and the slice spec |
 
 Read [docs/FOUNDATION.md](docs/FOUNDATION.md) for the architecture and

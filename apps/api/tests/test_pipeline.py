@@ -12,7 +12,8 @@ SCHEMAS = Path(__file__).resolve().parents[3] / "schemas"
 
 def test_context_is_compact_and_useful(fixture_project):
     ctx = summarize_project(fixture_project)
-    assert ctx["characters"]["chr_hero"]["feetOffset"] == 48
+    hero = fixture_project["characters"]["chr_hero"]["collider"]
+    assert ctx["characters"]["chr_hero"]["feetOffset"] == hero["offsetY"] + hero["height"] == 64
     assert ctx["scenes"]["scn_village"]["entities"][0]["name"] == "Hero"
     assert any(t["tag"] == "tree" and t["solid"] for t in ctx["maps"]["map_village"]["tiles"])
     assert "nodes" not in str(ctx["dialogues"]["dlg_aiko_intro"]) or ctx["dialogues"]["dlg_aiko_intro"]["nodes"] == 8

@@ -38,5 +38,5 @@ export function animate(e: SpawnedEntity, dx: number, dy: number): void {
   e.facing = facingFromVelocity(dx, dy, e.facing);
   const key = KEYS.animation(e.character.id, `${moving ? 'walk' : 'idle'}_${e.facing}`);
   if (e.sprite.anims.currentAnim?.key !== key) e.sprite.play(key, true);
-  e.sprite.setDepth(e.sprite.y + e.character.frameHeight);
+  e.sprite.setDepth(e.sprite.y);
 }

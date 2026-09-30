@@ -3,6 +3,7 @@ import type { Dialogue, GameVariable } from '@beze/project-schema';
 import { useEditor, useProject } from '../store/editorStore.js';
 import { sameSelection, type Selection } from '../store/selection.js';
 import { Section } from '../ui/Field.js';
+import { SpritePreview } from '../ui/SpritePreview.js';
 import { toast } from '../ui/Toast.js';
 
 export function ProjectPanel() {
@@ -14,11 +15,12 @@ export function ProjectPanel() {
   const dispatch = useEditor((s) => s.dispatch);
   if (!project) return null;
 
-  const row = (sel: Selection, label: string, extra?: string, onClick?: () => void) => (
+  const row = (sel: Selection, label: string, extra?: string, onClick?: () => void, icon?: React.ReactNode) => (
     <li key={JSON.stringify(sel)} className={sameSelection(sel, selection) ? 'selected' : ''}>
-      <button className="row" onClick={onClick ?? (() => select(sel))}>
-        <span>{label}</span>
-        {extra && <span className="muted small">{extra}</span>}
+      <button className={`row${icon ? ' row-with-icon' : ''}`} onClick={onClick ?? (() => select(sel))} title={label}>
+        {icon}
+        <span className="row-label">{label}</span>
+        {extra && <span className="muted small row-extra">{extra}</span>}
       </button>
     </li>
   );
@@ -68,8 +70,12 @@ export function ProjectPanel() {
         </ul>
       </Section>
       <Section title="Characters">
-        <ul className="list">
-          {Object.values(project.characters).map((c) => row({ kind: 'character', characterId: c.id }, c.name))}
+        <ul className="list" data-testid="character-list">
+          {Object.values(project.characters).map((c) => row(
+            { kind: 'character', characterId: c.id }, c.name,
+            undefined, undefined,
+            <SpritePreview characterId={c.id} size={28} hoverAnimate className="row-thumb" />,
+          ))}
         </ul>
       </Section>
       <Section title="Dialogues" actions={<button className="small" onClick={addDialogue} title="Add dialogue">+</button>}>

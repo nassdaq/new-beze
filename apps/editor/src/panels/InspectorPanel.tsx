@@ -3,6 +3,7 @@ import { EntityInspector } from './inspectors/EntityInspector.js';
 import { SceneInspector } from './inspectors/SceneInspector.js';
 import { VariableInspector } from './inspectors/VariableInspector.js';
 import { DialogueInspector } from './inspectors/DialogueInspector.js';
+import { CharacterInspector } from './inspectors/CharacterInspector.js';
 import { Field, Section } from '../ui/Field.js';
 import { AskPanel } from './AskPanel.js';
 
@@ -18,16 +19,7 @@ export function InspectorPanel() {
     case 'scene': body = <SceneInspector sceneId={selection.sceneId} />; break;
     case 'variable': body = <VariableInspector variableId={selection.variableId} />; break;
     case 'dialogue': body = <DialogueInspector dialogueId={selection.dialogueId} />; break;
-    case 'character': {
-      const c = project.characters[selection.characterId];
-      body = c ? (
-        <Section title="Character">
-          <Field label="Name"><input value={c.name} onChange={(e) => dispatch('Rename character', [{ op: 'updateCharacter', id: c.id, patch: { name: e.target.value || c.name } }])} /></Field>
-          <p className="muted small">{c.frameWidth}×{c.frameHeight} frames · collider {c.collider.width}×{c.collider.height}</p>
-        </Section>
-      ) : null;
-      break;
-    }
+    case 'character': body = <CharacterInspector characterId={selection.characterId} />; break;
     default:
       body = (
         <Section title="Project">

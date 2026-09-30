@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { SpawnedEntity } from '../world/spawnEntity.js';
+import { spriteTop, type SpawnedEntity } from '../world/spawnEntity.js';
 
 const DIR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] } as const;
 
@@ -24,7 +24,7 @@ function interactRect(e: SpawnedEntity): Phaser.Geom.Rectangle | null {
   const pad = 6;
   if (e.sprite && e.character) {
     const c = e.character.collider;
-    return new Phaser.Geom.Rectangle(e.sprite.x + c.offsetX - pad, e.sprite.y + c.offsetY - pad, c.width + pad * 2, c.height + pad * 2);
+    return new Phaser.Geom.Rectangle(e.sprite.x + c.offsetX - pad, spriteTop(e) + c.offsetY - pad, c.width + pad * 2, c.height + pad * 2);
   }
   return new Phaser.Geom.Rectangle(e.entity.x - pad, e.entity.y - pad, 32 + pad * 2, 32 + pad * 2);
 }

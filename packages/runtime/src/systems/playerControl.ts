@@ -18,13 +18,18 @@ export function createMoveKeys(keyboard: Phaser.Input.Keyboard.KeyboardPlugin): 
 
 const down = (keys: Phaser.Input.Keyboard.Key[]) => keys.some((k) => k.isDown);
 
-/** Four-direction movement. Horizontal wins over vertical; no diagonals in v1. */
+/**
+ * Four-direction movement. Horizontal wins over vertical; no diagonals in v1. While knocked back the body keeps its
+ * knockback velocity; while swinging (`attackUntil`) the player stands still and combat.ts owns the animation.
+ */
 export function updatePlayer(player: SpawnedEntity, keys: MoveKeys, locked: boolean, now = 0): void {
   const sprite = player.sprite;
   const character = player.character;
   if (!sprite || !character || player.defeated) return;
-  if (now < player.knockbackUntil) {
-    sprite.setDepth(sprite.y + character.frameHeight);
+  sprite.setDepth(sprite.y);
+  if (now < player.knockbackUntil) return;
+  if (now < player.attackUntil) {
+    sprite.setVelocity(0, 0);
     return;
   }
   let vx = 0;
@@ -41,7 +46,6 @@ export function updatePlayer(player: SpawnedEntity, keys: MoveKeys, locked: bool
   const moving = vx !== 0 || vy !== 0;
   const anim = KEYS.animation(character.id, `${moving ? 'walk' : 'idle'}_${player.facing}`);
   if (sprite.anims.currentAnim?.key !== anim) sprite.play(anim, true);
-  sprite.setDepth(sprite.y + character.frameHeight);
 }
 
 export function setFacing(player: SpawnedEntity, facing: Direction): void {

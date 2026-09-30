@@ -22,9 +22,9 @@
       "kind": "image",
       "name": "Outdoor tileset",
       "mime": "image/png",
-      "width": 128,
-      "height": 32,
-      "hash": "0a76248d8c2b3b3260c3ec739e6aae0287f8b1ccba9e363f158b98b6ecdb28da",
+      "width": 256,
+      "height": 192,
+      "hash": "5f5e27bd0b78500d66eb47316718a9f605955ede367c14a7fecedd1391912c1a",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -33,9 +33,20 @@
       "kind": "image",
       "name": "Hero sheet",
       "mime": "image/png",
-      "width": 128,
-      "height": 192,
-      "hash": "dbb4e03afadf5539f382cbd2c4bd96de8bf502b3a2004e3bf6074ef66743e6ea",
+      "width": 192,
+      "height": 512,
+      "hash": "7646a6315aa09ee2011cc8012cf132f8b320b86c6c99c28d8aabf4b30f22322a",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    "ast_starter_hero_portrait": {
+      "id": "ast_starter_hero_portrait",
+      "kind": "image",
+      "name": "Hero portrait",
+      "mime": "image/png",
+      "width": 256,
+      "height": 256,
+      "hash": "f5ec34acf0afd185d9ebf523bf4021c89ab73279c01a480d64aeea73d4cff91c",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -44,20 +55,9 @@
       "kind": "image",
       "name": "Villager sheet",
       "mime": "image/png",
-      "width": 128,
-      "height": 192,
-      "hash": "ee4f4bb968af73dc50b876e40ce8ec2d8ea3e4e027891f9b6ccd8f71c496e453",
-      "origin": "starter",
-      "license": "CC0-1.0"
-    },
-    "ast_starter_slime": {
-      "id": "ast_starter_slime",
-      "kind": "image",
-      "name": "Slime sheet",
-      "mime": "image/png",
-      "width": 128,
-      "height": 192,
-      "hash": "fa015b66772d58a1b76aa28e93af46dc8a1598d7e0e7cc7d8c9c7998e2065ff4",
+      "width": 192,
+      "height": 512,
+      "hash": "f600c381674e7edc4fb7e985773ff7bf0e3aae850678fe4c5c40a7641baee040",
       "origin": "starter",
       "license": "CC0-1.0"
     },
@@ -68,7 +68,29 @@
       "mime": "image/png",
       "width": 256,
       "height": 256,
-      "hash": "d4646bff1edd99ff73b8f8ec2eddd2084c205048968c948433903b60347d1e55",
+      "hash": "eb55c559df75db764315b570dc2ac0c171cb9de1421f854e037da7a9ae98d5e7",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    "ast_starter_slime": {
+      "id": "ast_starter_slime",
+      "kind": "image",
+      "name": "Slime sheet",
+      "mime": "image/png",
+      "width": 192,
+      "height": 512,
+      "hash": "9dd984fc39954569d876875384be754b45d6c71cfcf9aa3d4c7885aed1e92882",
+      "origin": "starter",
+      "license": "CC0-1.0"
+    },
+    "ast_starter_bat": {
+      "id": "ast_starter_bat",
+      "kind": "image",
+      "name": "Bat sheet",
+      "mime": "image/png",
+      "width": 192,
+      "height": 512,
+      "hash": "6888dca8e194ff9b0967814dbde923ded82478baef988529b6a0c01cdc12bb07",
       "origin": "starter",
       "license": "CC0-1.0"
     }
@@ -80,18 +102,179 @@
       "imageAssetId": "ast_starter_tileset",
       "tileWidth": 32,
       "tileHeight": 32,
-      "columns": 4,
-      "tileCount": 4,
+      "columns": 8,
+      "tileCount": 48,
       "margin": 0,
       "spacing": 0,
       "tileProperties": {
+        "0": {
+          "tag": "grass"
+        },
+        "1": {
+          "tag": "grass2"
+        },
         "2": {
+          "tag": "flowers"
+        },
+        "3": {
+          "tag": "tall_grass"
+        },
+        "4": {
+          "tag": "flower_red"
+        },
+        "5": {
+          "tag": "flower_blue"
+        },
+        "6": {
+          "solid": true,
+          "tag": "bush"
+        },
+        "7": {
+          "solid": true,
+          "tag": "rock"
+        },
+        "8": {
+          "tag": "path"
+        },
+        "9": {
+          "tag": "path_edge_n"
+        },
+        "10": {
+          "tag": "path_edge_s"
+        },
+        "11": {
+          "tag": "path_edge_w"
+        },
+        "12": {
+          "tag": "path_edge_e"
+        },
+        "13": {
+          "tag": "path2"
+        },
+        "14": {
+          "tag": "dirt"
+        },
+        "15": {
+          "tag": "sand"
+        },
+        "16": {
+          "solid": true,
+          "tag": "water"
+        },
+        "17": {
+          "solid": true,
+          "tag": "water_edge_n"
+        },
+        "18": {
+          "solid": true,
+          "tag": "water_edge_s"
+        },
+        "19": {
+          "solid": true,
+          "tag": "water_edge_w"
+        },
+        "20": {
+          "solid": true,
+          "tag": "water_edge_e"
+        },
+        "21": {
+          "solid": true,
+          "tag": "water_lily"
+        },
+        "22": {
+          "solid": true,
+          "tag": "water_rock"
+        },
+        "23": {
+          "solid": true,
+          "tag": "water2"
+        },
+        "24": {
+          "tag": "tree_top"
+        },
+        "25": {
           "solid": true,
           "tag": "tree"
         },
-        "3": {
+        "26": {
+          "tag": "tree2_top"
+        },
+        "27": {
           "solid": true,
-          "tag": "water"
+          "tag": "tree2"
+        },
+        "28": {
+          "solid": true,
+          "tag": "stump"
+        },
+        "29": {
+          "solid": true,
+          "tag": "fence_h"
+        },
+        "30": {
+          "solid": true,
+          "tag": "fence_v"
+        },
+        "31": {
+          "solid": true,
+          "tag": "fence_post"
+        },
+        "32": {
+          "solid": true,
+          "tag": "signpost"
+        },
+        "33": {
+          "solid": true,
+          "tag": "well"
+        },
+        "34": {
+          "tag": "mushroom"
+        },
+        "35": {
+          "solid": true,
+          "tag": "log"
+        },
+        "36": {
+          "tag": "flower_yellow"
+        },
+        "37": {
+          "tag": "pebbles"
+        },
+        "38": {
+          "solid": true,
+          "tag": "bush_berry"
+        },
+        "39": {
+          "solid": true,
+          "tag": "rock_small"
+        },
+        "40": {
+          "tag": "path_corner_nw"
+        },
+        "41": {
+          "tag": "path_corner_ne"
+        },
+        "42": {
+          "tag": "path_corner_sw"
+        },
+        "43": {
+          "tag": "path_corner_se"
+        },
+        "44": {
+          "solid": true,
+          "tag": "water_corner_nw"
+        },
+        "45": {
+          "solid": true,
+          "tag": "water_corner_ne"
+        },
+        "46": {
+          "solid": true,
+          "tag": "water_corner_sw"
+        },
+        "47": {
+          "solid": true,
+          "tag": "water_corner_se"
         }
       }
     }
@@ -126,8 +309,10 @@
             1,
             1,
             1,
+            12,
+            9,
+            13,
             1,
-            2,
             1,
             1,
             1,
@@ -144,10 +329,12 @@
             1,
             1,
             1,
+            12,
+            9,
+            13,
             1,
             1,
             1,
-            2,
             1,
             1,
             1,
@@ -162,12 +349,14 @@
             1,
             1,
             1,
+            12,
+            9,
+            13,
             1,
             1,
             1,
             1,
             1,
-            2,
             1,
             1,
             1,
@@ -180,14 +369,13 @@
             1,
             1,
             1,
-            4,
-            4,
-            4,
+            12,
+            9,
+            13,
             1,
             1,
             1,
             1,
-            2,
             1,
             1,
             1,
@@ -200,14 +388,13 @@
             1,
             1,
             1,
-            4,
-            4,
-            4,
             1,
+            12,
+            9,
+            13,
             1,
             1,
             1,
-            2,
             1,
             1,
             1,
@@ -222,12 +409,14 @@
             1,
             1,
             1,
+            12,
+            9,
+            13,
             1,
             1,
             1,
             1,
             1,
-            2,
             1,
             1,
             1,
@@ -240,6 +429,9 @@
             1,
             1,
             1,
+            12,
+            9,
+            13,
             1,
             1,
             1,
@@ -247,8 +439,67 @@
             1,
             1,
             1,
-            2,
             1,
+            10,
+            10,
+            10,
+            10,
+            10,
+            10,
+            10,
+            10,
+            10,
+            41,
+            9,
+            42,
+            10,
+            10,
+            10,
+            10,
+            10,
+            10,
+            10,
+            10,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            43,
+            9,
+            44,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
             1,
             1,
             1,
@@ -258,6 +509,9 @@
             1,
             1,
             1,
+            12,
+            9,
+            13,
             1,
             1,
             1,
@@ -267,7 +521,6 @@
             1,
             1,
             1,
-            2,
             1,
             1,
             1,
@@ -276,27 +529,10 @@
             1,
             1,
             1,
+            12,
+            9,
+            13,
             1,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
             1,
             1,
             1,
@@ -307,13 +543,15 @@
             1,
             1,
             1,
-            2,
             1,
             1,
             1,
             1,
             1,
             1,
+            12,
+            9,
+            13,
             1,
             1,
             1,
@@ -327,11 +565,13 @@
             1,
             1,
             1,
-            2,
             1,
             1,
             1,
             1,
+            12,
+            9,
+            13,
             1,
             1,
             1,
@@ -347,68 +587,11 @@
             1,
             1,
             1,
-            2,
             1,
             1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            2,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            2,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            2,
-            1,
+            12,
+            9,
+            13,
             1,
             1,
             1,
@@ -425,36 +608,27 @@
           "visible": true,
           "aboveEntities": false,
           "data": [
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
             0,
             0,
             0,
@@ -464,11 +638,6 @@
             0,
             0,
             0,
-            3,
-            3,
-            0,
-            0,
-            0,
             0,
             0,
             0,
@@ -478,6 +647,8 @@
             0,
             0,
             0,
+            26,
+            26,
             0,
             0,
             0,
@@ -485,7 +656,6 @@
             0,
             0,
             3,
-            3,
             0,
             0,
             0,
@@ -495,25 +665,35 @@
             0,
             0,
             0,
+            8,
             0,
+            26,
+            26,
             0,
             0,
+            45,
+            18,
+            46,
             0,
             0,
             0,
             0,
             0,
             0,
-            3,
-            3,
             0,
+            7,
             0,
             0,
             0,
             0,
             0,
+            26,
+            26,
             0,
             0,
+            47,
+            19,
+            48,
             0,
             0,
             0,
@@ -524,11 +704,11 @@
             0,
             0,
             0,
-            3,
-            3,
             0,
             0,
             0,
+            26,
+            26,
             0,
             0,
             0,
@@ -544,12 +724,13 @@
             0,
             0,
             0,
-            3,
-            3,
             0,
             0,
             0,
+            26,
+            26,
             0,
+            3,
             0,
             0,
             0,
@@ -565,10 +746,9 @@
             0,
             0,
             3,
-            3,
-            0,
-            0,
             0,
+            26,
+            26,
             0,
             0,
             0,
@@ -584,11 +764,11 @@
             0,
             0,
             0,
-            3,
-            3,
             0,
             0,
             0,
+            26,
+            26,
             0,
             0,
             0,
@@ -602,15 +782,13 @@
             0,
             0,
             0,
-            0,
-            0,
-            3,
-            3,
             0,
             0,
             0,
             0,
             0,
+            26,
+            26,
             0,
             0,
             0,
@@ -624,18 +802,19 @@
             0,
             0,
             0,
-            3,
-            3,
             0,
             0,
             0,
             0,
             0,
+            26,
+            26,
             0,
             0,
             0,
             0,
             0,
+            3,
             0,
             0,
             0,
@@ -644,11 +823,12 @@
             0,
             0,
             0,
-            3,
-            3,
             0,
             0,
+            7,
             0,
+            26,
+            26,
             0,
             0,
             0,
@@ -664,28 +844,31 @@
             0,
             0,
             0,
-            3,
-            3,
             0,
             0,
             0,
+            26,
+            26,
             0,
+            7,
             0,
             0,
             0,
             0,
+            8,
             0,
             0,
             0,
             0,
             0,
             0,
+            3,
             0,
             0,
             0,
             0,
-            3,
-            3,
+            26,
+            26,
             0,
             0,
             0,
@@ -704,27 +887,27 @@
             0,
             0,
             0,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3,
-            3
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26,
+            26
           ]
         }
       ],
@@ -786,7 +969,7 @@
         0,
         0,
         0,
-        0,
+        1,
         0,
         1,
         1,
@@ -802,7 +985,7 @@
         0,
         0,
         0,
-        0,
+        1,
         0,
         0,
         0,
@@ -815,26 +998,6 @@
         1,
         1,
         1,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        1,
-        1,
-        0,
-        0,
-        0,
-        0,
-        0,
         0,
         0,
         0,
@@ -966,7 +1129,7 @@
         0,
         0,
         0,
-        0,
+        1,
         0,
         1,
         1,
@@ -977,6 +1140,26 @@
         0,
         0,
         0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
         0,
         0,
         0,
@@ -1037,8 +1220,8 @@
       "id": "chr_hero",
       "name": "Hero",
       "spriteSheetAssetId": "ast_starter_hero",
-      "frameWidth": 32,
-      "frameHeight": 48,
+      "frameWidth": 48,
+      "frameHeight": 64,
       "animations": {
         "idle_down": {
           "frames": [
@@ -1057,6 +1240,15 @@
           "frameRate": 8,
           "loop": true
         },
+        "attack_down": {
+          "frames": [
+            16,
+            17,
+            18
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
         "idle_left": {
           "frames": [
             4
@@ -1073,6 +1265,15 @@
           ],
           "frameRate": 8,
           "loop": true
+        },
+        "attack_left": {
+          "frames": [
+            20,
+            21,
+            22
+          ],
+          "frameRate": 14,
+          "loop": false
         },
         "idle_right": {
           "frames": [
@@ -1091,6 +1292,15 @@
           "frameRate": 8,
           "loop": true
         },
+        "attack_right": {
+          "frames": [
+            24,
+            25,
+            26
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
         "idle_up": {
           "frames": [
             12
@@ -1107,21 +1317,31 @@
           ],
           "frameRate": 8,
           "loop": true
+        },
+        "attack_up": {
+          "frames": [
+            28,
+            29,
+            30
+          ],
+          "frameRate": 14,
+          "loop": false
         }
       },
       "collider": {
-        "width": 20,
+        "width": 24,
         "height": 16,
-        "offsetX": 6,
-        "offsetY": 32
-      }
+        "offsetX": 12,
+        "offsetY": 48
+      },
+      "portraitAssetId": "ast_starter_hero_portrait"
     },
     "chr_villager": {
       "id": "chr_villager",
       "name": "Villager",
       "spriteSheetAssetId": "ast_starter_villager",
-      "frameWidth": 32,
-      "frameHeight": 48,
+      "frameWidth": 48,
+      "frameHeight": 64,
       "animations": {
         "idle_down": {
           "frames": [
@@ -1140,6 +1360,15 @@
           "frameRate": 8,
           "loop": true
         },
+        "attack_down": {
+          "frames": [
+            16,
+            17,
+            18
+          ],
+          "frameRate": 10,
+          "loop": false
+        },
         "idle_left": {
           "frames": [
             4
@@ -1156,6 +1385,15 @@
           ],
           "frameRate": 8,
           "loop": true
+        },
+        "attack_left": {
+          "frames": [
+            20,
+            21,
+            22
+          ],
+          "frameRate": 10,
+          "loop": false
         },
         "idle_right": {
           "frames": [
@@ -1174,6 +1412,15 @@
           "frameRate": 8,
           "loop": true
         },
+        "attack_right": {
+          "frames": [
+            24,
+            25,
+            26
+          ],
+          "frameRate": 10,
+          "loop": false
+        },
         "idle_up": {
           "frames": [
             12
@@ -1190,13 +1437,22 @@
           ],
           "frameRate": 8,
           "loop": true
+        },
+        "attack_up": {
+          "frames": [
+            28,
+            29,
+            30
+          ],
+          "frameRate": 10,
+          "loop": false
         }
       },
       "collider": {
-        "width": 20,
+        "width": 24,
         "height": 16,
-        "offsetX": 6,
-        "offsetY": 32
+        "offsetX": 12,
+        "offsetY": 48
       },
       "portraitAssetId": "ast_starter_villager_portrait"
     },
@@ -1204,8 +1460,8 @@
       "id": "chr_slime",
       "name": "Slime",
       "spriteSheetAssetId": "ast_starter_slime",
-      "frameWidth": 32,
-      "frameHeight": 48,
+      "frameWidth": 48,
+      "frameHeight": 64,
       "animations": {
         "idle_down": {
           "frames": [
@@ -1224,6 +1480,15 @@
           "frameRate": 6,
           "loop": true
         },
+        "attack_down": {
+          "frames": [
+            16,
+            17,
+            18
+          ],
+          "frameRate": 12,
+          "loop": false
+        },
         "idle_left": {
           "frames": [
             4
@@ -1240,6 +1505,15 @@
           ],
           "frameRate": 6,
           "loop": true
+        },
+        "attack_left": {
+          "frames": [
+            20,
+            21,
+            22
+          ],
+          "frameRate": 12,
+          "loop": false
         },
         "idle_right": {
           "frames": [
@@ -1258,6 +1532,15 @@
           "frameRate": 6,
           "loop": true
         },
+        "attack_right": {
+          "frames": [
+            24,
+            25,
+            26
+          ],
+          "frameRate": 12,
+          "loop": false
+        },
         "idle_up": {
           "frames": [
             12
@@ -1274,13 +1557,141 @@
           ],
           "frameRate": 6,
           "loop": true
+        },
+        "attack_up": {
+          "frames": [
+            28,
+            29,
+            30
+          ],
+          "frameRate": 12,
+          "loop": false
         }
       },
       "collider": {
-        "width": 20,
+        "width": 26,
+        "height": 16,
+        "offsetX": 11,
+        "offsetY": 48
+      }
+    },
+    "chr_bat": {
+      "id": "chr_bat",
+      "name": "Bat",
+      "spriteSheetAssetId": "ast_starter_bat",
+      "frameWidth": 48,
+      "frameHeight": 64,
+      "animations": {
+        "idle_down": {
+          "frames": [
+            0
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_down": {
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_down": {
+          "frames": [
+            16,
+            17,
+            18
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "idle_left": {
+          "frames": [
+            4
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_left": {
+          "frames": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_left": {
+          "frames": [
+            20,
+            21,
+            22
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "idle_right": {
+          "frames": [
+            8
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_right": {
+          "frames": [
+            8,
+            9,
+            10,
+            11
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_right": {
+          "frames": [
+            24,
+            25,
+            26
+          ],
+          "frameRate": 14,
+          "loop": false
+        },
+        "idle_up": {
+          "frames": [
+            12
+          ],
+          "frameRate": 1,
+          "loop": false
+        },
+        "walk_up": {
+          "frames": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "frameRate": 10,
+          "loop": true
+        },
+        "attack_up": {
+          "frames": [
+            28,
+            29,
+            30
+          ],
+          "frameRate": 14,
+          "loop": false
+        }
+      },
+      "collider": {
+        "width": 22,
         "height": 14,
-        "offsetX": 6,
-        "offsetY": 32
+        "offsetX": 13,
+        "offsetY": 50
       }
     }
   },
@@ -1294,7 +1705,7 @@
           "id": "ent_hero",
           "name": "Hero",
           "x": 320,
-          "y": 368,
+          "y": 352,
           "facing": "up",
           "components": [
             {
@@ -1315,11 +1726,36 @@
             }
           ]
         },
+        "ent_aiko": {
+          "id": "ent_aiko",
+          "name": "Aiko",
+          "x": 384,
+          "y": 224,
+          "facing": "down",
+          "components": [
+            {
+              "type": "sprite",
+              "characterId": "chr_villager"
+            },
+            {
+              "type": "body",
+              "solid": true
+            },
+            {
+              "type": "interactable",
+              "action": {
+                "type": "startDialogue",
+                "dialogueId": "dlg_aiko_intro"
+              },
+              "prompt": "Talk"
+            }
+          ]
+        },
         "ent_slime": {
           "id": "ent_slime",
           "name": "Slime",
           "x": 480,
-          "y": 114,
+          "y": 96,
           "facing": "down",
           "components": [
             {
@@ -1354,28 +1790,42 @@
             }
           ]
         },
-        "ent_aiko": {
-          "id": "ent_aiko",
-          "name": "Aiko",
-          "x": 384,
-          "y": 240,
+        "ent_bat": {
+          "id": "ent_bat",
+          "name": "Bat",
+          "x": 128,
+          "y": 320,
           "facing": "down",
           "components": [
             {
               "type": "sprite",
-              "characterId": "chr_villager"
+              "characterId": "chr_bat"
             },
             {
               "type": "body",
               "solid": true
             },
             {
-              "type": "interactable",
-              "action": {
-                "type": "startDialogue",
-                "dialogueId": "dlg_aiko_intro"
-              },
-              "prompt": "Talk"
+              "type": "wander",
+              "radius": 96,
+              "speed": 40
+            },
+            {
+              "type": "health",
+              "max": 1
+            },
+            {
+              "type": "enemy",
+              "speed": 80,
+              "aggroRadius": 140,
+              "damage": 1,
+              "attackCooldownMs": 1000,
+              "onDefeat": {
+                "type": "setVariable",
+                "variableId": "var_slimes_defeated",
+                "op": "add",
+                "value": 1
+              }
             }
           ]
         }
@@ -1383,7 +1833,8 @@
       "entityOrder": [
         "ent_hero",
         "ent_aiko",
-        "ent_slime"
+        "ent_slime",
+        "ent_bat"
       ]
     }
   },

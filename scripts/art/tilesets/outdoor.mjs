@@ -205,6 +205,45 @@ function grassEdgeTile(ctx, s, side, drawMain, seam, opts = {}) {
   }
 }
 
+/**
+ * Where two grass edges meet. `corner` names the quadrant ('nw', 'ne', 'sw', 'se'); with
+ * `inner` true only that quadrant is grass (the inside of a path bend or crossing), otherwise the
+ * two sides are grass and only that quadrant is `drawMain` (a pond or path corner seen from
+ * outside). Waves and phases match the edge tiles, so the boundaries line up with them.
+ */
+function grassCornerTile(ctx, s, corner, inner, drawMain, seam, opts = {}) {
+  const depth = opts.depth ?? 8;
+  const phase = { n: 0.6, s: 2.1, w: 3.4, e: 4.9, ...(opts.phase ?? {}) };
+  const [v, h] = corner.split('');
+  const along = (side, X, Y) => (side === 'n' || side === 's' ? X : Y);
+  const dd = (side, X, Y) => (side === 'n' ? Y : side === 's' ? s - 1 - Y : side === 'w' ? X : s - 1 - X);
+  const inGrass = (side, X, Y) => dd(side, X, Y) < waveDepth(along(side, X, Y), s, depth, phase[side]);
+  const grass = (X, Y) => (inner ? inGrass(v, X, Y) && inGrass(h, X, Y) : inGrass(v, X, Y) || inGrass(h, X, Y));
+  drawMain();
+  ctx.save();
+  ctx.beginPath();
+  for (let Y = 0; Y < s; Y++) for (let X = 0; X < s; X++) if (grass(X, Y)) ctx.rect(X, Y, 1, 1);
+  ctx.clip();
+  grassBase(ctx, s);
+  ctx.restore();
+  // Each side's seam and blades run only where its boundary is not swallowed by the other side.
+  for (const [side, other] of [[v, h], [h, v]]) {
+    for (let x = 0; x < s; x++) {
+      const d = waveDepth(x, s, depth, phase[side]);
+      const [bx, by] = sideMap(side, x, d, s);
+      if (inner ? !inGrass(other, bx, by) : inGrass(other, bx, by)) continue;
+      const put = (k, c) => { const [X, Y] = sideMap(side, x, k, s); px(ctx, X, Y, c); };
+      put(d - 1, G.deep);
+      put(d, seam[0]);
+      if (seam[1] && (x + 1) % 4 !== 0) put(d + 1, seam[1]);
+      if ((x * 7 + d) % 3 === 0) put(d + 2, seam[3] ?? G.dark);
+      if ((x * 5 + d) % 7 === 0) put(d - 2, G.dark);
+      if (seam[2] && x % 5 === 2) put(d + 3, seam[2]);
+      if (x % 4 === 1) { put(d - 2, G.light); put(d - 3, G.pale); }
+    }
+  }
+}
+
 // ---------------------------------------------------------------- decorations
 function grassTufts(ctx, r, n = 3, y0 = 24, y1 = 29) {
   for (let i = 0; i < n; i++) {
@@ -419,6 +458,8 @@ function lilyPad(ctx, cx, cy, rad) {
 const ground = (tag, fn) => ({ tag, solid: false, draw: fn });
 const object = (tag, fn) => ({ tag, solid: true, draw: fn });
 const deco = (tag, fn) => ({ tag, solid: false, draw: fn });
+/** Water is impassable ground: it tiles like the other ground textures but the runtime blocks it. */
+const water = (tag, fn) => ({ tag, solid: true, draw: fn });
 const pathSeam = [P.deep, P.light, P.pebD, G.dark];
 const waterSeam = [W.shore, W.foam, W.ripple, W.dark];
 
@@ -461,12 +502,12 @@ export default {
     ground('sand', (ctx, s) => sandBase(ctx, s)),
 
     // ---- row 2: water family
-    ground('water', (ctx, s) => waterBase(ctx, s)),
-    ground('water_edge_n', (ctx, s) => grassEdgeTile(ctx, s, 'n', () => waterBase(ctx, s), waterSeam, { phase: 1.1, depth: 8 })),
-    ground('water_edge_s', (ctx, s) => grassEdgeTile(ctx, s, 's', () => waterBase(ctx, s), waterSeam, { phase: 2.6, depth: 8 })),
-    ground('water_edge_w', (ctx, s) => grassEdgeTile(ctx, s, 'w', () => waterBase(ctx, s), waterSeam, { phase: 3.9, depth: 8 })),
-    ground('water_edge_e', (ctx, s) => grassEdgeTile(ctx, s, 'e', () => waterBase(ctx, s), waterSeam, { phase: 5.3, depth: 8 })),
-    ground('water_lily', (ctx, s, r) => {
+    water('water', (ctx, s) => waterBase(ctx, s)),
+    water('water_edge_n', (ctx, s) => grassEdgeTile(ctx, s, 'n', () => waterBase(ctx, s), waterSeam, { phase: 1.1, depth: 8 })),
+    water('water_edge_s', (ctx, s) => grassEdgeTile(ctx, s, 's', () => waterBase(ctx, s), waterSeam, { phase: 2.6, depth: 8 })),
+    water('water_edge_w', (ctx, s) => grassEdgeTile(ctx, s, 'w', () => waterBase(ctx, s), waterSeam, { phase: 3.9, depth: 8 })),
+    water('water_edge_e', (ctx, s) => grassEdgeTile(ctx, s, 'e', () => waterBase(ctx, s), waterSeam, { phase: 5.3, depth: 8 })),
+    water('water_lily', (ctx, s, r) => {
       waterBase(ctx, s, 61);
       lilyPad(ctx, 11, 20, 6); lilyPad(ctx, 23, 11, 4.5);
       circle(ctx, 22.5, 20.5, 2.4, '#ff8fb8'); circle(ctx, 22.5, 20.5, 1.2, '#ffe1ec'); px(ctx, 22, 19, '#ffffff');
@@ -479,7 +520,7 @@ export default {
       poly(ctx, [[17, 15], [24, 13], [27, 18], [26, 24], [16, 24], [18, 19]], R.dark);
       px(ctx, 4, 24, W.foam, 4, 1); px(ctx, 24, 25, W.foam, 5, 1); px(ctx, 9, 26, W.ripple, 6, 1); px(ctx, 19, 26, W.ripple, 4, 1);
     }),
-    ground('water2', (ctx, s) => waterBase(ctx, s, 79)),
+    water('water2', (ctx, s) => waterBase(ctx, s, 79)),
 
     // ---- row 3: trees, stump, fences
     deco('tree_top', (ctx) => drawTree(ctx, 'top', 0)),
@@ -500,5 +541,16 @@ export default {
     deco('pebbles', (ctx, s, r) => drawPebbles(ctx, r)),
     object('bush_berry', (ctx, s, r) => drawBush(ctx, r, true)),
     object('rock_small', (ctx, s, r) => drawRock(ctx, r, true)),
+
+    // ---- row 5: corners. path_corner_* = grass only in that quadrant (inside of a bend or
+    // crossing); water_corner_* = that corner of a pond, grass on its two outer sides.
+    ground('path_corner_nw', (ctx, s) => grassCornerTile(ctx, s, 'nw', true, () => pathBase(ctx, s), pathSeam)),
+    ground('path_corner_ne', (ctx, s) => grassCornerTile(ctx, s, 'ne', true, () => pathBase(ctx, s), pathSeam)),
+    ground('path_corner_sw', (ctx, s) => grassCornerTile(ctx, s, 'sw', true, () => pathBase(ctx, s), pathSeam)),
+    ground('path_corner_se', (ctx, s) => grassCornerTile(ctx, s, 'se', true, () => pathBase(ctx, s), pathSeam)),
+    water('water_corner_nw', (ctx, s) => grassCornerTile(ctx, s, 'nw', false, () => waterBase(ctx, s), waterSeam, { phase: { n: 1.1, w: 3.9 } })),
+    water('water_corner_ne', (ctx, s) => grassCornerTile(ctx, s, 'ne', false, () => waterBase(ctx, s), waterSeam, { phase: { n: 1.1, e: 5.3 } })),
+    water('water_corner_sw', (ctx, s) => grassCornerTile(ctx, s, 'sw', false, () => waterBase(ctx, s), waterSeam, { phase: { s: 2.6, w: 3.9 } })),
+    water('water_corner_se', (ctx, s) => grassCornerTile(ctx, s, 'se', false, () => waterBase(ctx, s), waterSeam, { phase: { s: 2.6, e: 5.3 } })),
   ],
 };

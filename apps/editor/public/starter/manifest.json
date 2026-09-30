@@ -81,8 +81,8 @@
       "name": "Outdoor tileset",
       "mime": "image/png",
       "width": 256,
-      "height": 160,
-      "hash": "c655eb6386767376338f56e09ac4b5e85e1617d71bbc12f2396002013658a024",
+      "height": 192,
+      "hash": "5f5e27bd0b78500d66eb47316718a9f605955ede367c14a7fecedd1391912c1a",
       "origin": "starter",
       "license": "CC0-1.0"
     }
@@ -95,7 +95,7 @@
       "tileWidth": 32,
       "tileHeight": 32,
       "columns": 8,
-      "tileCount": 40,
+      "tileCount": 48,
       "margin": 0,
       "spacing": 0,
       "tileProperties": {
@@ -150,21 +150,27 @@
           "tag": "sand"
         },
         "16": {
+          "solid": true,
           "tag": "water"
         },
         "17": {
+          "solid": true,
           "tag": "water_edge_n"
         },
         "18": {
+          "solid": true,
           "tag": "water_edge_s"
         },
         "19": {
+          "solid": true,
           "tag": "water_edge_w"
         },
         "20": {
+          "solid": true,
           "tag": "water_edge_e"
         },
         "21": {
+          "solid": true,
           "tag": "water_lily"
         },
         "22": {
@@ -172,6 +178,7 @@
           "tag": "water_rock"
         },
         "23": {
+          "solid": true,
           "tag": "water2"
         },
         "24": {
@@ -232,6 +239,34 @@
         "39": {
           "solid": true,
           "tag": "rock_small"
+        },
+        "40": {
+          "tag": "path_corner_nw"
+        },
+        "41": {
+          "tag": "path_corner_ne"
+        },
+        "42": {
+          "tag": "path_corner_sw"
+        },
+        "43": {
+          "tag": "path_corner_se"
+        },
+        "44": {
+          "solid": true,
+          "tag": "water_corner_nw"
+        },
+        "45": {
+          "solid": true,
+          "tag": "water_corner_ne"
+        },
+        "46": {
+          "solid": true,
+          "tag": "water_corner_sw"
+        },
+        "47": {
+          "solid": true,
+          "tag": "water_corner_se"
         }
       }
     }
