@@ -9,8 +9,9 @@ export interface GameTemplate {
   description: string;
   /** URL of the project document. */
   project: string;
-  /** URL of the pack manifest listing the image files the project's assets refer to. */
-  pack: string;
+  /** URL of a pack manifest listing extra image files the project's assets refer to. Omit when the
+   * template only uses starter-pack assets. */
+  pack?: string;
 }
 
 export const TEMPLATES: readonly GameTemplate[] = [
@@ -19,7 +20,6 @@ export const TEMPLATES: readonly GameTemplate[] = [
     name: 'Hacho',
     description: 'A Tanzanian town: missions, money, properties.',
     project: '/templates/hacho/project.json',
-    pack: '/templates/hacho/pack.json',
   },
 ];
 

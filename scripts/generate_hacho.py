@@ -44,7 +44,7 @@ NOW = '2026-09-30T00:00:00.000Z'
 GENERATOR = 'beze-docs/hacho-0.1'
 
 OUTDOOR, CITY = 'tls_outdoor', 'tls_city'
-HERO, VENDOR, BANKER, KID, VILLAGER = 'chr_hacho_hero', 'chr_vendor', 'chr_banker', 'chr_kid', 'chr_villager'
+HERO, VENDOR, BANKER, KID, VILLAGER = 'chr_hacho', 'chr_vendor', 'chr_banker', 'chr_kid', 'chr_villager'
 MONEY, XP, REP = 'var_money', 'var_xp', 'var_rep'
 TOWN, BANK, RESTAURANT = 'scn_town', 'scn_bank', 'scn_restaurant'
 
@@ -1016,7 +1016,7 @@ def dumps(value: Any, indent: int = 0) -> str:
 
 def main() -> int:
     manifest = load_json(MANIFEST)
-    pack = load_json(PACK)
+    pack = {'characters': [], 'assets': [], 'playerCharacterId': HERO}
 
     # Tilesets: Outdoor first (grass = gid 1), then City.
     by_id = {t['id']: t for t in manifest['tilesets']}
@@ -1033,7 +1033,7 @@ def main() -> int:
             if first != next(r['firstGid'] for r in tiles.refs if r['tilesetId'] == tid):
                 fail(f'stamp {name!r} is not in {tid}')
 
-    # Characters: the hero from the pack, the townsfolk from the manifest.
+    # Characters and assets all come from the starter manifest (the Hacho boy is a starter character).
     chars = {c['id']: c for c in manifest['characters'] + pack['characters']}
     for cid in (HERO, VENDOR, BANKER, KID, VILLAGER):
         if cid not in chars:

@@ -23,7 +23,7 @@ describe('hacho template', () => {
     for (const scene of Object.values(project.scenes)) {
       const players = Object.values(scene.entities).filter((e) => e.components.some((c) => c.type === 'playerControl'));
       expect(players).toHaveLength(1);
-      expect(players[0]!.components.find((c) => c.type === 'sprite')).toMatchObject({ characterId: 'chr_hacho_hero' });
+      expect(players[0]!.components.find((c) => c.type === 'sprite')).toMatchObject({ characterId: 'chr_hacho' });
     }
   });
 

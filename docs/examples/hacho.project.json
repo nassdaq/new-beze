@@ -48,27 +48,27 @@
       "origin": "starter",
       "license": "CC0-1.0"
     },
-    "ast_hacho_hero": {
-      "id": "ast_hacho_hero",
+    "ast_starter_hacho": {
+      "id": "ast_starter_hacho",
       "kind": "image",
       "name": "Hacho sheet",
       "mime": "image/png",
-      "width": 256,
-      "height": 384,
-      "hash": "ba566b38130daee93d66122d9cd55af8428c32c85ba893c2991275766b9c764f",
-      "origin": "upload",
-      "license": "user-provided"
+      "width": 192,
+      "height": 832,
+      "hash": "1fb22db71262d8d11ba06144939bdc37cdcba20c736786e58a5e7331e31c50fa",
+      "origin": "starter",
+      "license": "CC0-1.0"
     },
-    "ast_hacho_hero_portrait": {
-      "id": "ast_hacho_hero_portrait",
+    "ast_starter_hacho_portrait": {
+      "id": "ast_starter_hacho_portrait",
       "kind": "image",
       "name": "Hacho portrait",
       "mime": "image/png",
       "width": 256,
       "height": 256,
-      "hash": "6e2e29f1d88eafc8a9d528df58d941b53482eaee753475880a43c65ab2b9c5be",
-      "origin": "upload",
-      "license": "user-provided"
+      "hash": "7e286121bab0c9d70f6e0ffade1eb368db0167c95980aafffe71c9801297d9d4",
+      "origin": "starter",
+      "license": "CC0-1.0"
     },
     "ast_starter_vendor": {
       "id": "ast_starter_vendor",
@@ -919,11 +919,11 @@
     }
   },
   "characters": {
-    "chr_hacho_hero": {
-      "id": "chr_hacho_hero",
+    "chr_hacho": {
+      "id": "chr_hacho",
       "name": "Hacho",
-      "spriteSheetAssetId": "ast_hacho_hero",
-      "frameWidth": 64,
+      "spriteSheetAssetId": "ast_starter_hacho",
+      "frameWidth": 48,
       "frameHeight": 64,
       "animations": {
         "idle_down": {
@@ -937,38 +937,38 @@
           "loop": true
         },
         "attack_down": {
-          "frames": [22],
-          "frameRate": 10,
+          "frames": [16, 17, 18],
+          "frameRate": 12,
           "loop": false
         },
-        "idle_right": {
+        "idle_left": {
           "frames": [4],
           "frameRate": 1,
           "loop": false
         },
-        "walk_right": {
+        "walk_left": {
           "frames": [4, 5, 6, 7],
           "frameRate": 8,
           "loop": true
         },
-        "attack_right": {
-          "frames": [22],
-          "frameRate": 10,
+        "attack_left": {
+          "frames": [20, 21, 22],
+          "frameRate": 12,
           "loop": false
         },
-        "idle_left": {
+        "idle_right": {
           "frames": [8],
           "frameRate": 1,
           "loop": false
         },
-        "walk_left": {
+        "walk_right": {
           "frames": [8, 9, 10, 11],
           "frameRate": 8,
           "loop": true
         },
-        "attack_left": {
-          "frames": [22],
-          "frameRate": 10,
+        "attack_right": {
+          "frames": [24, 25, 26],
+          "frameRate": 12,
           "loop": false
         },
         "idle_up": {
@@ -982,48 +982,43 @@
           "loop": true
         },
         "attack_up": {
-          "frames": [22],
-          "frameRate": 10,
-          "loop": false
-        },
-        "phone": {
-          "frames": [16],
-          "frameRate": 1,
-          "loop": false
-        },
-        "map": {
-          "frames": [17],
-          "frameRate": 1,
-          "loop": false
-        },
-        "point": {
-          "frames": [18],
-          "frameRate": 1,
-          "loop": false
-        },
-        "interact": {
-          "frames": [19],
-          "frameRate": 1,
+          "frames": [28, 29, 30],
+          "frameRate": 12,
           "loop": false
         },
         "celebrate": {
-          "frames": [20, 21, 23],
+          "frames": [32, 33, 34],
           "frameRate": 6,
           "loop": false
         },
-        "action": {
-          "frames": [22],
-          "frameRate": 1,
+        "map": {
+          "frames": [36],
+          "frameRate": 6,
+          "loop": false
+        },
+        "point": {
+          "frames": [40],
+          "frameRate": 6,
+          "loop": false
+        },
+        "phone": {
+          "frames": [44],
+          "frameRate": 6,
+          "loop": false
+        },
+        "interact": {
+          "frames": [48, 49],
+          "frameRate": 4,
           "loop": false
         }
       },
       "collider": {
-        "width": 22,
-        "height": 14,
-        "offsetX": 21,
-        "offsetY": 50
+        "width": 24,
+        "height": 16,
+        "offsetX": 12,
+        "offsetY": 48
       },
-      "portraitAssetId": "ast_hacho_hero_portrait"
+      "portraitAssetId": "ast_starter_hacho_portrait"
     },
     "chr_vendor": {
       "id": "chr_vendor",
@@ -1339,13 +1334,13 @@
         "ent_town_player": {
           "id": "ent_town_player",
           "name": "Hacho",
-          "x": 176,
+          "x": 184,
           "y": 832,
           "facing": "right",
           "components": [
             {
               "type": "sprite",
-              "characterId": "chr_hacho_hero"
+              "characterId": "chr_hacho"
             },
             {
               "type": "body",
@@ -1704,7 +1699,7 @@
                 "type": "changeScene",
                 "sceneId": "scn_bank",
                 "spawn": {
-                  "x": 144,
+                  "x": 152,
                   "y": 128,
                   "facing": "up"
                 }
@@ -1728,7 +1723,7 @@
                 "type": "changeScene",
                 "sceneId": "scn_restaurant",
                 "spawn": {
-                  "x": 176,
+                  "x": 184,
                   "y": 128,
                   "facing": "up"
                 }
@@ -2375,13 +2370,13 @@
         "ent_bank_player": {
           "id": "ent_bank_player",
           "name": "Hacho",
-          "x": 144,
+          "x": 152,
           "y": 128,
           "facing": "up",
           "components": [
             {
               "type": "sprite",
-              "characterId": "chr_hacho_hero"
+              "characterId": "chr_hacho"
             },
             {
               "type": "body",
@@ -2437,7 +2432,7 @@
                 "type": "changeScene",
                 "sceneId": "scn_town",
                 "spawn": {
-                  "x": 1168,
+                  "x": 1176,
                   "y": 640,
                   "facing": "down"
                 }
@@ -2457,13 +2452,13 @@
         "ent_restaurant_player": {
           "id": "ent_restaurant_player",
           "name": "Hacho",
-          "x": 176,
+          "x": 184,
           "y": 128,
           "facing": "up",
           "components": [
             {
               "type": "sprite",
-              "characterId": "chr_hacho_hero"
+              "characterId": "chr_hacho"
             },
             {
               "type": "body",
@@ -2519,7 +2514,7 @@
                 "type": "changeScene",
                 "sceneId": "scn_town",
                 "spawn": {
-                  "x": 1360,
+                  "x": 1368,
                   "y": 640,
                   "facing": "down"
                 }
