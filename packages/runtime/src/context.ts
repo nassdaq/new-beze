@@ -9,6 +9,10 @@ export interface RuntimeContext {
   assetUrls: Record<string, string>;
   state: GameState;
   debug: boolean;
+  /** Whether the title screen opens the game (also where "Quit to title" goes). */
+  title: boolean;
+  /** Effects on or off; `auto` is resolved to one of the two once the renderer exists (BootScene). */
+  quality: 'high' | 'low' | 'auto';
   emit: (e: RuntimeEvent) => void;
 }
 
@@ -21,10 +25,11 @@ export const KEYS = {
   tileset: (id: string) => `tls:${id}`,
   image: (id: string) => `ast:${id}`,
   animation: (characterId: string, name: string) => `chr:${characterId}:${name}`,
+  audio: (assetId: string) => `aud:${assetId}`,
 } as const;
 
 export const SCENE_KEYS = {
-  boot: 'boot', world: 'world', dialogue: 'dialogue',
+  boot: 'boot', title: 'title', world: 'world', dialogue: 'dialogue',
   /** v3: HUD (always running), overlays (one at a time, they pause the world) and the on-screen controls. */
   hud: 'hud', shop: 'shop', pause: 'pause', map: 'map', inventory: 'inventory', mobile: 'mobile',
 } as const;

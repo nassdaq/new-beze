@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { Direction } from '@beze/project-schema';
 import { KEYS } from '../context.js';
 import type { SpawnedEntity } from '../world/spawnEntity.js';
+import { UI, UI_SCALE } from '../ui/theme.js';
 
 const SPARK_TEXTURE = 'fx:spark';
 const SPARK_SIZE = 4;
@@ -135,7 +136,7 @@ export class Effects {
   /** A number that pops above the target, rises and fades. */
   damageNumber(x: number, y: number, amount: number, color = '#ffffff'): void {
     const text = this.scene.add.text(x + (Math.random() - 0.5) * 8, y, String(amount), {
-      fontFamily: 'sans-serif', fontSize: '12px', fontStyle: 'bold', color, stroke: '#000000', strokeThickness: 3,
+      fontFamily: UI.display, fontSize: '14px', color, stroke: '#000000', strokeThickness: 3, resolution: UI_SCALE,
     }).setOrigin(0.5, 1).setDepth(DEPTH.numbers).setScale(0.5);
     this.scene.tweens.add({ targets: text, scale: 1, duration: 110, ease: 'Back.easeOut' });
     this.scene.tweens.add({ targets: text, y: y - 22, duration: 650, ease: 'Cubic.easeOut' });
@@ -163,6 +164,23 @@ export class Effects {
     });
   }
 
+  /**
+   * Slow motion for a beat (finishers): physics steps at `factor` speed and animations follow. Starts after any
+   * hit-stop in flight so the two do not fight over the time scales.
+   */
+  slowMo(ms: number, factor = 0.35): void {
+    const begin = () => {
+      this.scene.physics.world.timeScale = 1 / factor;
+      this.scene.anims.globalTimeScale = factor;
+      this.scene.time.delayedCall(ms, () => {
+        if (this.scene.physics.world.timeScale === 1 / factor) this.scene.physics.world.timeScale = 1;
+        if (this.scene.anims.globalTimeScale === factor) this.scene.anims.globalTimeScale = 1;
+      });
+    };
+    const wait = Math.max(0, this.hitStopUntil - this.scene.time.now);
+    if (wait > 0) this.scene.time.delayedCall(wait + 5, begin); else begin();
+  }
+
   /** A quick camera zoom in and back out. */
   zoomPulse(amount = 0.06, duration = 90): void {
     const cam = this.scene.cameras.main;
@@ -183,6 +201,92 @@ export class Effects {
     this.hitStopTimer?.remove(false);
     this.hitStopTimer = null;
     this.scene.anims.globalTimeScale = 1;
+  }
+
+  /**
+   * A web line shot from (x0, y0) to (x1, y1): a white strand with a pale glow that extends over ~80 ms, then fades.
+   * `stuck` draws the splat where it lands; a fizzled line just thins out at its far end.
+   */
+  webLine(x0: number, y0: number, x1: number, y1: number, stuck: boolean): void {
+    const g = this.scene.add.graphics().setDepth(DEPTH.slash);
+    const state = { t: 0 };
+    const draw = (t: number) => {
+      const ex = x0 + (x1 - x0) * t;
+      const ey = y0 + (y1 - y0) * t;
+      g.clear();
+      g.lineStyle(4, 0x9fd7ff, 0.28); g.lineBetween(x0, y0, ex, ey);
+      g.lineStyle(2, 0xffffff, 0.95); g.lineBetween(x0, y0, ex, ey);
+      // Tiny cross-strands along the line make it read as web rather than rope.
+      const len = Math.hypot(ex - x0, ey - y0);
+      const nx = -(ey - y0) / (len || 1); const ny = (ex - x0) / (len || 1);
+      g.lineStyle(1, 0xffffff, 0.8);
+      for (let d = 10; d < len; d += 10) {
+        const px = x0 + ((ex - x0) * d) / len; const py = y0 + ((ey - y0) * d) / len;
+        g.lineBetween(px - nx * 2, py - ny * 2, px + nx * 2, py + ny * 2);
+      }
+    };
+    this.scene.tweens.add({
+      targets: state, t: 1, duration: 80, ease: 'Quad.easeOut', onUpdate: () => draw(state.t),
+      onComplete: () => {
+        draw(1);
+        if (stuck) this.webBurst(x1, y1);
+        this.scene.tweens.add({ targets: g, alpha: 0, duration: stuck ? 260 : 140, delay: stuck ? 120 : 0, ease: 'Quad.easeIn', onComplete: () => g.destroy() });
+      },
+    });
+  }
+
+  /** The splat where a web sticks: a small radial star of strands with a ring, popping and fading. */
+  webBurst(x: number, y: number): void {
+    const g = this.scene.add.graphics({ x, y }).setDepth(DEPTH.sparks);
+    g.lineStyle(1.5, 0xffffff, 0.95);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      g.lineBetween(0, 0, Math.cos(a) * 7, Math.sin(a) * 7);
+    }
+    g.lineStyle(1, 0xcfe9ff, 0.9);
+    g.strokeCircle(0, 0, 4);
+    g.setScale(0.4);
+    this.scene.tweens.add({ targets: g, scale: 1.2, duration: 120, ease: 'Back.easeOut' });
+    this.scene.tweens.add({ targets: g, alpha: 0, duration: 220, delay: 160, onComplete: () => g.destroy() });
+  }
+
+  /** Draws a web cocoon (w × h, centred on the graphics' origin) into `g`: crossing strands with knots. */
+  drawWrap(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+    g.clear();
+    const hw = w / 2; const hh = h / 2;
+    g.fillStyle(0xffffff, 0.16);
+    g.fillEllipse(0, 0, w, h);
+    g.lineStyle(3, 0xbfe0ff, 0.35);
+    g.strokeEllipse(0, 0, w, h);
+    g.lineStyle(1.5, 0xffffff, 0.95);
+    for (let i = -2; i <= 2; i++) {
+      const yy = (i / 2.6) * hh;
+      g.lineBetween(-hw, yy - 3, hw, yy + 3);
+      g.lineBetween(-hw, yy + 3, hw, yy - 3);
+    }
+    g.lineBetween(-hw * 0.7, -hh, hw * 0.7, hh);
+    g.lineBetween(hw * 0.7, -hh, -hw * 0.7, hh);
+    g.fillStyle(0xffffff, 1);
+    for (let i = -1; i <= 1; i++) { g.fillRect(i * hw * 0.5 - 1, -hh * 0.35 - 1, 2, 2); g.fillRect(i * hw * 0.5 - 1, hh * 0.35 - 1, 2, 2); }
+  }
+
+  /** Danger sense: three arcs on each side of the head, flaring outward and fading, plus a quick white flash. */
+  sense(x: number, y: number): void {
+    const g = this.scene.add.graphics({ x, y }).setDepth(DEPTH.numbers);
+    for (let side = -1; side <= 1; side += 2) {
+      for (let i = 0; i < 3; i++) {
+        const r = 6 + i * 4;
+        g.lineStyle(2 - i * 0.4, i === 0 ? 0xffffff : 0xfff1a8, 1 - i * 0.22);
+        g.beginPath();
+        g.arc(side * 4, 0, r, side > 0 ? -0.9 : Math.PI - 0.9, side > 0 ? 0.9 : Math.PI + 0.9, false);
+        g.strokePath();
+      }
+    }
+    g.setScale(0.6).setAlpha(1);
+    this.scene.tweens.add({ targets: g, scale: 1.15, duration: 160, ease: 'Quad.easeOut' });
+    this.scene.tweens.add({ targets: g, alpha: 0, duration: 200, delay: 180, onComplete: () => g.destroy() });
+    const flash = this.scene.add.circle(x, y, 5, 0xffffff, 0.8).setDepth(DEPTH.numbers - 1);
+    this.scene.tweens.add({ targets: flash, scale: 3, alpha: 0, duration: 200, ease: 'Cubic.easeOut', onComplete: () => flash.destroy() });
   }
 
   private crescentArc(cx: number, cy: number, radius: number, tileSize: number, spread: number, strength: number): Phaser.GameObjects.Graphics {

@@ -38,19 +38,20 @@ export const OperationSchema = z.discriminatedUnion('op', [
     op: z.literal('paintRect'), mapId: IdSchema, layerId: IdSchema,
     x: Int.min(0), y: Int.min(0), width: Int.min(1).max(200), height: Int.min(1).max(200), gid: Int.min(0),
   }),
+  /** `climbable` (v4) with `solid` marks the cell 2: solid for everyone except a climbing player. */
   z.object({
     op: z.literal('setCollision'), mapId: IdSchema,
-    cells: z.array(z.object({ x: Int.min(0), y: Int.min(0), solid: z.boolean() })).min(1).max(40000),
+    cells: z.array(z.object({ x: Int.min(0), y: Int.min(0), solid: z.boolean(), climbable: z.boolean().optional() })).min(1).max(40000),
   }),
   z.object({
     op: z.literal('setCollisionRect'), mapId: IdSchema,
-    x: Int.min(0), y: Int.min(0), width: Int.min(1).max(200), height: Int.min(1).max(200), solid: z.boolean(),
+    x: Int.min(0), y: Int.min(0), width: Int.min(1).max(200), height: Int.min(1).max(200), solid: z.boolean(), climbable: z.boolean().optional(),
   }),
   z.object({ op: z.literal('addLayer'), mapId: IdSchema, layer: TileLayerSchema, index: Int.min(0).optional() }),
   z.object({ op: z.literal('deleteLayer'), mapId: IdSchema, layerId: IdSchema }),
   // scenes and entities
   z.object({ op: z.literal('createScene'), scene: SceneSchema }),
-  z.object({ op: z.literal('updateScene'), id: IdSchema, patch: SceneSchema.pick({ name: true, mapId: true, backgroundAssetId: true }).partial() }),
+  z.object({ op: z.literal('updateScene'), id: IdSchema, patch: SceneSchema.pick({ name: true, mapId: true, backgroundAssetId: true, music: true, musicAssetId: true }).partial() }),
   z.object({ op: z.literal('deleteScene'), id: IdSchema }),
   z.object({ op: z.literal('setStartScene'), sceneId: IdSchema }),
   z.object({ op: z.literal('createEntity'), sceneId: IdSchema, entity: EntitySchema, index: Int.min(0).optional() }),

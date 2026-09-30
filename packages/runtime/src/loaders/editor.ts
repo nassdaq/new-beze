@@ -37,6 +37,8 @@ export function startEditorLoader(opts: { container: HTMLElement }): void {
           project: msg.project as never,
           assetUrls: msg.assetUrls,
           ...(options.startSceneId ? { startSceneId: options.startSceneId } : {}),
+          ...(options.title !== undefined ? { title: options.title } : {}),
+          ...(options.quality !== undefined ? { quality: options.quality } : {}),
           debug: options.debug ?? false,
           onEvent: (e) => {
             if (e.type === 'loaded') post({ type: 'beze:loaded' });

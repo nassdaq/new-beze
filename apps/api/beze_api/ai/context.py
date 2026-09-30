@@ -66,6 +66,7 @@ def summarize_project(project: dict[str, Any]) -> dict[str, Any]:
         "startSceneId": project.get("startSceneId"),
         "interactKey": settings.get("interactKey"),
         "attackKey": settings.get("attackKey"),
+        "abilityKey": settings.get("abilityKey", "X"),
         "characters": characters,
         "tilesets": tilesets,
         "maps": maps,

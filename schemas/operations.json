@@ -78,6 +78,65 @@
               "minimum": 1,
               "maximum": 4
             },
+            "abilityKey": {
+              "type": "string",
+              "enum": [
+                "X",
+                "C",
+                "F",
+                "Q",
+                "Z",
+                "J",
+                "K"
+              ]
+            },
+            "presentation": {
+              "type": "object",
+              "properties": {
+                "titleScreen": {
+                  "type": "boolean"
+                },
+                "titleBackgroundAssetId": {
+                  "type": "string",
+                  "pattern": "^[a-z]{3}_[A-Za-z0-9_-]{1,40}$"
+                },
+                "tagline": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "lighting": {
+                  "type": "boolean"
+                },
+                "dayNight": {
+                  "type": "boolean"
+                },
+                "dayLengthMs": {
+                  "type": "integer",
+                  "minimum": 5000,
+                  "maximum": 3600000
+                },
+                "startHour": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 23
+                },
+                "bloom": {
+                  "type": "boolean"
+                },
+                "vignette": {
+                  "type": "boolean"
+                },
+                "lampTags": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 60
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
             "backgroundColor": {
               "type": "string",
               "pattern": "^#[0-9a-fA-F]{6}$"
@@ -1164,6 +1223,9 @@
                   "tag": {
                     "type": "string",
                     "maxLength": 60
+                  },
+                  "climbable": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": false
@@ -1307,6 +1369,9 @@
                   "tag": {
                     "type": "string",
                     "maxLength": 60
+                  },
+                  "climbable": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": false
@@ -1552,6 +1617,10 @@
                   {
                     "type": "number",
                     "const": 1
+                  },
+                  {
+                    "type": "number",
+                    "const": 2
                   }
                 ]
               }
@@ -1733,6 +1802,9 @@
               },
               "solid": {
                 "type": "boolean"
+              },
+              "climbable": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -1783,6 +1855,9 @@
           "maximum": 200
         },
         "solid": {
+          "type": "boolean"
+        },
+        "climbable": {
           "type": "boolean"
         }
       },
@@ -2007,6 +2082,59 @@
                               "type": "integer",
                               "minimum": 1,
                               "maximum": 9999
+                            },
+                            "ability": {
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "web"
+                                    },
+                                    "rangeTiles": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 16
+                                    },
+                                    "damage": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9999
+                                    },
+                                    "cooldownMs": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 60000
+                                    },
+                                    "stunMs": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 60000
+                                    },
+                                    "zip": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "rangeTiles",
+                                    "damage",
+                                    "cooldownMs",
+                                    "stunMs",
+                                    "zip"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            "climb": {
+                              "type": "boolean"
+                            },
+                            "senseRadius": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 4000
                             }
                           },
                           "required": [
@@ -2347,6 +2475,42 @@
                           "properties": {
                             "type": {
                               "type": "string",
+                              "const": "light"
+                            },
+                            "color": {
+                              "type": "string",
+                              "pattern": "^#[0-9a-fA-F]{6}$"
+                            },
+                            "radius": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 2000
+                            },
+                            "intensity": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 10
+                            },
+                            "night": {
+                              "type": "boolean"
+                            },
+                            "flicker": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "color",
+                            "radius",
+                            "intensity"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
                               "const": "enemy"
                             },
                             "speed": {
@@ -2600,6 +2764,59 @@
                         "type": "integer",
                         "minimum": 1,
                         "maximum": 9999
+                      },
+                      "ability": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "web"
+                              },
+                              "rangeTiles": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "damage": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9999
+                              },
+                              "cooldownMs": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 60000
+                              },
+                              "stunMs": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                              },
+                              "zip": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "rangeTiles",
+                              "damage",
+                              "cooldownMs",
+                              "stunMs",
+                              "zip"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "climb": {
+                        "type": "boolean"
+                      },
+                      "senseRadius": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 4000
                       }
                     },
                     "required": [
@@ -2940,6 +3157,42 @@
                     "properties": {
                       "type": {
                         "type": "string",
+                        "const": "light"
+                      },
+                      "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9a-fA-F]{6}$"
+                      },
+                      "radius": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 2000
+                      },
+                      "intensity": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10
+                      },
+                      "night": {
+                        "type": "boolean"
+                      },
+                      "flicker": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "color",
+                      "radius",
+                      "intensity"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
                         "const": "enemy"
                       },
                       "speed": {
@@ -3158,6 +3411,59 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 9999
+                },
+                "ability": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "web"
+                        },
+                        "rangeTiles": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 16
+                        },
+                        "damage": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9999
+                        },
+                        "cooldownMs": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 60000
+                        },
+                        "stunMs": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 60000
+                        },
+                        "zip": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "rangeTiles",
+                        "damage",
+                        "cooldownMs",
+                        "stunMs",
+                        "zip"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "climb": {
+                  "type": "boolean"
+                },
+                "senseRadius": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4000
                 }
               },
               "required": [
@@ -3498,6 +3804,42 @@
               "properties": {
                 "type": {
                   "type": "string",
+                  "const": "light"
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$"
+                },
+                "radius": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 2000
+                },
+                "intensity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "night": {
+                  "type": "boolean"
+                },
+                "flicker": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "type",
+                "color",
+                "radius",
+                "intensity"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
                   "const": "enemy"
                 },
                 "speed": {
@@ -3574,7 +3916,8 @@
             "shop",
             "pickup",
             "lock",
-            "mapMarker"
+            "mapMarker",
+            "light"
           ]
         }
       },

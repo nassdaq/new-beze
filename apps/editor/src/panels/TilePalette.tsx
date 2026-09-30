@@ -23,8 +23,9 @@ export function TilePalette() {
       <div className="palette">
         <span className="muted small">Collision:</span>
         <button className={collisionMode === 'solid' ? 'active' : ''} onClick={() => setCollisionMode('solid')}>Paint solid</button>
+        <button className={collisionMode === 'climb' ? 'active' : ''} onClick={() => setCollisionMode('climb')} data-testid="collision-climb">Paint climbable</button>
         <button className={collisionMode === 'clear' ? 'active' : ''} onClick={() => setCollisionMode('clear')}>Clear</button>
-        <span className="muted small">Hold Shift to invert. Red tiles block the player.</span>
+        <span className="muted small">Hold Shift to clear instead. Red tiles block everyone; blue tiles block everyone except a player who can climb.</span>
       </div>
     );
   }

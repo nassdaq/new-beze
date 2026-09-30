@@ -466,7 +466,7 @@ export interface TileMap {
   tileHeight: number;
   tilesets: Array<{ tilesetId: string; firstGid: number }>;   // Tiled-style global ids
   layers: TileLayer[];                             // draw order, bottom first
-  collision: number[];                             // width*height, 0 = walkable, 1 = solid
+  collision: number[];                             // width*height, 0 = walkable, 1 = solid, 2 = climbable (v4: solid unless the player has playerControl.climb)
 }
 
 export interface TileLayer {

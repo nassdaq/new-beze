@@ -3,6 +3,7 @@ import { newId, type StarterPack } from '@beze/project-core';
 import { idb, STORES } from '../repository/idb.js';
 import { UPLOAD_LIMITS, type AssetStore, type PutAssetMeta } from './AssetStore.js';
 import { assertPackManifest, planPackLoad } from './pack.js';
+import { withBase } from '../base.js';
 
 interface StarterManifest extends StarterPack {
   files: Record<string, string>;
@@ -39,14 +40,14 @@ export class LocalAssetStore implements AssetStore {
   }
 
   private async load(): Promise<void> {
-    const res = await fetch('/starter/manifest.json');
+    const res = await fetch(withBase('/starter/manifest.json'));
     if (!res.ok) throw new Error('starter pack manifest is missing');
     const manifest = (await res.json()) as StarterManifest;
     this.manifest = manifest;
     for (const a of manifest.assets) this.hashes.set(a.id, a.hash);
     await Promise.all([
       ...Object.entries(manifest.files).map(async ([id, file]) => {
-        const blob = await fetch(`/starter/${file}`).then((r) => r.blob());
+        const blob = await fetch(withBase(`/starter/${file}`)).then((r) => r.blob());
         this.blobs.set(id, blob);
         this.images.set(id, await decode(blob));
       }),
@@ -61,6 +62,9 @@ export class LocalAssetStore implements AssetStore {
     await Promise.all(rows.map(async (row) => {
       if (!row?.blob || this.blobs.has(row.id)) return;
       try {
+        this.blobs.set(row.id, row.blob);
+        this.hashes.set(row.id, row.hash);
+        if (row.mime.startsWith('audio/')) return;
         const image = await decode(row.blob);
         this.blobs.set(row.id, row.blob);
         this.images.set(row.id, image);
@@ -113,6 +117,23 @@ export class LocalAssetStore implements AssetStore {
     await idb.put(STORES.blobs, id, row);
     this.blobs.set(id, blob);
     this.images.set(id, image);
+    this.hashes.set(id, hash);
+    return asset;
+  }
+
+  async putAudio(data: Blob, meta: PutAssetMeta): Promise<Asset> {
+    const mime = (data.type === 'audio/mp3' ? 'audio/mpeg' : data.type) as Asset['mime'];
+    if (!(UPLOAD_LIMITS.audioMimes as readonly string[]).includes(mime)) throw new Error(`only OGG or MP3 audio can be imported (got ${data.type || 'unknown type'})`);
+    if (data.size > UPLOAD_LIMITS.audioMaxBytes) throw new Error(`track is ${(data.size / 1024 / 1024).toFixed(1)} MB; the limit is ${UPLOAD_LIMITS.audioMaxBytes / 1024 / 1024} MB`);
+    const bytes = new Uint8Array(await data.arrayBuffer());
+    const blob = new Blob([bytes], { type: mime });
+    const hash = await sha256(bytes);
+    const id = newId('ast');
+    const name = meta.name.trim().slice(0, 120) || 'Imported track';
+    const asset: Asset = { id, kind: 'audio', name, mime, hash, origin: 'upload', ...(meta.license ? { license: meta.license } : {}) };
+    const row: BlobRow = { id, blob, mime, name, width: 0, height: 0, hash, createdAt: new Date().toISOString() };
+    await idb.put(STORES.blobs, id, row);
+    this.blobs.set(id, blob);
     this.hashes.set(id, hash);
     return asset;
   }

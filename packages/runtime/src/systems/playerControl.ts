@@ -16,12 +16,14 @@ export const RUN_ANIM_SCALE = 1.5;
  * animation owns it. Holding run multiplies the speed by `runMultiplier` and speeds up the walk animation; running
  * never applies while locked (dialogue, game over), attacking or knocked back. Returns true while the player is running.
  */
-export function updatePlayer(player: SpawnedEntity, input: MoveInput, locked: boolean, now = 0, runMultiplier = DEFAULT_RUN_MULTIPLIER): boolean {
+export function updatePlayer(player: SpawnedEntity, input: MoveInput, locked: boolean, now = 0, runMultiplier = DEFAULT_RUN_MULTIPLIER, onWall = false): boolean {
   const sprite = player.sprite;
   const character = player.character;
   if (!sprite || !character || player.defeated) return false;
   sprite.setDepth(sprite.y);
   if (now < player.knockbackUntil) return false;
+  // Mid-zip the web system owns the velocity.
+  if (now < player.zipUntil) return false;
   if (now < player.attackUntil) {
     sprite.setVelocity(0, 0);
     return false;
@@ -40,9 +42,17 @@ export function updatePlayer(player: SpawnedEntity, input: MoveInput, locked: bo
   sprite.setVelocity(vx, vy);
   if (facing) player.facing = facing;
   const moving = vx !== 0 || vy !== 0;
-  const anim = KEYS.animation(character.id, `${moving ? 'walk' : 'idle'}_${player.facing}`);
+  // Optional sets: climb_<dir> on a wall or roof edge, run_<dir> while sprinting; else walk (sped up when running).
+  const has = (name: string) => character.animations[name] !== undefined;
+  let name: string;
+  if (onWall && has(`climb_${player.facing}`)) name = `climb_${player.facing}`;
+  else if (moving && running && has(`run_${player.facing}`)) name = `run_${player.facing}`;
+  else name = `${moving ? 'walk' : 'idle'}_${player.facing}`;
+  const anim = KEYS.animation(character.id, name);
   if (sprite.anims.currentAnim?.key !== anim) sprite.play(anim, true);
-  sprite.anims.timeScale = moving && running ? RUN_ANIM_SCALE : 1;
+  const climbing = name.startsWith('climb');
+  sprite.anims.timeScale = climbing ? (moving ? 1 : 0) : moving && running && !name.startsWith('run') ? RUN_ANIM_SCALE : 1;
+  if (climbing && !moving) sprite.anims.setProgress(0);
   return moving && running;
 }
 

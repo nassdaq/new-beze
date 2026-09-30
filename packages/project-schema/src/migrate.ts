@@ -22,6 +22,14 @@ const MIGRATIONS: Migration[] = [
       return { ...doc };
     },
   },
+  {
+    from: 3,
+    to: 4,
+    // v4 is purely additive (abilityKey, playerControl.ability/climb/senseRadius, climbable tiles, collision value 2).
+    run(doc) {
+      return { ...doc };
+    },
+  },
 ];
 
 export class MigrationError extends Error {}

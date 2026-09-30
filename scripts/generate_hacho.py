@@ -880,7 +880,7 @@ def load_json(path: str) -> dict:
         raise
 
 
-def verify(doc: dict) -> None:
+def verify(doc: dict, hero: str = HERO) -> None:
     """Mirrors validateProject's referential rules so a broken layout fails here, not in the editor."""
     variables, dialogues, quests, scenes, chars, assets = doc['variables'], doc['dialogues'], doc['quests'], doc['scenes'], doc['characters'], doc['assets']
     for coll in ('assets', 'tilesets', 'maps', 'characters', 'scenes', 'dialogues', 'quests', 'variables'):
@@ -909,7 +909,7 @@ def verify(doc: dict) -> None:
         elif t == 'startQuest':
             assert a['questId'] in quests, f'{path}: unknown quest {a["questId"]}'
         elif t == 'playAnimation':
-            assert a['animation'] in chars[HERO]['animations'], f'{path}: hero has no animation {a["animation"]}'
+            assert a['animation'] in chars[hero]['animations'], f'{path}: hero has no animation {a["animation"]}'
         elif t == 'sequence':
             for i, sub in enumerate(a['actions']):
                 check_action(sub, f'{path}.{i}')
@@ -921,6 +921,8 @@ def verify(doc: dict) -> None:
     eco = doc['settings']['economy']
     for key in ('moneyVariableId', 'xpVariableId', 'reputationVariableId'):
         assert variables[eco[key]]['type'] == 'number', key
+    ability_key = doc['settings'].get('abilityKey', 'X')
+    assert ability_key not in (doc['settings']['attackKey'], doc['settings']['interactKey']), 'ability key clashes'
     assert doc['startSceneId'] in scenes
     for v in variables.values():
         check_var(v['id'], v['initial'], f'variables.{v["id"]}.initial')
@@ -964,6 +966,8 @@ def verify(doc: dict) -> None:
                     assert variables[c['variableId']]['type'] == 'number', p
                 elif c['type'] == 'lock':
                     check_cond(c['condition'], p)
+                elif c['type'] == 'enemy' and c.get('onDefeat'):
+                    check_action(c['onDefeat'], p)
         assert players == 1, f'scene {s["id"]} has {players} players'
 
     for d in dialogues.values():
@@ -1081,7 +1085,7 @@ def main() -> int:
     rest_map, rest_scene = build_restaurant(tiles, characters, town_spawns[RESTAURANT])
 
     doc = {
-        'schemaVersion': 3,
+        'schemaVersion': 4,
         'id': 'prj_hacho',
         'name': 'Hacho',
         'settings': {
@@ -1094,6 +1098,8 @@ def main() -> int:
             'attackKey': 'SPACE',
             'runSpeedMultiplier': 1.8,
             'backgroundColor': '#1a1a2e',
+            'presentation': {'tagline': 'A town, a hustle, a fortune to build.', 'startHour': 8},
+            'ambient': {'pedestrians': [VILLAGER, KID, VENDOR]},
             'economy': {
                 'moneyVariableId': MONEY, 'xpVariableId': XP, 'reputationVariableId': REP,
                 'currencyPrefix': 'TSh ', 'dayLengthMs': 120_000,

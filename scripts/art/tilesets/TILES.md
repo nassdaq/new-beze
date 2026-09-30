@@ -200,3 +200,28 @@ Multi-tile objects the editor paints in one click (`stamps` in the manifest's `t
 | `Kiosk` | 2×2 | `kiosk_nw`, `kiosk_ne`<br>`kiosk_sw`, `kiosk_door` | (1,1) |
 
 The stamps' facades are: Shop = grey roof, "DUKA" board over the door, glass shop windows either side; House = red roof, two storeys of windows; Bank = grey roof, white walls with pilasters, 2-tile "BENKI" sign, blue door; Restaurant = blue roof, 2-tile "HOTELI" sign, striped awnings, door under the awning; BusShelter = open-fronted shelter with a "BASI" sign on its roof; StallA / StallB = striped-canopy market stalls with produce; Fountain = round stone fountain; Kiosk = box shop with a serving hatch and a door.
+
+# Rooftop tileset index (Webslinger pack)
+
+Generated from `scripts/art/packs/webslinger/tilesets/rooftop.mjs` (id `tls_rooftop`, file `rooftop.png` in
+`apps/editor/public/templates/webslinger/`, 32 px tiles, 8 columns, 42 tiles, groundTag `roof_tar`). Meant to be used
+on a map after Outdoor and City (the Webslinger template gives it firstGid 144). "Climb" marks `climbable: true`:
+solid for everyone except a player with `playerControl.climb`, collision value 2.
+
+| Index | Tag | Solid | Notes |
+|------:|-----|:-----:|-------|
+| 0–1 | `roof_tar`, `roof_tar2` | no | Dark tar roof surface with gravel; walkable (the roof interior). |
+| 2–9 | `roof_ledge_n/s/w/e`, `roof_ledge_nw/ne/sw/se` | climb | Tar with a raised concrete ledge on the named side(s): the ring around a roof. |
+| 10 | `wall_brick` | climb | Red brick facade, seamless. |
+| 11 | `wall_brick_window` | climb | Brick with a window and sill. |
+| 12 | `wall_graffiti` | climb | Brick with a "WEB" tag and spray strokes. |
+| 13 | `wall_fire_escape` | climb | Brick with an iron landing and stairs. |
+| 14 | `warehouse_door` | no | Grey roller door with an "IN" plate: the walkable doorway into an interior. |
+| 15 | `wall_grey` | yes | Grey brick, not climbable: interior walls. |
+| 16–18 | `alley`, `alley_manhole`, `alley_puddle` | no | Stained concrete alley ground. |
+| 19–22 | `dumpster`, `crate`, `barrel`, `web_cocoon` | yes | Alley clutter; the cocoon is a webbed-up thug. |
+| 23 | `sign_pizza` | yes | Red "PIZZA" board on a post. |
+| 24–29 | `roof_vent`, `roof_ac`, `roof_skylight`, `roof_hatch`, `roof_antenna`, `roof_pipe` | yes (hatch: no) | Roof furniture, transparent, over a roof tile. |
+| 30–31 | `sign_news`, `sign_web` | yes | "BUZZ" newspaper board; hand-painted "HERO" board. |
+| 32–35 | `tower_nw/ne/sw/se` | yes | The `WaterTower` stamp (2×2). |
+| 36–41 | `board_l/m/r`, `board_leg_l/m/r` | yes | The `Billboard` stamp (3×2): a "BUZZ DAILY NEWS" board on two legs. |

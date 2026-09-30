@@ -60,14 +60,14 @@ export interface DayClock {
   fraction: number;
 }
 
-/** Where the day clock stands after `elapsedMs` of world time, with days of `dayLengthMs` starting at 06:00. */
-export function dayClock(elapsedMs: number, dayLengthMs: number): DayClock {
+/** Where the day clock stands after `elapsedMs` of world time, with days of `dayLengthMs` starting at `startHour` (06:00). */
+export function dayClock(elapsedMs: number, dayLengthMs: number, startHour: number = DAY_START_HOUR): DayClock {
   const len = Math.max(1, dayLengthMs);
   const elapsed = Math.max(0, elapsedMs);
   const day = Math.floor(elapsed / len) + 1;
   const fraction = (elapsed % len) / len;
   const totalMinutes = Math.floor(fraction * 24 * 60);
-  const hour = (DAY_START_HOUR + Math.floor(totalMinutes / 60)) % 24;
+  const hour = (startHour + Math.floor(totalMinutes / 60)) % 24;
   const minute = totalMinutes % 60;
   const pad = (n: number) => String(n).padStart(2, '0');
   return { day, hour, minute, text: `${pad(hour)}:${pad(minute)}`, fraction };

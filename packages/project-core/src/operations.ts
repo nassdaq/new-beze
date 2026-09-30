@@ -220,28 +220,28 @@ function applyOne(d: Project, op: Operation): Operation[] {
     case 'setCollisionRect': {
       const map = must(d.maps[op.mapId], 'missing', `map "${op.mapId}" does not exist`);
       if (op.x + op.width > map.width || op.y + op.height > map.height) throw new OpFailure('outOfBounds', `rectangle leaves the map`);
-      const prevCells: Array<{ x: number; y: number; solid: boolean }> = [];
+      const prevCells: Array<{ x: number; y: number; solid: boolean; climbable?: boolean }> = [];
       for (let y = op.y; y < op.y + op.height; y++) {
         for (let x = op.x; x < op.x + op.width; x++) {
           const i = y * map.width + x;
-          prevCells.push({ x, y, solid: map.collision[i] === 1 });
-          map.collision[i] = op.solid ? 1 : 0;
+          prevCells.push(collisionCell(x, y, map.collision[i]!));
+          map.collision[i] = collisionValue(op.solid, op.climbable);
         }
       }
       return [{ op: 'setCollision', mapId: op.mapId, cells: prevCells }];
     }
     case 'setCollision': {
       const map = must(d.maps[op.mapId], 'missing', `map "${op.mapId}" does not exist`);
-      const prevCells: Array<{ x: number; y: number; solid: boolean }> = [];
+      const prevCells: Array<{ x: number; y: number; solid: boolean; climbable?: boolean }> = [];
       const seen = new Set<number>();
       for (const c of op.cells) {
         if (c.x >= map.width || c.y >= map.height) throw new OpFailure('outOfBounds', `cell (${c.x}, ${c.y}) is outside the map`);
         const i = c.y * map.width + c.x;
         if (!seen.has(i)) {
           seen.add(i);
-          prevCells.push({ x: c.x, y: c.y, solid: map.collision[i] === 1 });
+          prevCells.push(collisionCell(c.x, c.y, map.collision[i]!));
         }
-        map.collision[i] = c.solid ? 1 : 0;
+        map.collision[i] = collisionValue(c.solid, c.climbable);
       }
       return [{ op: 'setCollision', mapId: op.mapId, cells: prevCells }];
     }
@@ -422,4 +422,14 @@ function applyOne(d: Project, op: Operation): Operation[] {
 function entity(d: Project, sceneId: string, entityId: string) {
   const scene = must(d.scenes[sceneId], 'missing', `scene "${sceneId}" does not exist`);
   return must(scene.entities[entityId], 'missing', `entity "${entityId}" does not exist in scene "${scene.name}"`);
+}
+
+/** Collision grid value for a cell: 0 walkable, 1 solid, 2 climbable-solid (v4). */
+function collisionValue(solid: boolean, climbable: boolean | undefined): 0 | 1 | 2 {
+  return solid ? (climbable ? 2 : 1) : 0;
+}
+
+/** The inverse cell of a collision edit: what the grid held, as a setCollision cell. */
+function collisionCell(x: number, y: number, value: number): { x: number; y: number; solid: boolean; climbable?: boolean } {
+  return value === 2 ? { x, y, solid: true, climbable: true } : { x, y, solid: value === 1 };
 }

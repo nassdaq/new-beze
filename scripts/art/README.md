@@ -9,7 +9,17 @@ No image libraries are needed and every asset is reproducible.
 node scripts/art/render.mjs                 # render everything + manifest
 node scripts/art/render.mjs --only hero     # one module (matches file name)
 node scripts/art/render.mjs --preview DIR   # also write 4x upscaled previews to DIR for eyeballing
+node scripts/art/render.mjs --pack webslinger   # a template pack: scripts/art/packs/webslinger/{characters,tilesets}/*.mjs
+                                            #   → apps/editor/public/templates/webslinger/ (pack.json + PNGs)
 ```
+
+**Template packs.** Art that belongs to one template lives under `scripts/art/packs/<name>/` and renders into that
+template's folder as `pack.json` (same shape as the starter manifest: `files`, `assets`, `characters`, `tilesets`).
+The editor loads the pack when the template is created (`templates.ts` → `pack`), and the template generator reads
+the characters and tilesets from it. The starter manifest is not touched, so CI's "starter assets are up to date"
+check does not cover packs: PNG bytes differ slightly between Chromium builds, which is why template-only art goes
+into a pack rather than the starter set. A character module may export an **array** of definitions that share one
+drawing code (see `packs/webslinger/characters/thugs.mjs`).
 
 ## Beze Character Sheet v2
 
@@ -30,8 +40,11 @@ node scripts/art/render.mjs --preview DIR   # also write 4x upscaled previews to
 
 - Frame index = row × 4 + column. `render.mjs` derives the `animations` table from this, so a
   module never writes frame numbers.
+- **Directional sets (optional).** A module may export `sets: [{ name: 'web', frames: 3, frameRate: 14, loop: false }]`.
+  Each set gets four rows after row 7 (down, left, right, up, like the standard rows; drawn with `f.anim === name`)
+  and the manifest gains `web_down` … `web_up`. The runtime plays `web_<facing>` when the web ability fires.
 - **Emote rows (optional).** A module may export `emotes: [{ name: 'celebrate', frames: 3, frameRate: 6,
-  loop: false }, ...]`. Each emote gets one extra row after row 7 (up to 4 frames, drawn with
+  loop: false }, ...]`. Each emote gets one extra row after the sets (up to 4 frames, drawn with
   `f.anim === name`, `f.dir === 'down'`), and the manifest gains an animation with that name, playable
   through the `playAnimation` action. Typical names: `celebrate`, `map`, `point`, `phone`, `interact`.
 - Feet must touch the bottom of the frame; the collider describes the feet footprint.
@@ -82,7 +95,9 @@ export default {
 ```
 
 Tags are free text but `grass`, `path`, `tree`, `water` must exist (the golden fixture and the
-AI prompts use them). Solid tiles become collision when the editor paints with auto-collision.
+AI prompts use them). Solid tiles become collision when the editor paints with auto-collision; a tile with
+`solid: true, climbable: true` (walls, roof ledges) becomes collision value 2, which only a player with
+`playerControl.climb` can walk over.
 
 ### Stamps (multi-tile objects)
 

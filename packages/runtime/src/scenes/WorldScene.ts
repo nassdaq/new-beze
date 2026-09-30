@@ -10,8 +10,17 @@ import { SmoothCamera } from '../systems/camera.js';
 import { updateEnemy } from '../systems/enemy.js';
 import { updateWander } from '../systems/wander.js';
 import { CombatSystem } from '../systems/combat.js';
-import { Hud } from '../systems/hud.js';
+import { WebSystem } from '../systems/web.js';
+import { Lighting } from '../systems/lighting.js';
+import { Ambient } from '../systems/ambient.js';
+import { buildTagIndex } from '../world/tags.js';
+import { drawBuildingShadows } from '../world/shadows.js';
+import { clockHour } from '../systems/atmosphere.js';
 import { Effects } from '../systems/effects.js';
+import { drawPanel, keycap, TEXT, UI, UI_SCALE } from '../ui/theme.js';
+import { AudioSystem, audioKey } from '../audio/AudioSystem.js';
+import type { Mood } from '../audio/music.js';
+import { atmosphereAt } from '../systems/atmosphere.js';
 import { HealthBars } from '../systems/healthBar.js';
 import { updateBreathing } from '../systems/idle.js';
 import { playIdle } from '../systems/animation.js';
@@ -19,7 +28,7 @@ import { evaluateCondition } from '../dialogue/interpreter.js';
 import { setVariable } from '../state/GameState.js';
 import { advanceClock, buyProperty, formatDelta, formatMoney, variableLabel } from '../systems/economy.js';
 import { completeQuestStep, startQuest, tickQuests, type QuestEvent } from '../systems/quests.js';
-import type { HudScene, NotifyKind } from './HudScene.js';
+import type { CardKind, HudScene, NotifyKind } from './HudScene.js';
 import type { MarkerEntry } from './MapScene.js';
 import type { ShopInit } from './ShopScene.js';
 
@@ -30,6 +39,14 @@ export interface WorldInit {
 
 const INTERACT_CODES = { E: Phaser.Input.Keyboard.KeyCodes.E, SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE, ENTER: Phaser.Input.Keyboard.KeyCodes.ENTER } as const;
 const ATTACK_CODES = { SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE, X: Phaser.Input.Keyboard.KeyCodes.X, J: Phaser.Input.Keyboard.KeyCodes.J, K: Phaser.Input.Keyboard.KeyCodes.K } as const;
+const ABILITY_CODES = {
+  X: Phaser.Input.Keyboard.KeyCodes.X, C: Phaser.Input.Keyboard.KeyCodes.C, F: Phaser.Input.Keyboard.KeyCodes.F, Q: Phaser.Input.Keyboard.KeyCodes.Q,
+  Z: Phaser.Input.Keyboard.KeyCodes.Z, J: Phaser.Input.Keyboard.KeyCodes.J, K: Phaser.Input.Keyboard.KeyCodes.K,
+} as const;
+/** Dust puffs this often while zipping along a web line. */
+const ZIP_DUST_MS = 60;
+/** Combat intensity for the music is re-evaluated this often. */
+const INTENSITY_MS = 400;
 const DIR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] } as const;
 /** Interval between dust puffs while running. */
 const DUST_MS = 250;
@@ -55,9 +72,19 @@ export class WorldScene extends Phaser.Scene {
   private virtual!: VirtualInput;
   private unsubscribePress: (() => void) | null = null;
   private interactKey!: Phaser.Input.Keyboard.Key;
-  private prompt!: Phaser.GameObjects.Text;
+  /** Interaction prompt: a keycap and a label, drawn in screen space over the target. */
+  private prompt!: Phaser.GameObjects.Container;
+  private promptLabel!: Phaser.GameObjects.Text;
+  private promptCap!: Phaser.GameObjects.Container;
+  private promptText = '';
+  /** True while the camera fades out towards another scene; input is ignored. */
+  private leaving = false;
+  private audio: AudioSystem | null = null;
+  private nextIntensityAt = 0;
   private combat!: CombatSystem;
-  private hearts!: Hud;
+  private web!: WebSystem;
+  private lighting!: Lighting;
+  private ambient!: Ambient;
   private effects!: Effects;
   private healthBars!: HealthBars;
   private camera: SmoothCamera | null = null;
@@ -91,6 +118,7 @@ export class WorldScene extends Phaser.Scene {
     this.nextConditionCheckAt = 0;
     this.overlay = null;
     this.camera = null;
+    this.leaving = false;
     this.bySprite = new Map();
     this.registry.set('spawn', data.spawn ?? null);
   }
@@ -99,7 +127,20 @@ export class WorldScene extends Phaser.Scene {
     const ctx = ctxOf(this);
     const { project, state } = ctx;
     const scene = this.sceneData;
-    this.cameras.main.setBackgroundColor(project.settings.backgroundColor);
+    const cam = this.cameras.main;
+    this.audio = AudioSystem.of(this);
+    this.nextIntensityAt = 0;
+    this.startMusic();
+    cam.setBackgroundColor(project.settings.backgroundColor);
+    // The canvas is UI_SCALE× the viewport; the world zooms to match, so a tile still covers the same screen area.
+    cam.setZoom(UI_SCALE);
+    this.anims.globalTimeScale = 1;
+    const presentation = project.settings.presentation;
+    if (this.sys.game.renderer.type === Phaser.WEBGL && ctx.quality !== 'low') {
+      if (presentation?.vignette !== false) cam.postFX.addVignette(0.5, 0.5, 0.92, 0.32);
+      if (presentation?.bloom !== false) cam.postFX.addBloom(0xffffff, 1, 1, 1, 0.3, 3);
+    }
+    this.lighting = new Lighting(this, project, ctx.quality);
 
     if (scene.backgroundAssetId && this.textures.exists(KEYS.image(scene.backgroundAssetId))) {
       this.add.image(0, 0, KEYS.image(scene.backgroundAssetId)).setOrigin(0, 0).setDepth(-1);
@@ -109,6 +150,14 @@ export class WorldScene extends Phaser.Scene {
     if (map) {
       this.built = buildTilemap(this, project, map);
       this.physics.world.setBounds(0, 0, this.built.widthPx, this.built.heightPx);
+      this.lighting.attachMap(this.built);
+    }
+    const tagIndex = map ? buildTagIndex(project, map) : null;
+    if (map && tagIndex) {
+      this.lighting.addLampsFromMap(map, tagIndex);
+      // Drop shadows under walls and roofs: above every ground layer (depth < 10), below the entities (depth = y).
+      const shadows = this.add.graphics().setDepth(9);
+      drawBuildingShadows(shadows, map, tagIndex);
     }
 
     for (const id of scene.entityOrder) {
@@ -126,6 +175,9 @@ export class WorldScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.effects.dispose());
     this.healthBars = new HealthBars(this);
     this.combat = new CombatSystem(this, this.effects, {
+      sound: (name) => this.audio?.sfx(name),
+      onFinisher: (defeated) => { this.cameras.main.shake(90, 0.003); if (defeated) this.effects.slowMo(340, 0.3); },
+      onEnrage: (e) => { this.notify(`${e.entity.name} is furious!`, 'warning'); this.cameras.main.shake(160, 0.003); },
       onPlayerHurt: () => {
         this.cameras.main.shake(120, 0.004);
         this.effects.hurtFlash();
@@ -137,7 +189,23 @@ export class WorldScene extends Phaser.Scene {
       },
       onPlayerDefeated: () => this.showGameOver(),
     });
-    this.hearts = new Hud(this, project.settings.economy ? 24 : 4);
+    this.web = new WebSystem(this, this.effects, this.combat, {
+      sound: (name) => this.audio?.sfx(name),
+      onZip: () => this.effects.zoomPulse(0.03, 110),
+      onFizzle: () => { /* the line itself shows the miss */ },
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.web.dispose());
+    this.ambient = new Ambient(this, project, map ?? null, tagIndex, this.lighting, ctx.quality, () => { this.audio?.sfx('thunder'); this.cameras.main.shake(200, 0.002); });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.ambient.dispose());
+    if (this.player?.sprite && this.ambient.solids.length) this.physics.add.collider(this.player.sprite, this.ambient.solids);
+    for (const e of this.entities) {
+      this.lighting.attach(e.sprite);
+      this.lighting.attach(e.visual);
+      if (e.light) {
+        const c = this.centerOf(e, project.settings.tileSize);
+        this.lighting.add(c.x, c.y - (e.character ? e.character.frameHeight * 0.4 : 0), e.light.radius, e.light.color, e.light.intensity, e.light.night, e.light.flicker);
+      }
+    }
 
     const spawn = this.registry.get('spawn') as WorldInit['spawn'] | null;
     if (this.player?.sprite && spawn) {
@@ -151,7 +219,9 @@ export class WorldScene extends Phaser.Scene {
         const e = this.bySprite.get(other as Phaser.GameObjects.GameObject);
         if (e?.enemy && this.player) this.combat.enemyTouch(e, this.player, this.time.now);
       });
-      if (this.built?.collision) this.physics.add.collider(this.player.sprite, this.built.collision);
+      // A climbing player walks over climbable cells (roofs, walls); everyone else treats them as solid.
+      const playerCollision = this.player.climb && this.built?.climberCollision ? this.built.climberCollision : this.built?.collision;
+      if (playerCollision) this.physics.add.collider(this.player.sprite, playerCollision);
       for (const e of this.entities) {
         if (e.trigger) {
           const key = `${scene.id}:${e.entity.id}`;
@@ -176,6 +246,10 @@ export class WorldScene extends Phaser.Scene {
     this.interactKey.on('down', (_key: Phaser.Input.Keyboard.Key, event: KeyboardEvent) => { if (!event.repeat) this.interact(); });
     const attackKey = keyboard.addKey(ATTACK_CODES[project.settings.attackKey]);
     attackKey.on('down', (_key: Phaser.Input.Keyboard.Key, event: KeyboardEvent) => { if (!event.repeat) this.attack(); });
+    if (this.player?.ability) {
+      const abilityKey = keyboard.addKey(ABILITY_CODES[project.settings.abilityKey ?? 'X']);
+      abilityKey.on('down', (_key: Phaser.Input.Keyboard.Key, event: KeyboardEvent) => { if (!event.repeat) this.useAbility(); });
+    }
     const K = Phaser.Input.Keyboard.KeyCodes;
     keyboard.on('keydown-M', (event: KeyboardEvent) => { if (!event.repeat) this.openOverlay(SCENE_KEYS.map); });
     keyboard.on('keydown-I', (event: KeyboardEvent) => { if (!event.repeat) this.openOverlay(SCENE_KEYS.inventory); });
@@ -188,9 +262,14 @@ export class WorldScene extends Phaser.Scene {
     const height = this.built?.heightPx ?? project.settings.viewport.height;
     this.camera = new SmoothCamera(this, this.cameras.main, this.player, width, height);
 
-    this.prompt = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '10px', color: '#ffffff', backgroundColor: '#000000aa', padding: { x: 3, y: 1 } })
-      .setDepth(20_000).setVisible(false);
+    // The prompt (keycap + label) lives in world space over the target, drawn at 1/zoom so its text stays crisp.
+    const promptBack = this.add.graphics();
+    this.promptCap = keycap(this, 0, 0, project.settings.interactKey === 'SPACE' ? 'SPACE' : project.settings.interactKey, 22);
+    this.promptLabel = this.add.text(0, 0, '', { ...TEXT.bold, fontSize: '15px', resolution: UI_SCALE }).setOrigin(0, 0.5);
+    this.prompt = this.add.container(0, 0, [promptBack, this.promptCap, this.promptLabel]).setScale(1 / UI_SCALE).setDepth(20_000).setVisible(false);
+    this.prompt.setData('back', promptBack);
 
+    cam.fadeIn(380, 5, 6, 12);
     ctx.emit({ type: 'sceneChanged', sceneId: scene.id });
   }
 
@@ -198,6 +277,7 @@ export class WorldScene extends Phaser.Scene {
   private register(spawned: SpawnedEntity): SpawnedEntity {
     this.entities.push(spawned);
     if (spawned.sprite) this.bySprite.set(spawned.sprite, spawned);
+    if (this.lighting) { this.lighting.attach(spawned.sprite); this.lighting.attach(spawned.visual); }
     if (!spawned.isPlayer && spawned.sprite) {
       if (spawned.sprite.body?.enable) this.solids.push(spawned.sprite);
       if (spawned.wander || spawned.enemy) this.movers.push(spawned.sprite);
@@ -216,33 +296,71 @@ export class WorldScene extends Phaser.Scene {
     }
     if (this.player) {
       const runMultiplier = ctx.project.settings.runSpeedMultiplier ?? DEFAULT_RUN_MULTIPLIER;
-      const running = updatePlayer(this.player, readMove(this.keys, this.virtual), this.dialogueActive || this.gameOver, now, runMultiplier);
-      if (running && now >= this.nextDustAt && this.player.sprite?.body) {
+      const running = updatePlayer(this.player, readMove(this.keys, this.virtual), this.dialogueActive || this.gameOver, now, runMultiplier, this.player.climb && this.cellUnderPlayer() === 2);
+      const zipping = now < this.player.zipUntil;
+      if ((running || zipping) && now >= this.nextDustAt && this.player.sprite?.body) {
         const body = this.player.sprite.body as Phaser.Physics.Arcade.Body;
         const [dx, dy] = DIR[this.player.facing];
         this.effects.dust(body.center.x - dx * body.width * 0.5, body.bottom - 2 - dy * body.height * 0.5, this.player.facing);
-        this.nextDustAt = now + DUST_MS;
+        this.nextDustAt = now + (zipping ? ZIP_DUST_MS : DUST_MS);
       }
+      if (this.player.senseRadius > 0) this.checkSense(now);
     }
+    this.web.update(now);
     for (const e of this.entities) updateBreathing(e, now);
     this.healthBars.update(this.entities);
+    const hour = clockHour(ctx.project, ctx.state.clock.elapsedMs);
+    this.lighting.update(now, hour, this.ambient.rainy ? 0.3 : 0);
+    this.ambient.update(now, delta, (this.player?.sprite?.body as Phaser.Physics.Arcade.Body | undefined) ?? null, hour);
     if (!this.gameOver) this.tickWorld(delta, now);
     if (!this.player) return;
-    this.hearts.update(this.player);
-    if (this.dialogueActive || this.gameOver) {
+    if (this.dialogueActive || this.gameOver || this.leaving) {
       this.prompt.setVisible(false);
       return;
     }
     const target = findInteractable(this.player, this.entities, ctx.project.settings.tileSize);
     if (target) {
-      this.prompt.setText(this.promptFor(target));
+      const text = this.promptFor(target);
+      if (text !== this.promptText) {
+        this.promptText = text;
+        this.promptLabel.setText(text).setPosition(18, 0);
+        const back = this.prompt.getData('back') as Phaser.GameObjects.Graphics;
+        const w = this.promptLabel.width + 52;
+        back.clear();
+        drawPanel(back, -22, -17, w, 34, { radius: 17, alpha: 0.86 });
+        this.prompt.setSize(w, 34);
+      }
       const anchorX = target.sprite ? target.sprite.x + (target.character?.frameWidth ?? 32) / 2 : target.entity.x + ctx.project.settings.tileSize / 2;
-      const anchorY = target.sprite ? spriteTop(target) - 12 : target.entity.y - 12;
-      this.prompt.setPosition(Math.round(anchorX - this.prompt.width / 2), Math.round(anchorY));
+      const anchorY = target.sprite ? spriteTop(target) - 10 : target.entity.y - 10;
+      this.prompt.setPosition(Math.round(anchorX - (this.prompt.width / 2 - 22) / UI_SCALE), Math.round(anchorY - 10));
       this.prompt.setVisible(true);
     } else {
       this.prompt.setVisible(false);
     }
+  }
+
+  /** Collision value of the cell under the player's body centre (0 walkable, 1 solid, 2 climbable), or 0 without a map. */
+  cellUnderPlayer(): number {
+    const map = this.currentMap();
+    const body = this.player?.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    if (!map || !body) return 0;
+    const x = Math.floor(body.center.x / map.tileWidth);
+    const y = Math.floor(body.center.y / map.tileHeight);
+    if (x < 0 || y < 0 || x >= map.width || y >= map.height) return 0;
+    return map.collision[y * map.width + x] ?? 0;
+  }
+
+  /** The player's hearts for the HUD, or null when the player has no health. */
+  playerHealth(): { current: number; max: number } | null {
+    const h = this.player?.health;
+    return h ? { current: h.current, max: h.max } : null;
+  }
+
+  /** Ability cooldown for the HUD chip, or null when the player has no ability. */
+  abilityStatus(): { left: number; total: number } | null {
+    const ability = this.player?.ability;
+    if (!ability || !this.web) return null;
+    return { left: this.web.cooldownLeft(this.time.now), total: ability.cooldownMs };
   }
 
   /** The day clock, property income, quest conditions and timers, locks and marker discovery. */
@@ -259,6 +377,52 @@ export class WorldScene extends Phaser.Scene {
       this.checkConditions();
     }
     this.checkDiscovery();
+    if (now >= this.nextIntensityAt) {
+      this.nextIntensityAt = now + INTENSITY_MS;
+      this.updateMusicMood();
+    }
+  }
+
+  /** The scene's music: its own setting, else the project's, `auto` meaning city by day and night music after dark. */
+  private startMusic(): void {
+    const audio = this.audio;
+    if (!audio) return;
+    const { project } = ctxOf(this);
+    const scene = this.sceneData;
+    const trackId = scene.musicAssetId ?? (scene.music ? undefined : project.settings.audio?.musicAssetId);
+    if (trackId) { audio.playTrack(audioKey(trackId)); return; }
+    const mood = this.currentMood();
+    if (mood === 'none') audio.stopMusic();
+    else audio.playMood(mood);
+  }
+
+  private currentMood(): Mood | 'none' {
+    const { project, state } = ctxOf(this);
+    const own = this.sceneData.music ?? project.settings.audio?.music ?? 'auto';
+    if (own !== 'auto') return own;
+    const hour = clockHour(project, state.clock.elapsedMs);
+    const night = hour !== null && atmosphereAt(hour).night > 0.6;
+    return project.settings.economy ? (night ? 'night' : 'city') : 'calm';
+  }
+
+  /** Combat brings the music's intense layers in: enemies awake and near the player. */
+  private updateMusicMood(): void {
+    const audio = this.audio;
+    if (!audio) return;
+    if (!this.sceneData.musicAssetId && !(this.sceneData.music === undefined && ctxOf(this).project.settings.audio?.musicAssetId)) {
+      const mood = this.currentMood();
+      if (mood !== 'none') audio.playMood(mood);
+    }
+    const body = this.player?.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    let near = 0;
+    if (body) {
+      for (const e of this.entities) {
+        if (!e.enemy || e.defeated || !e.sprite?.body || this.time.now < e.stunnedUntil) continue;
+        const eb = e.sprite.body as Phaser.Physics.Arcade.Body;
+        if (Math.hypot(eb.center.x - body.center.x, eb.center.y - body.center.y) <= e.enemy.aggroRadius * 1.1) near++;
+      }
+    }
+    audio.setIntensity(this.gameOver ? 0 : Math.min(1, near * 0.5));
   }
 
   /** Runs after any variable change and on the 250 ms cadence: quest steps, timers and locks. */
@@ -291,7 +455,7 @@ export class WorldScene extends Phaser.Scene {
       const xp = e.marker.discoverXp;
       const xpVar = project.settings.economy?.xpVariableId;
       if (xp > 0 && xpVar) setVariable(state, xpVar, 'add', xp);
-      this.notify(`Discovered: ${e.marker.label}${xp > 0 && xpVar ? `  +${xp} XP` : ''}`, xp > 0 ? 'reward' : 'info');
+      this.card('location', e.marker.label, xp > 0 && xpVar ? `+${xp} XP` : '');
       this.effects.sparks(c.x, c.y - T / 2, 0, 0, [0xcfe3ff, 0xffffff, 0x6fc3ff]);
       this.onVariablesChanged();
     }
@@ -319,7 +483,7 @@ export class WorldScene extends Phaser.Scene {
 
   /** The interact key: the thing in front of the player, or dismounting when there is nothing. */
   private interact(): void {
-    if (this.dialogueActive || this.overlay || this.gameOver || !this.player) return;
+    if (this.dialogueActive || this.overlay || this.gameOver || this.leaving || !this.player) return;
     const ctx = ctxOf(this);
     const target = findInteractable(this.player, this.entities, ctx.project.settings.tileSize);
     if (!target) {
@@ -333,9 +497,31 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private attack(): void {
-    if (this.dialogueActive || this.overlay || !this.player) return;
+    if (this.dialogueActive || this.overlay || this.leaving || !this.player) return;
     if (this.gameOver) { this.retry(); return; }
     this.combat.swing(this.player, this.entities, this.time.now, ctxOf(this).project.settings.tileSize);
+  }
+
+  /** The ability key: the player's special move (the web line). */
+  private useAbility(): void {
+    if (this.dialogueActive || this.overlay || this.gameOver || this.leaving || !this.player?.ability) return;
+    this.web.fire(this.player, this.player.ability, this.entities, this.currentMap(), this.time.now);
+  }
+
+  /** Danger sense: the first frame an enemy within range winds up an attack, arcs flash over the player's head. */
+  private checkSense(now: number): void {
+    const player = this.player;
+    const body = player?.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    if (!player || !body) return;
+    for (const e of this.entities) {
+      const en = e.enemy;
+      if (!en || e.defeated || en.phase !== 'windup' || en.sensed || !e.sprite?.body || now < e.stunnedUntil) continue;
+      const eb = e.sprite.body as Phaser.Physics.Arcade.Body;
+      if (Math.hypot(eb.center.x - body.center.x, eb.center.y - body.center.y) > player.senseRadius) continue;
+      en.sensed = true;
+      this.audio?.sfx('sense');
+      this.effects.sense(body.center.x, spriteTop(player) - 4);
+    }
   }
 
   private onVirtualPress(b: Button): void {
@@ -343,6 +529,7 @@ export class WorldScene extends Phaser.Scene {
     switch (b) {
       case 'interact': this.interact(); break;
       case 'attack': this.attack(); break;
+      case 'ability': this.useAbility(); break;
       case 'map': this.openOverlay(SCENE_KEYS.map); break;
       case 'inventory': this.openOverlay(SCENE_KEYS.inventory); break;
       case 'pause': this.openOverlay(SCENE_KEYS.pause); break;
@@ -359,6 +546,7 @@ export class WorldScene extends Phaser.Scene {
     const money = (n: number) => formatMoney(n, economy.currencyPrefix);
     const r = buyProperty(state, economy, property);
     if (r.ok) {
+      this.audio?.sfx('buy');
       this.notify(`Bought ${property.name}! ${formatDelta(property.incomePerDay, economy.currencyPrefix)}/day`, 'reward');
       const c = this.centerOf(e, project.settings.tileSize);
       this.effects.sparks(c.x, c.y - 8, 0, 0, GOLD_TINTS);
@@ -368,6 +556,7 @@ export class WorldScene extends Phaser.Scene {
     } else if (r.reason === 'owned') {
       this.notify(`${property.name} is yours · +${money(property.incomePerDay)}/day`, 'info');
     } else {
+      this.audio?.sfx('deny');
       this.notify(`Need ${money(r.short)} more for ${property.name}`, 'warning');
     }
   }
@@ -384,6 +573,7 @@ export class WorldScene extends Phaser.Scene {
     const isMoney = economy && pickup.variableId === economy.moneyVariableId;
     const c = this.centerOf(e, project.settings.tileSize);
     this.effects.sparks(c.x, c.y - 6, 0, 0, isMoney ? GOLD_TINTS : [0xffffff, 0xcfe3ff, 0xf6d365]);
+    this.audio?.sfx(isMoney ? 'coin' : 'pickup');
     if (isMoney) this.notify(formatDelta(pickup.amount, economy.currencyPrefix), 'reward');
     else this.notify(`${pickup.amount >= 0 ? '+' : ''}${pickup.amount} ${variableLabel(project, pickup.variableId)}`, 'reward');
     this.despawn(e);
@@ -398,6 +588,7 @@ export class WorldScene extends Phaser.Scene {
     const flash = this.add.rectangle(c.x, c.y, T, T, 0xffffff, 0.9).setDepth(15_000);
     this.tweens.add({ targets: flash, alpha: 0, scaleX: 1.6, scaleY: 1.6, duration: 320, ease: 'Cubic.easeOut', onComplete: () => flash.destroy() });
     this.notify(`Unlocked: ${e.entity.name}`, 'reward');
+    this.audio?.sfx('unlock');
     this.despawn(e);
   }
 
@@ -428,17 +619,24 @@ export class WorldScene extends Phaser.Scene {
     hud?.notify(text, kind);
   }
 
+  /** A centred letterboxed card on the HUD (missions, discoveries, level-ups). */
+  card(kind: CardKind, title: string, subtitle = ''): void {
+    const hud = this.scene.get(SCENE_KEYS.hud) as HudScene | null;
+    hud?.card(kind, title, subtitle);
+  }
+
   private handleQuestEvents(events: QuestEvent[]): void {
     for (const ev of events) {
       switch (ev.type) {
-        case 'started': this.notify(`New mission: ${ev.quest.name}`, 'info'); break;
+        case 'started': this.card('mission', ev.quest.name, ev.quest.steps[0]?.text ?? ''); break;
         case 'advanced': this.notify(`${ev.quest.name}: ${ev.quest.steps[ev.stepIndex]?.text ?? ''}`, 'info'); break;
         case 'completed':
-          this.notify(`Mission complete: ${ev.quest.name}`, 'reward');
+          this.card('complete', ev.quest.name);
+          this.effects.zoomPulse(0.03, 160);
           for (const a of ev.actions) this.runAction(a);
           break;
         case 'failed':
-          this.notify(`Mission failed: ${ev.quest.name}`, 'warning');
+          this.card('failed', ev.quest.name);
           for (const a of ev.actions) this.runAction(a);
           break;
       }
@@ -455,11 +653,19 @@ export class WorldScene extends Phaser.Scene {
         this.scene.launch(SCENE_KEYS.dialogue, { dialogueId: action.dialogueId });
         break;
       }
-      case 'changeScene':
-        if (!ctx.project.scenes[action.sceneId]) return;
+      case 'changeScene': {
+        if (!ctx.project.scenes[action.sceneId] || this.leaving) return;
+        this.leaving = true;
         this.scene.stop(SCENE_KEYS.dialogue);
-        this.scene.restart({ sceneId: action.sceneId, spawn: action.spawn } satisfies WorldInit);
+        this.player?.sprite?.setVelocity(0, 0);
+        this.audio?.sfx('door');
+        const cam = this.cameras.main;
+        cam.fadeOut(240, 5, 6, 12);
+        cam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+          this.scene.restart({ sceneId: action.sceneId, spawn: action.spawn } satisfies WorldInit);
+        });
         break;
+      }
       case 'setVariable':
         setVariable(ctx.state, action.variableId, action.op, action.value);
         this.onVariablesChanged();
@@ -507,6 +713,7 @@ export class WorldScene extends Phaser.Scene {
   private despawn(e: SpawnedEntity): void {
     this.entities = this.entities.filter((x) => x !== e);
     this.healthBars.remove(e);
+    this.web.release(e);
     if (e.sprite) {
       this.bySprite.delete(e.sprite);
       this.solids = this.solids.filter((s) => s !== e.sprite);
@@ -570,18 +777,29 @@ export class WorldScene extends Phaser.Scene {
     this.register(mount);
   }
 
+  /** Defeat: the world slows and drains of colour; the HUD shows the card with the retry key. */
   private showGameOver(): void {
     this.gameOver = true;
-    const { width, height } = this.scale;
-    const shade = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setScrollFactor(0).setDepth(25_000).setAlpha(0);
-    const text = this.add.text(width / 2, height / 2 + 6, 'You were defeated.\nPress the attack key to try again.', { fontFamily: 'sans-serif', fontSize: '14px', color: '#ffffff', align: 'center' })
-      .setOrigin(0.5).setScrollFactor(0).setDepth(25_001).setAlpha(0);
-    this.tweens.add({ targets: shade, alpha: 1, duration: 500, ease: 'Quad.easeOut' });
-    this.tweens.add({ targets: text, alpha: 1, y: height / 2, duration: 500, delay: 250, ease: 'Quad.easeOut' });
+    const cam = this.cameras.main;
+    this.audio?.sfx('game_over');
+    this.audio?.setIntensity(0);
+    this.audio?.duck(0.7);
+    this.physics.world.timeScale = 2.6;
+    this.anims.globalTimeScale = 0.4;
+    if (this.sys.game.renderer.type === Phaser.WEBGL && ctxOf(this).quality !== 'low') {
+      const matrix = cam.postFX.addColorMatrix();
+      const fade = { k: 0 };
+      this.tweens.add({ targets: fade, k: 1, duration: 900, onUpdate: () => { matrix.saturate(-fade.k); matrix.brightness(1 - fade.k * 0.35, true); } });
+    }
+    (this.scene.get(SCENE_KEYS.hud) as HudScene | null)?.showGameOver(ctxOf(this).project.settings.attackKey);
   }
 
   private retry(): void {
     // Enemies already defeated stay defeated; the player respawns at the scene's own spawn.
+    (this.scene.get(SCENE_KEYS.hud) as HudScene | null)?.hideGameOver();
+    this.audio?.duck(0);
+    this.physics.world.timeScale = 1;
+    this.anims.globalTimeScale = 1;
     this.scene.restart({ sceneId: this.sceneData.id } satisfies WorldInit);
   }
 

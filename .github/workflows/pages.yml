@@ -1,0 +1,40 @@
+name: Deploy editor to GitHub Pages
+
+# Builds the runtime bundle and the editor under the repository sub-path and publishes apps/editor/dist to the
+# gh-pages branch, which GitHub Pages serves at https://nassdaq.github.io/new-beze/. The Ask panel needs the
+# Python service and is not available on Pages; everything else (editor, templates, Play, export) is client-side.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+        env:
+          BASE_PATH: /new-beze/
+      - name: SPA fallback and no Jekyll
+        run: cp apps/editor/dist/index.html apps/editor/dist/404.html && touch apps/editor/dist/.nojekyll
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: apps/editor/dist
+          force_orphan: true

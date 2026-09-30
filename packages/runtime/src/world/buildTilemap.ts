@@ -6,6 +6,8 @@ export interface BuiltMap {
   map: Phaser.Tilemaps.Tilemap;
   layers: Phaser.Tilemaps.TilemapLayer[];
   collision: Phaser.Tilemaps.TilemapLayer | null;
+  /** v4: what a climbing player collides with: solid cells (1) only, climbable cells (2) are open. Null when the map has none. */
+  climberCollision: Phaser.Tilemaps.TilemapLayer | null;
   widthPx: number;
   heightPx: number;
 }
@@ -40,23 +42,29 @@ export function buildTilemap(scene: Phaser.Scene, project: Project, data: TileMa
     layers.push(layer);
   });
 
-  // Collision: an invisible layer with a tile wherever the grid says solid.
+  // Collision: an invisible layer with a tile wherever the grid says solid (1) or climbable (2); climbers get a
+  // second one that leaves the climbable cells open.
   let collision: Phaser.Tilemaps.TilemapLayer | null = null;
+  let climberCollision: Phaser.Tilemaps.TilemapLayer | null = null;
   const first = data.tilesets[0];
   if (first && tilesets.length > 0) {
-    collision = map.createBlankLayer('__collision', tilesets);
-    if (collision) {
+    const build = (name: string, solid: (v: number) => boolean): Phaser.Tilemaps.TilemapLayer | null => {
+      const layer = map.createBlankLayer(name, tilesets);
+      if (!layer) return null;
       const rows: number[][] = [];
       for (let y = 0; y < data.height; y++) {
         const row: number[] = [];
-        for (let x = 0; x < data.width; x++) row.push(data.collision[y * data.width + x] === 1 ? first.firstGid : -1);
+        for (let x = 0; x < data.width; x++) row.push(solid(data.collision[y * data.width + x] ?? 0) ? first.firstGid : -1);
         rows.push(row);
       }
-      collision.putTilesAt(rows, 0, 0);
-      collision.setCollisionByExclusion([-1]);
-      collision.setVisible(false);
-    }
+      layer.putTilesAt(rows, 0, 0);
+      layer.setCollisionByExclusion([-1]);
+      layer.setVisible(false);
+      return layer;
+    };
+    collision = build('__collision', (v) => v === 1 || v === 2);
+    if (data.collision.some((v) => v === 2)) climberCollision = build('__collision_climb', (v) => v === 1);
   }
 
-  return { map, layers, collision, widthPx: data.width * data.tileWidth, heightPx: data.height * data.tileHeight };
+  return { map, layers, collision, climberCollision, widthPx: data.width * data.tileWidth, heightPx: data.height * data.tileHeight };
 }

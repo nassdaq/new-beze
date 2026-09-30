@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SCHEMA_VERSION = 3 as const;
+export const SCHEMA_VERSION = 4 as const;
 
 /** Opaque id: a three-letter type prefix, an underscore, then up to 40 url-safe characters. */
 export const IdSchema = z.string().regex(/^[a-z]{3}_[A-Za-z0-9_-]{1,40}$/, 'invalid id');
@@ -39,6 +39,51 @@ export const ProjectSettingsSchema = z.object({
   attackKey: z.enum(['SPACE', 'X', 'J', 'K']),
   /** Speed factor while the run key (Shift) is held. Default 1.7 when absent. */
   runSpeedMultiplier: z.number().min(1).max(4).optional(),
+  /** v4: the key for the player's special ability (`playerControl.ability`). Default X. Must differ from the other keys. */
+  abilityKey: z.enum(['X', 'C', 'F', 'Q', 'Z', 'J', 'K']).optional(),
+  /**
+   * v4: how the game looks and opens. Every field is optional and defaults to the cinematic look: a title screen,
+   * 2D lighting with a day/night cycle driven by the world clock, bloom and a vignette. `lampTags` are tile tags
+   * (prefix match) that shine at night; `dayLengthMs` is used when there is no economy clock.
+   */
+  presentation: z.object({
+    titleScreen: z.boolean().optional(),
+    /** A backdrop image for the title screen (a scene background asset, a Pixabay skyline...). */
+    titleBackgroundAssetId: IdSchema.optional(),
+    tagline: z.string().max(120).optional(),
+    lighting: z.boolean().optional(),
+    dayNight: z.boolean().optional(),
+    dayLengthMs: PosInt.min(5000).max(3_600_000).optional(),
+    /** Hour of the day (0-23) the game opens at. Default 6 (dawn). */
+    startHour: Int.min(0).max(23).optional(),
+    bloom: z.boolean().optional(),
+    vignette: z.boolean().optional(),
+    lampTags: z.array(z.string().max(60)).max(20).optional(),
+  }).optional(),
+  /**
+   * v4: life in the world, all derived from the map's tile tags. Traffic drives along road tiles, pedestrians (the
+   * listed characters) pace the sidewalks, birds cross the sky, steam rises from `steamTags` tiles, fireflies drift
+   * over grass at night; `weather: 'rain'` adds rain and a darker sky. Everything defaults to on except pedestrians,
+   * which need characters.
+   */
+  ambient: z.object({
+    traffic: z.boolean().optional(),
+    pedestrians: z.array(IdSchema).max(12).optional(),
+    birds: z.boolean().optional(),
+    fireflies: z.boolean().optional(),
+    weather: z.enum(['clear', 'rain']).optional(),
+    steamTags: z.array(z.string().max(60)).max(20).optional(),
+  }).optional(),
+  /**
+   * v4: sound. Music is generated in-engine by mood (`auto` picks city with an economy, calm without) unless an
+   * uploaded track (`musicAssetId`) replaces it; scenes can override both. Sound effects are always synthesized.
+   */
+  audio: z.object({
+    music: z.enum(['auto', 'city', 'calm', 'tense', 'title', 'night', 'none']).optional(),
+    musicAssetId: IdSchema.optional(),
+    musicVolume: z.number().min(0).max(1).optional(),
+    sfxVolume: z.number().min(0).max(1).optional(),
+  }).optional(),
   backgroundColor: Color,
   /** v3: turns on money, XP/level, the day clock and the HUD. Absent = plain adventure. */
   economy: z.object({
@@ -71,6 +116,8 @@ export type Asset = z.infer<typeof AssetSchema>;
 export const TilePropertiesSchema = z.object({
   solid: z.boolean().optional(),
   tag: z.string().max(60).optional(),
+  /** v4: a solid tile a climbing player may walk on (walls, roofs). Auto-collision marks it 2 in the grid. */
+  climbable: z.boolean().optional(),
 });
 
 /**
@@ -122,8 +169,8 @@ export const TileMapSchema = z.object({
   tileHeight: PosInt,
   tilesets: z.array(z.object({ tilesetId: IdSchema, firstGid: PosInt })),
   layers: z.array(TileLayerSchema),
-  /** width*height, 0 = walkable, 1 = solid */
-  collision: z.array(z.union([z.literal(0), z.literal(1)])),
+  /** width*height, 0 = walkable, 1 = solid, 2 = climbable (v4: solid for everyone except a player with `climb`) */
+  collision: z.array(z.union([z.literal(0), z.literal(1), z.literal(2)])),
 });
 export type TileMap = z.infer<typeof TileMapSchema>;
 
@@ -189,6 +236,24 @@ export const ActionSchema: z.ZodType<Action> = z.lazy(() =>
   z.union([ActionBase, z.object({ type: z.literal('sequence'), actions: z.array(ActionSchema).max(50) })]),
 );
 
+/**
+ * v4: the player's special ability, fired with `settings.abilityKey`. `web` shoots a line in the facing direction up
+ * to `rangeTiles` tiles: the first enemy it reaches takes `damage` and is webbed (stunned) for `stunMs`; when it
+ * reaches a wall instead and `zip` is on, the player zips to the last free cell before it (or onto the wall when it is
+ * climbable and the player can climb). Hits on a webbed enemy deal double melee damage.
+ */
+export const AbilitySchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('web'),
+    rangeTiles: PosInt.max(16),
+    damage: NonNegInt.max(9999),
+    cooldownMs: PosInt.max(60000),
+    stunMs: NonNegInt.max(60000),
+    zip: z.boolean(),
+  }),
+]);
+export type Ability = z.infer<typeof AbilitySchema>;
+
 export const ComponentSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('sprite'), characterId: IdSchema }),
   z.object({ type: z.literal('body'), solid: z.boolean() }),
@@ -197,6 +262,12 @@ export const ComponentSchema = z.discriminatedUnion('type', [
     speed: z.number().positive().max(2000).optional(),
     /** Damage dealt by one attack swing. Default 1. */
     attackDamage: PosInt.max(9999).optional(),
+    /** v4: special ability on `settings.abilityKey`. */
+    ability: AbilitySchema.optional(),
+    /** v4: walks over climbable cells (collision value 2): walls and roofs. */
+    climb: z.boolean().optional(),
+    /** v4: danger sense. An enemy winding up an attack within this many px flashes a warning over the player. */
+    senseRadius: PosInt.max(4000).optional(),
   }),
   z.object({ type: z.literal('interactable'), action: ActionSchema, prompt: z.string().max(60).optional() }),
   z.object({ type: z.literal('trigger'), width: PosInt, height: PosInt, onEnter: ActionSchema, once: z.boolean() }),
@@ -226,6 +297,15 @@ export const ComponentSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('lock'), condition: ConditionSchema, lockedText: z.string().max(200) }),
   /** v3: shows on the map screen and names the place for discovery. */
   z.object({ type: z.literal('mapMarker'), label: Name, icon: z.enum(['shop', 'bank', 'food', 'bus', 'home', 'park', 'mission', 'market', 'place']).optional(), discoverXp: NonNegInt.optional() }),
+  /** v4: a point light (a lamp, a fire, a neon sign). `night` lights only shine when the day/night cycle is dark. */
+  z.object({
+    type: z.literal('light'),
+    color: Color,
+    radius: PosInt.max(2000),
+    intensity: z.number().min(0).max(10),
+    night: z.boolean().optional(),
+    flicker: z.boolean().optional(),
+  }),
   /** Chases the player within `aggroRadius` px and hurts on contact. Needs sprite + health. */
   z.object({
     type: z.literal('enemy'),
@@ -237,7 +317,7 @@ export const ComponentSchema = z.discriminatedUnion('type', [
   }),
 ]);
 export type Component = z.infer<typeof ComponentSchema>;
-export const ComponentTypeSchema = z.enum(['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy', 'property', 'shop', 'pickup', 'lock', 'mapMarker']);
+export const ComponentTypeSchema = z.enum(['sprite', 'body', 'playerControl', 'interactable', 'trigger', 'wander', 'health', 'enemy', 'property', 'shop', 'pickup', 'lock', 'mapMarker', 'light']);
 export type ComponentType = z.infer<typeof ComponentTypeSchema>;
 
 export const EntitySchema = z.object({
@@ -255,6 +335,9 @@ export const SceneSchema = z.object({
   name: Name,
   mapId: IdSchema.nullable(),
   backgroundAssetId: IdSchema.optional(),
+  /** v4: this scene's music: a generated mood, `none`, or (with musicAssetId) an uploaded track. */
+  music: z.enum(['city', 'calm', 'tense', 'title', 'night', 'none']).optional(),
+  musicAssetId: IdSchema.optional(),
   entities: z.record(IdSchema, EntitySchema),
   entityOrder: z.array(IdSchema),
 });

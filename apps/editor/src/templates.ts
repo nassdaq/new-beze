@@ -21,6 +21,13 @@ export const TEMPLATES: readonly GameTemplate[] = [
     description: 'A Tanzanian town: missions, money, properties.',
     project: '/templates/hacho/project.json',
   },
+  {
+    id: 'webslinger',
+    name: 'Webslinger',
+    description: 'A spider hero in the big city: web thugs, zip onto rooftops, save the day.',
+    project: '/templates/webslinger/project.json',
+    pack: '/templates/webslinger/pack.json',
+  },
 ];
 
 export function findTemplate(id: string): GameTemplate | undefined {

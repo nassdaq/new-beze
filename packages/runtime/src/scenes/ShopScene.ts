@@ -5,6 +5,7 @@ import { buyItem, formatMoney, sellItem, variableLabel } from '../systems/econom
 import { DEPTH, TEXT, UI } from '../ui/theme.js';
 import type { SpawnedEntity } from '../world/spawnEntity.js';
 import { OverlayScene, type OverlayButton } from './OverlayScene.js';
+import { AudioSystem } from '../audio/AudioSystem.js';
 
 export interface ShopInit {
   shop: NonNullable<SpawnedEntity['shop']>;
@@ -12,8 +13,8 @@ export interface ShopInit {
 
 type Row = { kind: 'buy' | 'sell'; variableId: string; price: number };
 
-const ROW_H = 15;
-const MAX_VISIBLE = 9;
+const ROW_H = 32;
+const MAX_VISIBLE = 8;
 
 /** Buy/sell list over item variables. Up/Down select, E or Enter trades one unit, Esc or Q closes. */
 export class ShopScene extends OverlayScene {
@@ -25,6 +26,7 @@ export class ShopScene extends OverlayScene {
   private moneyText!: Phaser.GameObjects.Text;
   private status!: Phaser.GameObjects.Text;
   private list: Phaser.GameObjects.GameObject[] = [];
+  private bar!: Phaser.GameObjects.Graphics;
 
   constructor() {
     super(SCENE_KEYS.shop);
@@ -43,13 +45,14 @@ export class ShopScene extends OverlayScene {
 
   create(): void {
     const { width, height } = this.scale;
-    const panelW = Math.min(300, width - 20);
-    const panelH = Math.min(height - 16, 62 + Math.min(this.rows.length + 2, MAX_VISIBLE + 2) * ROW_H + 26);
+    const panelW = Math.min(600, width - 40);
+    const panelH = Math.min(height - 32, 120 + Math.min(this.rows.length + 2, MAX_VISIBLE + 2) * ROW_H + 52);
     this.panel = this.setupOverlay(panelW, panelH);
     this.title(this.panel, this.shop.name);
-    this.moneyText = this.add.text(this.panel.right - 12, this.panel.y + 13, '', { ...TEXT.bold, color: UI.coin }).setOrigin(1, 0.5).setDepth(DEPTH.content);
-    this.status = this.add.text(this.panel.x + 12, this.panel.bottom - 24, '', { ...TEXT.small, color: UI.muted }).setDepth(DEPTH.content);
-    this.hint(this.panel, 'Up/Down choose · E buy or sell one · Esc close');
+    this.moneyText = this.add.text(this.panel.right - 24, this.panel.y + 28, '', { ...TEXT.bold, fontSize: '20px', color: UI.coin }).setOrigin(1, 0.5).setDepth(DEPTH.content);
+    this.status = this.add.text(this.panel.x + 24, this.panel.bottom - 44, '', { ...TEXT.small, color: UI.muted }).setDepth(DEPTH.content);
+    this.bar = this.add.graphics().setDepth(DEPTH.content);
+    this.hint(this.panel, 'Up / Down choose  ·  E buy or sell one  ·  Esc close');
     this.render();
   }
 
@@ -58,19 +61,18 @@ export class ShopScene extends OverlayScene {
     const economy = project.settings.economy;
     for (const o of this.list) o.destroy();
     this.list = [];
+    this.bar.clear();
     this.moneyText.setText(economy ? formatMoney(numberOf(state, economy.moneyVariableId), economy.currencyPrefix) : '');
 
-    const x = this.panel.x + 12;
-    const right = this.panel.right - 12;
-    let y = this.panel.y + 32;
-    const add = (o: Phaser.GameObjects.GameObject) => { this.list.push(o); (o as unknown as { setDepth(d: number): void }).setDepth(DEPTH.content); };
+    const x = this.panel.x + 24;
+    const right = this.panel.right - 24;
+    let y = this.panel.y + 64;
+    const add = (o: Phaser.GameObjects.GameObject) => { this.list.push(o); (o as unknown as { setDepth(d: number): void }).setDepth(DEPTH.top); };
     const header = (text: string) => {
-      add(this.add.text(x, y, text, { ...TEXT.small, color: UI.accent, fontStyle: 'bold' }));
-      add(this.add.rectangle(x, y + 12, right - x, 1, UI.accentInt, 0.35).setOrigin(0, 0));
+      add(this.add.text(x, y + 8, text, { ...TEXT.label, letterSpacing: 2, color: UI.accent }));
       y += ROW_H;
     };
 
-    // Keep the selected row in view.
     if (this.selected < this.scroll) this.scroll = this.selected;
     if (this.selected >= this.scroll + MAX_VISIBLE) this.scroll = this.selected - MAX_VISIBLE + 1;
     const visible = this.rows.slice(this.scroll, this.scroll + MAX_VISIBLE);
@@ -81,13 +83,13 @@ export class ShopScene extends OverlayScene {
       if (row.kind !== lastKind) { header(row.kind === 'buy' ? 'BUY' : 'SELL'); lastKind = row.kind; }
       const active = index === this.selected;
       const have = numberOf(state, row.variableId);
-      const color = active ? UI.accent : UI.text;
-      add(this.add.text(x, y, (active ? '> ' : '  ') + variableLabel(project, row.variableId), { ...TEXT.body, color }));
-      add(this.add.text(right - 58, y, `×${have}`, { ...TEXT.body, color: UI.muted }).setOrigin(1, 0));
-      add(this.add.text(right, y, economy ? formatMoney(row.price, economy.currencyPrefix) : String(row.price), { ...TEXT.body, color: active ? UI.coin : UI.text }).setOrigin(1, 0));
+      if (active) this.rowBar(this.bar, x - 10, y - 2, right - x + 20, ROW_H - 2);
+      add(this.add.text(x + 8, y + ROW_H / 2 - 1, variableLabel(project, row.variableId), { ...TEXT.body, fontSize: '18px', color: active ? UI.accent : UI.text, fontStyle: active ? '800' : '600' }).setOrigin(0, 0.5));
+      add(this.add.text(right - 110, y + ROW_H / 2 - 1, `×${have}`, { ...TEXT.body, color: UI.muted }).setOrigin(1, 0.5));
+      add(this.add.text(right, y + ROW_H / 2 - 1, economy ? formatMoney(row.price, economy.currencyPrefix) : String(row.price), { ...TEXT.bold, fontSize: '18px', color: active ? UI.coin : UI.text }).setOrigin(1, 0.5));
       y += ROW_H;
     });
-    if (this.rows.length > MAX_VISIBLE) add(this.add.text(right, y, `${this.scroll + 1}-${Math.min(this.rows.length, this.scroll + MAX_VISIBLE)} of ${this.rows.length}`, TEXT.hint).setOrigin(1, 0));
+    if (this.rows.length > MAX_VISIBLE) add(this.add.text(right, y + 4, `${this.scroll + 1}-${Math.min(this.rows.length, this.scroll + MAX_VISIBLE)} of ${this.rows.length}`, TEXT.hint).setOrigin(1, 0));
   }
 
   protected onButton(b: OverlayButton): void {
@@ -119,6 +121,7 @@ export class ShopScene extends OverlayScene {
   }
 
   private setStatus(text: string, ok: boolean): void {
+    AudioSystem.of(this)?.sfx(ok ? 'buy' : 'deny');
     this.status.setText(text).setColor(ok ? UI.good : UI.bad).setAlpha(1);
     this.tweens.killTweensOf(this.status);
     this.tweens.add({ targets: this.status, alpha: 0.4, duration: 600, delay: 1400 });

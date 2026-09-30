@@ -6,6 +6,7 @@ import { assets, repository } from '../services.js';
 import type { ProjectSummary } from '../repository/ProjectRepository.js';
 import { TEMPLATES, type GameTemplate } from '../templates.js';
 import { toast } from '../ui/Toast.js';
+import { withBase } from '../base.js';
 
 export function ProjectsPage() {
   const navigate = useNavigate();
@@ -35,13 +36,13 @@ export function ProjectsPage() {
     setCreating(t.id);
     try {
       await assets.ready();
-      const raw = await fetchTemplateJson(t.project);
+      const raw = await fetchTemplateJson(withBase(t.project));
       const parsed = parseProject(raw);
       if (!parsed.ok) {
         toast.error(`The ${t.name} template is not a valid project`, parsed.issues.slice(0, 5).map((i) => `${i.path}: ${i.message}`));
         return;
       }
-      if (t.pack) await assets.loadPack(t.pack);
+      if (t.pack) await assets.loadPack(withBase(t.pack));
       const now = new Date().toISOString();
       const project: Project = { ...parsed.value, id: newId('prj'), name: name.trim() || parsed.value.name || t.name, meta: { ...parsed.value.meta, createdAt: now, updatedAt: now } };
       await repository.save(project, null);

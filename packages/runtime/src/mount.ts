@@ -12,6 +12,9 @@ import { MapScene } from './scenes/MapScene.js';
 import { InventoryScene } from './scenes/InventoryScene.js';
 import { PauseScene } from './scenes/PauseScene.js';
 import { MobileControlsScene } from './scenes/MobileControlsScene.js';
+import { TitleScene } from './scenes/TitleScene.js';
+import { UI_SCALE } from './ui/theme.js';
+import { ensureFonts } from './ui/fonts.js';
 import { VirtualInput } from './systems/input.js';
 import { RUNTIME_VERSION } from './version.js';
 
@@ -23,6 +26,8 @@ export interface MountedGame {
 declare global {
   interface Window {
     __beze?: { state: RuntimeContext['state']; project: RuntimeContext['project']; runtimeVersion: string; game: Phaser.Game };
+    /** A host page may force the rendering quality before the runtime starts (screenshots, benchmarks). */
+    __BEZE_QUALITY?: 'high' | 'low' | 'auto';
   }
 }
 
@@ -41,20 +46,26 @@ export function mountGame(opts: RuntimeOptions): MountedGame {
     assetUrls: opts.assetUrls,
     state: initGameState(project, opts.startSceneId),
     debug: opts.debug ?? false,
+    title: opts.title ?? project.settings.presentation?.titleScreen ?? true,
+    quality: opts.quality ?? window.__BEZE_QUALITY ?? 'auto',
     emit: (e) => opts.onEvent?.(e),
   };
+  void ensureFonts();
 
+  // The canvas is UI_SCALE× the document's viewport: the world camera zooms by the same factor (tiles keep their
+  // on-screen size) while text, panels, lights and post-effects get the extra resolution.
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: opts.container,
-    width: project.settings.viewport.width,
-    height: project.settings.viewport.height,
+    width: project.settings.viewport.width * UI_SCALE,
+    height: project.settings.viewport.height * UI_SCALE,
     pixelArt: project.settings.pixelArt,
     roundPixels: true,
     backgroundColor: project.settings.backgroundColor,
     physics: { default: 'arcade', arcade: { debug: false } },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    audio: { noAudio: true },
+    render: { maxLights: 24, antialias: !project.settings.pixelArt },
+    audio: { disableWebAudio: false },
     input: { keyboard: true, mouse: true, touch: true, activePointers: 4 },
     banner: false,
   });
@@ -62,6 +73,7 @@ export function mountGame(opts: RuntimeOptions): MountedGame {
   game.registry.set('input', new VirtualInput());
   // Scene order is render order: the HUD sits over the world and the dialogue box, menus over the HUD, and the
   // on-screen controls over everything so they stay usable inside a menu.
+  game.scene.add('title', TitleScene, false);
   game.scene.add('world', WorldScene, false);
   game.scene.add('dialogue', DialogueScene, false);
   game.scene.add('hud', HudScene, false);

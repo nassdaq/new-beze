@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { ctxOf, KEYS, SCENE_KEYS } from '../context.js';
 import { hasTouch } from '../systems/input.js';
+import { ensureFonts } from '../ui/fonts.js';
+import { AudioSystem } from '../audio/AudioSystem.js';
 
 /** Loads every asset the project references, builds animations, then starts the world. */
 export class BootScene extends Phaser.Scene {
@@ -27,6 +29,15 @@ export class BootScene extends Phaser.Scene {
       for (const n of Object.values(d.nodes)) if (n.type === 'line' && n.portraitAssetId) this.loadImageOnce(n.portraitAssetId);
     }
     for (const s of Object.values(project.scenes)) if (s.backgroundAssetId) this.loadImageOnce(s.backgroundAssetId);
+    if (project.settings.presentation?.titleBackgroundAssetId) this.loadImageOnce(project.settings.presentation.titleBackgroundAssetId);
+    // Uploaded music: the project-wide track and any per-scene tracks.
+    const music = new Set<string>();
+    if (project.settings.audio?.musicAssetId) music.add(project.settings.audio.musicAssetId);
+    for (const s of Object.values(project.scenes)) if (s.musicAssetId) music.add(s.musicAssetId);
+    for (const id of music) {
+      const u = url(id);
+      if (u) this.load.audio(KEYS.audio(id), u);
+    }
 
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
       ctxOf(this).emit({ type: 'error', message: `failed to load asset for ${file.key}` });
@@ -43,6 +54,8 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     const ctx = ctxOf(this);
+    if (ctx.quality === 'auto') ctx.quality = softwareRenderer(this.sys.game) ? 'low' : 'high';
+    if (!this.registry.has('audio')) this.registry.set('audio', new AudioSystem(this.sys.game, ctx.project));
     for (const c of Object.values(ctx.project.characters)) {
       for (const [name, def] of Object.entries(c.animations)) {
         if (!def) continue;
@@ -55,9 +68,30 @@ export class BootScene extends Phaser.Scene {
       }
     }
     ctx.emit({ type: 'loaded' });
-    // The HUD and the on-screen controls run for the whole session, beside whichever world scene is current.
-    this.scene.launch(SCENE_KEYS.hud);
-    if (hasTouch()) this.scene.launch(SCENE_KEYS.mobile);
-    this.scene.start(SCENE_KEYS.world, { sceneId: ctx.state.currentSceneId });
+    // Interface text waits for the bundled fonts. The HUD and the on-screen controls run for the whole session,
+    // beside whichever world scene is current; the title screen (when enabled) launches them itself.
+    void ensureFonts().then(() => {
+      if (!this.scene.isActive(SCENE_KEYS.boot)) return;
+      if (ctx.title) {
+        this.scene.start(SCENE_KEYS.title);
+        return;
+      }
+      this.scene.launch(SCENE_KEYS.hud);
+      if (hasTouch()) this.scene.launch(SCENE_KEYS.mobile);
+      this.scene.start(SCENE_KEYS.world, { sceneId: ctx.state.currentSceneId });
+    });
+  }
+}
+
+/** True on CPU-side GL implementations (headless test browsers, VMs), where lights and post-effects are too slow. */
+function softwareRenderer(game: Phaser.Game): boolean {
+  const gl = (game.renderer as { gl?: WebGLRenderingContext }).gl;
+  if (!gl) return true;
+  try {
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+    return /swiftshader|llvmpipe|softpipe|software|mesa offscreen/i.test(name);
+  } catch {
+    return false;
   }
 }

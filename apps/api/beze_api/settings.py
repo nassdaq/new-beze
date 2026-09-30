@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     jobs_per_minute_per_ip: int = 10
     job_ttl_seconds: int = 3600
 
+    # Pixabay API key for the editor's "Find art" (photos and illustrations for backdrops). Empty disables it.
+    pixabay_api_key: str = ""
+
     # Where the generated operation schemas live (repo root /schemas by default).
     schemas_dir: Path = Path(__file__).resolve().parents[3] / "schemas"
 

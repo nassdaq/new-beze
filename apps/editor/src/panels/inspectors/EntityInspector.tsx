@@ -6,6 +6,7 @@ import { AssetImagePreview, SpritePreview } from '../../ui/SpritePreview.js';
 import { toast } from '../../ui/Toast.js';
 import { EntityActions } from './EntityActions.js';
 import { CityComponents } from './CityComponents.js';
+import { LightFields } from './LightFields.js';
 
 export function EntityInspector({ sceneId, entityId }: { sceneId: string; entityId: string }) {
   const project = useProject();
@@ -86,9 +87,29 @@ export function EntityInspector({ sceneId, entityId }: { sceneId: string; entity
       <label className="check"><input type="checkbox" checked={isPlayer} onChange={(e) => setPlayer(e.target.checked)} /> Player (arrow keys move it)</label>
       <label className="check"><input type="checkbox" checked={body?.type === 'body' ? body.solid : false} onChange={(e) => run('Solid', [{ op: 'setComponent', sceneId, entityId, component: { type: 'body', solid: e.target.checked } }])} /> Solid (blocks movement)</label>
       {isPlayer && player?.type === 'playerControl' && (
-        <Field label="Attack damage per swing">
-          <input type="number" min={1} max={9999} value={player.attackDamage ?? 1} onChange={(e) => run('Attack damage', [{ op: 'setComponent', sceneId, entityId, component: { type: 'playerControl', ...(player.speed !== undefined ? { speed: player.speed } : {}), attackDamage: Math.max(1, Math.round(Number(e.target.value)) || 1) } }])} />
-        </Field>
+        <>
+          <Field label="Attack damage per swing">
+            <input type="number" min={1} max={9999} value={player.attackDamage ?? 1} onChange={(e) => run('Attack damage', [{ op: 'setComponent', sceneId, entityId, component: { ...player, attackDamage: Math.max(1, Math.round(Number(e.target.value)) || 1) } }])} />
+          </Field>
+          <label className="check"><input type="checkbox" checked={player.climb ?? false} data-testid="player-climb" onChange={(e) => run(e.target.checked ? 'Can climb' : 'Cannot climb', [{ op: 'setComponent', sceneId, entityId, component: { ...player, climb: e.target.checked } }])} /> Climbs walls and roofs (blue collision tiles)</label>
+          <Field label="Danger sense range (px, 0 = off)">
+            <input type="number" min={0} max={4000} value={player.senseRadius ?? 0} onChange={(e) => { const v = Math.max(0, Math.round(Number(e.target.value)) || 0); const { senseRadius: _s, ...rest } = player; run('Danger sense', [{ op: 'setComponent', sceneId, entityId, component: v > 0 ? { ...rest, senseRadius: v } : rest }]); }} />
+          </Field>
+          <label className="check"><input type="checkbox" checked={player.ability?.type === 'web'} data-testid="player-web" onChange={(e) => { const { ability: _a, ...rest } = player; run(e.target.checked ? 'Web shooter' : 'No ability', [{ op: 'setComponent', sceneId, entityId, component: e.target.checked ? { ...rest, ability: { type: 'web', rangeTiles: 6, damage: 0, cooldownMs: 700, stunMs: 2500, zip: true } } : rest }]); }} /> Web shooter (ability key: web enemies, zip to walls)</label>
+          {player.ability?.type === 'web' && (
+            <>
+              <div className="field-row">
+                <Field label="Range (tiles)"><input type="number" min={1} max={16} value={player.ability.rangeTiles} onChange={(e) => run('Web range', [{ op: 'setComponent', sceneId, entityId, component: { ...player, ability: { ...player.ability!, rangeTiles: Math.min(16, Math.max(1, Math.round(Number(e.target.value)) || 1)) } } }])} /></Field>
+                <Field label="Damage"><input type="number" min={0} max={9999} value={player.ability.damage} onChange={(e) => run('Web damage', [{ op: 'setComponent', sceneId, entityId, component: { ...player, ability: { ...player.ability!, damage: Math.max(0, Math.round(Number(e.target.value)) || 0) } } }])} /></Field>
+              </div>
+              <div className="field-row">
+                <Field label="Cooldown (ms)"><input type="number" min={1} max={60000} value={player.ability.cooldownMs} onChange={(e) => run('Web cooldown', [{ op: 'setComponent', sceneId, entityId, component: { ...player, ability: { ...player.ability!, cooldownMs: Math.max(1, Math.round(Number(e.target.value)) || 1) } } }])} /></Field>
+                <Field label="Webbed for (ms)"><input type="number" min={0} max={60000} value={player.ability.stunMs} onChange={(e) => run('Web stun', [{ op: 'setComponent', sceneId, entityId, component: { ...player, ability: { ...player.ability!, stunMs: Math.max(0, Math.round(Number(e.target.value)) || 0) } } }])} /></Field>
+              </div>
+              <label className="check"><input type="checkbox" checked={player.ability.zip} onChange={(e) => run('Web zip', [{ op: 'setComponent', sceneId, entityId, component: { ...player, ability: { ...player.ability!, zip: e.target.checked } } }])} /> Zip to the wall it hits</label>
+            </>
+          )}
+        </>
       )}
       <label className="check"><input type="checkbox" checked={health?.type === 'health'} data-testid="entity-health" onChange={(e) => e.target.checked
         ? run('Add health', [{ op: 'setComponent', sceneId, entityId, component: { type: 'health', max: 3 } }])
@@ -137,6 +158,7 @@ export function EntityInspector({ sceneId, entityId }: { sceneId: string; entity
           {portraitId && <AssetImagePreview assetId={portraitId} size={40} className="portrait-preview" title={`${character?.name ?? 'Character'} portrait, shown in dialogue`} />}
         </div>
       )}
+      <LightFields sceneId={sceneId} entityId={entityId} />
       {!isPlayer && (
         <>
           <EntityActions sceneId={sceneId} entityId={entityId} />

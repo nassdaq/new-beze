@@ -16,11 +16,16 @@ function isSolid(project: Project, tilesetId: string, local: number): boolean {
   return !!project.tilesets[tilesetId]?.tileProperties[String(local)]?.solid;
 }
 
+/** The auto-collision cell for a solid tile: climbable tiles (walls, roofs) get collision value 2. */
+function solidCell(project: Project, tilesetId: string, local: number, x: number, y: number): { x: number; y: number; solid: boolean; climbable?: boolean } {
+  return project.tilesets[tilesetId]?.tileProperties[String(local)]?.climbable ? { x, y, solid: true, climbable: true } : { x, y, solid: true };
+}
+
 /** Operations for one single-tile paint: the tile plus, with auto collision, a solid mark when the tile is solid. */
 export function tileOperations(project: Project, map: TileMap, layerId: string, cell: Cell, autoCollision: boolean): Operation[] {
   const ops: Operation[] = [{ op: 'paintTiles', mapId: map.id, layerId, cells: [cell] }];
   const t = cell.gid > 0 ? localTile(project, map, cell.gid) : null;
-  if (autoCollision && t && isSolid(project, t.tilesetId, t.local)) ops.push({ op: 'setCollision', mapId: map.id, cells: [{ x: cell.x, y: cell.y, solid: true }] });
+  if (autoCollision && t && isSolid(project, t.tilesetId, t.local)) ops.push({ op: 'setCollision', mapId: map.id, cells: [solidCell(project, t.tilesetId, t.local, cell.x, cell.y)] });
   return ops;
 }
 
@@ -49,7 +54,7 @@ export function stampOperations(project: Project, map: TileMap, ref: { tilesetId
   const groundLayerId = objectLayerId(map, activeLayerId);
   const aboveLayerId = [...map.layers].reverse().find((l) => l.aboveEntities)?.id ?? groundLayerId;
   const byLayer = new Map<string, Cell[]>();
-  const solid: { x: number; y: number; solid: boolean }[] = [];
+  const solid: { x: number; y: number; solid: boolean; climbable?: boolean }[] = [];
   stamp.tiles.forEach((local, i) => {
     if (local < 0) return;
     const x = anchor.x + (i % stamp.width);
@@ -59,7 +64,7 @@ export function stampOperations(project: Project, map: TileMap, ref: { tilesetId
     const cells = byLayer.get(layerId) ?? [];
     cells.push({ x, y, gid: tsRef.firstGid + local });
     byLayer.set(layerId, cells);
-    if (autoCollision && isSolid(project, ref.tilesetId, local)) solid.push({ x, y, solid: true });
+    if (autoCollision && isSolid(project, ref.tilesetId, local)) solid.push(solidCell(project, ref.tilesetId, local, x, y));
   });
   const ops: Operation[] = [];
   for (const [layerId, cells] of byLayer) ops.push({ op: 'paintTiles', mapId: map.id, layerId, cells });
@@ -138,7 +143,9 @@ export class CollisionTool implements Tool {
     const cellKey = `${p.tile.x},${p.tile.y}`;
     if (cellKey === this.last) return;
     this.last = cellKey;
-    const solid = (ctx.store.collisionMode === 'solid') !== p.shiftKey;
-    ctx.store.dispatch('Edit collision', [{ op: 'setCollision', mapId: ctx.map.id, cells: [{ x: p.tile.x, y: p.tile.y, solid }] }], { coalesceKey: this.key });
+    const mode = ctx.store.collisionMode;
+    const solid = (mode !== 'clear') !== p.shiftKey;
+    const cell = solid && mode === 'climb' ? { x: p.tile.x, y: p.tile.y, solid: true, climbable: true } : { x: p.tile.x, y: p.tile.y, solid };
+    ctx.store.dispatch('Edit collision', [{ op: 'setCollision', mapId: ctx.map.id, cells: [cell] }], { coalesceKey: this.key });
   }
 }

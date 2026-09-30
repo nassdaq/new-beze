@@ -3,6 +3,7 @@ import { SCHEMA_VERSION } from '@beze/project-schema';
 import { useEditor } from '../store/editorStore.js';
 import { assets } from '../services.js';
 import type { EditorToRuntime, RuntimeToEditor } from './protocol.js';
+import { withBase } from '../base.js';
 
 /**
  * Hosts the runtime in a sandboxed iframe. No `allow-same-origin`, so the game cannot reach
@@ -27,7 +28,8 @@ export function PlayPanel() {
           const project = useEditor.getState().project;
           if (!project) return;
           const assetUrls = await assets.dataUrls(Object.keys(project.assets));
-          send({ type: 'beze:load', project, assetUrls, options: { debug: true } });
+          // The editor's preview skips the title screen for quick iteration; exports show it.
+          send({ type: 'beze:load', project, assetUrls, options: { debug: true, title: false } });
           break;
         }
         case 'beze:loaded':
@@ -56,7 +58,7 @@ export function PlayPanel() {
         <button className="danger small" onClick={() => setPlay({ status: 'stopped', error: null })}>Stop</button>
       </div>
       {error && <pre className="play-error">{error}</pre>}
-      <iframe ref={iframeRef} title="Game preview" className="play-frame" src="/runtime/index.html" sandbox="allow-scripts" onLoad={() => iframeRef.current?.focus()} />
+      <iframe ref={iframeRef} title="Game preview" className="play-frame" src={withBase("/runtime/index.html")} sandbox="allow-scripts" onLoad={() => iframeRef.current?.focus()} />
     </div>
   );
 }

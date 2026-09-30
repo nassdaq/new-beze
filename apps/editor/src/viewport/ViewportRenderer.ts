@@ -172,9 +172,11 @@ export class ViewportRenderer {
   }
 
   private drawCollision(map: TileMap, origin: Point, z: number): void {
-    this.ctx.fillStyle = 'rgba(239, 68, 68, 0.45)';
+    // Solid in red; climbable-solid (v4) in blue.
     for (let i = 0; i < map.collision.length; i++) {
-      if (map.collision[i] !== 1) continue;
+      const v = map.collision[i];
+      if (v !== 1 && v !== 2) continue;
+      this.ctx.fillStyle = v === 2 ? 'rgba(59, 130, 246, 0.45)' : 'rgba(239, 68, 68, 0.45)';
       const x = (i % map.width) * map.tileWidth;
       const y = Math.floor(i / map.width) * map.tileHeight;
       this.ctx.fillRect(origin.x + x * z, origin.y + y * z, map.tileWidth * z, map.tileHeight * z);

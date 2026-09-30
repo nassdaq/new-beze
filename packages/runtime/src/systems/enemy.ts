@@ -24,7 +24,17 @@ export function updateEnemy(scene: Phaser.Scene, e: SpawnedEntity, player: Spawn
   if (!en || !sprite || e.defeated) return;
   sprite.setDepth(sprite.y);
   if (now < e.knockbackUntil) return;
+  // Webbed: frozen in place until the web system releases it.
+  if (now < e.stunnedUntil) {
+    sprite.setVelocity(0, 0);
+    return;
+  }
 
+  if (en.enraged) {
+    const pulse = Math.floor(now / 260) % 2 === 0;
+    if (!sprite.isTinted || sprite.tintTopLeft === 0xff8f8f || sprite.tintTopLeft === 0xffffff) sprite.setTint(pulse ? 0xff8f8f : 0xffffff);
+  }
+  const rage = en.enraged ? 1.35 : 1;
   if (en.phase !== 'chase') {
     if (now < en.phaseUntil) {
       if (en.phase !== 'lunge') sprite.setVelocity(0, 0);
@@ -66,8 +76,8 @@ export function updateEnemy(scene: Phaser.Scene, e: SpawnedEntity, player: Spawn
         animate(e, 0, 0);
         return;
       }
-      const vx = (dx / dist) * en.speed;
-      const vy = (dy / dist) * en.speed;
+      const vx = (dx / dist) * en.speed * rage;
+      const vy = (dy / dist) * en.speed * rage;
       sprite.setVelocity(vx, vy);
       animate(e, vx, vy);
       return;
@@ -84,10 +94,11 @@ export function updateEnemy(scene: Phaser.Scene, e: SpawnedEntity, player: Spawn
 function startWindup(scene: Phaser.Scene, e: SpawnedEntity, dx: number, dy: number, now: number): void {
   const en = e.enemy!;
   const sprite = e.sprite!;
-  en.nextAttackAt = now + en.attackCooldownMs;
+  en.nextAttackAt = now + en.attackCooldownMs * (en.enraged ? 0.65 : 1);
   en.phase = 'windup';
   en.phaseUntil = now + WINDUP_MS;
   en.struck = false;
+  en.sensed = false;
   sprite.setVelocity(0, 0);
   e.facing = facingFromVelocity(dx, dy, e.facing);
   const anim = attackAnimation(e, e.facing);
